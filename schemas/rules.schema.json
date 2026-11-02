@@ -1,0 +1,1037 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rules.schema.json",
+  "title": "RuleFile",
+  "$defs": {
+    "AbsoluteTime": {
+      "description": "A fixed point in time. Naive datetimes are taken as UTC.",
+      "properties": {
+        "relative": {
+          "const": false,
+          "default": false,
+          "title": "Relative",
+          "type": "boolean"
+        },
+        "value": {
+          "format": "date-time",
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "title": "AbsoluteTime",
+      "type": "object"
+    },
+    "AddressCondition": {
+      "additionalProperties": false,
+      "description": "Compares an address field, at the granularity given by `part`.",
+      "properties": {
+        "type": {
+          "const": "address",
+          "default": "address",
+          "title": "Type",
+          "type": "string"
+        },
+        "field": {
+          "$ref": "#/$defs/AddressField"
+        },
+        "part": {
+          "$ref": "#/$defs/AddressPart",
+          "default": "address"
+        },
+        "operator": {
+          "$ref": "#/$defs/TextOperator"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "title": "Value"
+        },
+        "case_sensitive": {
+          "default": false,
+          "title": "Case Sensitive",
+          "type": "boolean"
+        },
+        "quantifier": {
+          "$ref": "#/$defs/Quantifier",
+          "default": "any"
+        }
+      },
+      "required": [
+        "field",
+        "operator",
+        "value"
+      ],
+      "title": "AddressCondition",
+      "type": "object"
+    },
+    "AddressField": {
+      "description": "Fields holding one or more email addresses.",
+      "enum": [
+        "from",
+        "sender",
+        "reply_to",
+        "return_path",
+        "to",
+        "cc",
+        "bcc",
+        "recipients",
+        "delivered_to"
+      ],
+      "title": "AddressField",
+      "type": "string"
+    },
+    "AddressPart": {
+      "description": "Which part of an address to compare, so rules can match `Max <m@example.com>` at the wanted granularity.",
+      "enum": [
+        "full",
+        "name",
+        "address",
+        "local_part",
+        "domain"
+      ],
+      "title": "AddressPart",
+      "type": "string"
+    },
+    "AllExpression": {
+      "additionalProperties": false,
+      "description": "AND: true if every nested expression is true.",
+      "properties": {
+        "type": {
+          "const": "all",
+          "default": "all",
+          "title": "Type",
+          "type": "string"
+        },
+        "conditions": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "address": "#/$defs/AddressCondition",
+                "all": "#/$defs/AllExpression",
+                "any": "#/$defs/AnyExpression",
+                "bool": "#/$defs/BoolCondition",
+                "date": "#/$defs/DateCondition",
+                "header": "#/$defs/HeaderCondition",
+                "not": "#/$defs/NotExpression",
+                "number": "#/$defs/NumberCondition",
+                "presence": "#/$defs/PresenceCondition",
+                "text": "#/$defs/TextCondition"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/AllExpression"
+              },
+              {
+                "$ref": "#/$defs/AnyExpression"
+              },
+              {
+                "$ref": "#/$defs/NotExpression"
+              },
+              {
+                "$ref": "#/$defs/TextCondition"
+              },
+              {
+                "$ref": "#/$defs/HeaderCondition"
+              },
+              {
+                "$ref": "#/$defs/AddressCondition"
+              },
+              {
+                "$ref": "#/$defs/NumberCondition"
+              },
+              {
+                "$ref": "#/$defs/DateCondition"
+              },
+              {
+                "$ref": "#/$defs/BoolCondition"
+              },
+              {
+                "$ref": "#/$defs/PresenceCondition"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Conditions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "conditions"
+      ],
+      "title": "AllExpression",
+      "type": "object"
+    },
+    "AnyExpression": {
+      "additionalProperties": false,
+      "description": "OR: true if at least one nested expression is true.",
+      "properties": {
+        "type": {
+          "const": "any",
+          "default": "any",
+          "title": "Type",
+          "type": "string"
+        },
+        "conditions": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "address": "#/$defs/AddressCondition",
+                "all": "#/$defs/AllExpression",
+                "any": "#/$defs/AnyExpression",
+                "bool": "#/$defs/BoolCondition",
+                "date": "#/$defs/DateCondition",
+                "header": "#/$defs/HeaderCondition",
+                "not": "#/$defs/NotExpression",
+                "number": "#/$defs/NumberCondition",
+                "presence": "#/$defs/PresenceCondition",
+                "text": "#/$defs/TextCondition"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/AllExpression"
+              },
+              {
+                "$ref": "#/$defs/AnyExpression"
+              },
+              {
+                "$ref": "#/$defs/NotExpression"
+              },
+              {
+                "$ref": "#/$defs/TextCondition"
+              },
+              {
+                "$ref": "#/$defs/HeaderCondition"
+              },
+              {
+                "$ref": "#/$defs/AddressCondition"
+              },
+              {
+                "$ref": "#/$defs/NumberCondition"
+              },
+              {
+                "$ref": "#/$defs/DateCondition"
+              },
+              {
+                "$ref": "#/$defs/BoolCondition"
+              },
+              {
+                "$ref": "#/$defs/PresenceCondition"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Conditions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "conditions"
+      ],
+      "title": "AnyExpression",
+      "type": "object"
+    },
+    "BoolCondition": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "bool",
+          "default": "bool",
+          "title": "Type",
+          "type": "string"
+        },
+        "field": {
+          "$ref": "#/$defs/BoolField"
+        },
+        "value": {
+          "default": true,
+          "title": "Value",
+          "type": "boolean"
+        },
+        "quantifier": {
+          "$ref": "#/$defs/Quantifier",
+          "default": "any"
+        }
+      },
+      "required": [
+        "field"
+      ],
+      "title": "BoolCondition",
+      "type": "object"
+    },
+    "BoolField": {
+      "description": "Boolean fields.",
+      "enum": [
+        "seen",
+        "flagged",
+        "answered",
+        "draft",
+        "deleted",
+        "spam_flag",
+        "is_reply",
+        "has_list_unsubscribe",
+        "attachment_inline"
+      ],
+      "title": "BoolField",
+      "type": "string"
+    },
+    "CompareOperator": {
+      "enum": [
+        "eq",
+        "ne",
+        "lt",
+        "gt",
+        "gte",
+        "lte",
+        "between"
+      ],
+      "title": "CompareOperator",
+      "type": "string"
+    },
+    "DateCondition": {
+      "additionalProperties": false,
+      "description": "Compares a date. A relative value `7d` is the moment 7 days before now.",
+      "properties": {
+        "type": {
+          "const": "date",
+          "default": "date",
+          "title": "Type",
+          "type": "string"
+        },
+        "field": {
+          "$ref": "#/$defs/DateField"
+        },
+        "operator": {
+          "$ref": "#/$defs/CompareOperator"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "false": "#/$defs/AbsoluteTime",
+                  "true": "#/$defs/RelativeDuration"
+                },
+                "propertyName": "relative"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/AbsoluteTime"
+                },
+                {
+                  "$ref": "#/$defs/RelativeDuration"
+                }
+              ]
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "discriminator": {
+                    "mapping": {
+                      "false": "#/$defs/AbsoluteTime",
+                      "true": "#/$defs/RelativeDuration"
+                    },
+                    "propertyName": "relative"
+                  },
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/AbsoluteTime"
+                    },
+                    {
+                      "$ref": "#/$defs/RelativeDuration"
+                    }
+                  ]
+                },
+                {
+                  "discriminator": {
+                    "mapping": {
+                      "false": "#/$defs/AbsoluteTime",
+                      "true": "#/$defs/RelativeDuration"
+                    },
+                    "propertyName": "relative"
+                  },
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/AbsoluteTime"
+                    },
+                    {
+                      "$ref": "#/$defs/RelativeDuration"
+                    }
+                  ]
+                }
+              ],
+              "type": "array"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "field",
+        "operator",
+        "value"
+      ],
+      "title": "DateCondition",
+      "type": "object"
+    },
+    "DateField": {
+      "description": "Date and time fields.",
+      "enum": [
+        "date_sent",
+        "date_received"
+      ],
+      "title": "DateField",
+      "type": "string"
+    },
+    "FlagAction": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "flag",
+          "default": "flag",
+          "title": "Type",
+          "type": "string"
+        },
+        "value": {
+          "default": true,
+          "title": "Value",
+          "type": "boolean"
+        }
+      },
+      "title": "FlagAction",
+      "type": "object"
+    },
+    "HeaderCondition": {
+      "additionalProperties": false,
+      "description": "Compares any header by name, for fields without a dedicated entry. Multiple headers of that name are quantified.",
+      "properties": {
+        "type": {
+          "const": "header",
+          "default": "header",
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "operator": {
+          "$ref": "#/$defs/TextOperator"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "title": "Value"
+        },
+        "case_sensitive": {
+          "default": false,
+          "title": "Case Sensitive",
+          "type": "boolean"
+        },
+        "quantifier": {
+          "$ref": "#/$defs/Quantifier",
+          "default": "any"
+        }
+      },
+      "required": [
+        "name",
+        "operator",
+        "value"
+      ],
+      "title": "HeaderCondition",
+      "type": "object"
+    },
+    "KeywordAction": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "keyword",
+          "default": "keyword",
+          "title": "Type",
+          "type": "string"
+        },
+        "keyword": {
+          "minLength": 1,
+          "title": "Keyword",
+          "type": "string"
+        },
+        "value": {
+          "default": true,
+          "title": "Value",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "keyword"
+      ],
+      "title": "KeywordAction",
+      "type": "object"
+    },
+    "Location": {
+      "additionalProperties": false,
+      "description": "Where a rule applies. The account is referenced by its immutable id, never by its changeable name.",
+      "properties": {
+        "account_id": {
+          "format": "uuid",
+          "title": "Account Id",
+          "type": "string"
+        },
+        "folder": {
+          "default": "INBOX",
+          "title": "Folder",
+          "type": "string"
+        },
+        "recursive": {
+          "default": false,
+          "title": "Recursive",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "account_id"
+      ],
+      "title": "Location",
+      "type": "object"
+    },
+    "MarkReadAction": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "mark_read",
+          "default": "mark_read",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "MarkReadAction",
+      "type": "object"
+    },
+    "MarkUnreadAction": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "mark_unread",
+          "default": "mark_unread",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "MarkUnreadAction",
+      "type": "object"
+    },
+    "MoveAction": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "move",
+          "default": "move",
+          "title": "Type",
+          "type": "string"
+        },
+        "folder": {
+          "title": "Folder",
+          "type": "string"
+        },
+        "account_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Target account; the mail's own account if unset.",
+          "title": "Account Id"
+        }
+      },
+      "required": [
+        "folder"
+      ],
+      "title": "MoveAction",
+      "type": "object"
+    },
+    "NotExpression": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "not",
+          "default": "not",
+          "title": "Type",
+          "type": "string"
+        },
+        "condition": {
+          "discriminator": {
+            "mapping": {
+              "address": "#/$defs/AddressCondition",
+              "all": "#/$defs/AllExpression",
+              "any": "#/$defs/AnyExpression",
+              "bool": "#/$defs/BoolCondition",
+              "date": "#/$defs/DateCondition",
+              "header": "#/$defs/HeaderCondition",
+              "not": "#/$defs/NotExpression",
+              "number": "#/$defs/NumberCondition",
+              "presence": "#/$defs/PresenceCondition",
+              "text": "#/$defs/TextCondition"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/AllExpression"
+            },
+            {
+              "$ref": "#/$defs/AnyExpression"
+            },
+            {
+              "$ref": "#/$defs/NotExpression"
+            },
+            {
+              "$ref": "#/$defs/TextCondition"
+            },
+            {
+              "$ref": "#/$defs/HeaderCondition"
+            },
+            {
+              "$ref": "#/$defs/AddressCondition"
+            },
+            {
+              "$ref": "#/$defs/NumberCondition"
+            },
+            {
+              "$ref": "#/$defs/DateCondition"
+            },
+            {
+              "$ref": "#/$defs/BoolCondition"
+            },
+            {
+              "$ref": "#/$defs/PresenceCondition"
+            }
+          ],
+          "title": "Condition"
+        }
+      },
+      "required": [
+        "condition"
+      ],
+      "title": "NotExpression",
+      "type": "object"
+    },
+    "NumberCondition": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "number",
+          "default": "number",
+          "title": "Type",
+          "type": "string"
+        },
+        "field": {
+          "$ref": "#/$defs/NumberField"
+        },
+        "operator": {
+          "$ref": "#/$defs/CompareOperator"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            }
+          ],
+          "title": "Value"
+        },
+        "quantifier": {
+          "$ref": "#/$defs/Quantifier",
+          "default": "any"
+        }
+      },
+      "required": [
+        "field",
+        "operator",
+        "value"
+      ],
+      "title": "NumberCondition",
+      "type": "object"
+    },
+    "NumberField": {
+      "description": "Numeric fields.",
+      "enum": [
+        "size",
+        "spam_score",
+        "attachments_count",
+        "attachment_size",
+        "uid",
+        "modseq"
+      ],
+      "title": "NumberField",
+      "type": "string"
+    },
+    "PresenceCondition": {
+      "additionalProperties": false,
+      "description": "Tests whether a field or header is there (`exists`) or there but without content (`empty`).",
+      "properties": {
+        "type": {
+          "const": "presence",
+          "default": "presence",
+          "title": "Type",
+          "type": "string"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextField"
+            },
+            {
+              "$ref": "#/$defs/AddressField"
+            },
+            {
+              "$ref": "#/$defs/NumberField"
+            },
+            {
+              "$ref": "#/$defs/DateField"
+            },
+            {
+              "$ref": "#/$defs/BoolField"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Field"
+        },
+        "header": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Header"
+        },
+        "operator": {
+          "$ref": "#/$defs/PresenceOperator",
+          "default": "exists"
+        },
+        "value": {
+          "default": true,
+          "title": "Value",
+          "type": "boolean"
+        }
+      },
+      "title": "PresenceCondition",
+      "type": "object"
+    },
+    "PresenceOperator": {
+      "enum": [
+        "exists",
+        "empty"
+      ],
+      "title": "PresenceOperator",
+      "type": "string"
+    },
+    "Quantifier": {
+      "description": "For multi-valued fields: how many of the values need to match.",
+      "enum": [
+        "any",
+        "all",
+        "none"
+      ],
+      "title": "Quantifier",
+      "type": "string"
+    },
+    "RelativeDuration": {
+      "description": "A moment this long before now, e.g. `7d`: `date_received lt 7d` means received more than a week ago.",
+      "properties": {
+        "relative": {
+          "const": true,
+          "title": "Relative",
+          "type": "boolean"
+        },
+        "value": {
+          "description": "A number and a unit: s, m, h, d or w.",
+          "pattern": "^(\\d+)([smhdw])$",
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relative",
+        "value"
+      ],
+      "title": "RelativeDuration",
+      "type": "object"
+    },
+    "Rule": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "locations": {
+          "items": {
+            "$ref": "#/$defs/Location"
+          },
+          "minItems": 1,
+          "title": "Locations",
+          "type": "array"
+        },
+        "when": {
+          "discriminator": {
+            "mapping": {
+              "address": "#/$defs/AddressCondition",
+              "all": "#/$defs/AllExpression",
+              "any": "#/$defs/AnyExpression",
+              "bool": "#/$defs/BoolCondition",
+              "date": "#/$defs/DateCondition",
+              "header": "#/$defs/HeaderCondition",
+              "not": "#/$defs/NotExpression",
+              "number": "#/$defs/NumberCondition",
+              "presence": "#/$defs/PresenceCondition",
+              "text": "#/$defs/TextCondition"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/AllExpression"
+            },
+            {
+              "$ref": "#/$defs/AnyExpression"
+            },
+            {
+              "$ref": "#/$defs/NotExpression"
+            },
+            {
+              "$ref": "#/$defs/TextCondition"
+            },
+            {
+              "$ref": "#/$defs/HeaderCondition"
+            },
+            {
+              "$ref": "#/$defs/AddressCondition"
+            },
+            {
+              "$ref": "#/$defs/NumberCondition"
+            },
+            {
+              "$ref": "#/$defs/DateCondition"
+            },
+            {
+              "$ref": "#/$defs/BoolCondition"
+            },
+            {
+              "$ref": "#/$defs/PresenceCondition"
+            }
+          ],
+          "title": "When"
+        },
+        "actions": {
+          "description": "Parsed only; nothing executes them yet.",
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "flag": "#/$defs/FlagAction",
+                "keyword": "#/$defs/KeywordAction",
+                "mark_read": "#/$defs/MarkReadAction",
+                "mark_unread": "#/$defs/MarkUnreadAction",
+                "move": "#/$defs/MoveAction"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/MoveAction"
+              },
+              {
+                "$ref": "#/$defs/MarkReadAction"
+              },
+              {
+                "$ref": "#/$defs/MarkUnreadAction"
+              },
+              {
+                "$ref": "#/$defs/FlagAction"
+              },
+              {
+                "$ref": "#/$defs/KeywordAction"
+              }
+            ]
+          },
+          "title": "Actions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "locations",
+        "when"
+      ],
+      "title": "Rule",
+      "type": "object"
+    },
+    "TextCondition": {
+      "additionalProperties": false,
+      "description": "Compares a text field. `case_sensitive` is available for every operator.",
+      "properties": {
+        "type": {
+          "const": "text",
+          "default": "text",
+          "title": "Type",
+          "type": "string"
+        },
+        "field": {
+          "$ref": "#/$defs/TextField"
+        },
+        "operator": {
+          "$ref": "#/$defs/TextOperator"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "title": "Value"
+        },
+        "case_sensitive": {
+          "default": false,
+          "title": "Case Sensitive",
+          "type": "boolean"
+        },
+        "quantifier": {
+          "$ref": "#/$defs/Quantifier",
+          "default": "any"
+        }
+      },
+      "required": [
+        "field",
+        "operator",
+        "value"
+      ],
+      "title": "TextCondition",
+      "type": "object"
+    },
+    "TextField": {
+      "description": "Fields holding one text value or a list of them.",
+      "enum": [
+        "account_id",
+        "folder",
+        "subject",
+        "body_text",
+        "body_html",
+        "message_id",
+        "in_reply_to",
+        "references",
+        "list_id",
+        "auto_submitted",
+        "precedence",
+        "importance",
+        "mime_type",
+        "keywords",
+        "auth_spf",
+        "auth_dkim",
+        "auth_dmarc",
+        "attachment_mime_type",
+        "attachment_filename",
+        "attachment_extension"
+      ],
+      "title": "TextField",
+      "type": "string"
+    },
+    "TextOperator": {
+      "enum": [
+        "equals",
+        "contains",
+        "startswith",
+        "endswith",
+        "regex",
+        "glob",
+        "in"
+      ],
+      "title": "TextOperator",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "$Schema"
+    },
+    "rules": {
+      "items": {
+        "$ref": "#/$defs/Rule"
+      },
+      "title": "Rules",
+      "type": "array"
+    }
+  },
+  "type": "object"
+}
