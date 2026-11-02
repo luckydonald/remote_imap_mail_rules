@@ -2,7 +2,7 @@
 
     uv run python -m remote_imap_mail_rules.demo [--verbose] [--streamer-mode | --no-streamer-mode]
 
-`--verbose` sets the log level to DEBUG (inspected and queued folders) and also lists every mail that gets inspected, matching or not.
+`--verbose` sets the log level to DEBUG (the RULES_PATH, the IMAP protocol, inspected and queued folders) and also lists every mail that gets inspected, matching or not.
 `--streamer-mode` hides personal data: titles become their md5 hash and email addresses are reduced to first and last characters.
 Without a terminal (agent runs, pipes) one of `--streamer-mode` / `--no-streamer-mode` is required.
 """
@@ -19,6 +19,8 @@ from .config import ImapSettings
 from .mail import Mail
 from .matching import matches
 from .rules.loader import load_rules
+
+logger = logging.getLogger(__name__)
 
 ELLIPSIS = "…"
 
@@ -94,6 +96,7 @@ def parse_args(argv: Sequence[str] | None = None, interactive: bool | None = Non
 
 async def main(args: argparse.Namespace) -> None:
     settings = ImapSettings()  # type: ignore[call-arg]  # filled from the environment / .env
+    logger.debug("RULES_PATH=%s", settings.rules_path)
     rule_file = load_rules(settings.rules_path)
     account = settings.imap_account_name or settings.imap_account_id
     streamer_mode: bool = args.streamer_mode
@@ -115,11 +118,7 @@ async def main(args: argparse.Namespace) -> None:
 
 if __name__ == "__main__":
     cli_args = parse_args()
-    logging.basicConfig(level=logging.INFO)
-    if cli_args.verbose:
-        # Only our own package: DEBUG of libraries like `aioimaplib` dumps the whole IMAP protocol, including the login.
-        logging.getLogger("remote_imap_mail_rules").setLevel(logging.DEBUG)
-    # end if
+    logging.basicConfig(level=logging.DEBUG if cli_args.verbose else logging.INFO)  # DEBUG includes the IMAP protocol of `aioimaplib`
     try:
         asyncio.run(main(cli_args))
     except KeyboardInterrupt:
