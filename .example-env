@@ -1,0 +1,12 @@
+# Copy to `.env` and fill in. Agents cannot read `.env`.
+# A UUID of your choosing, generate one with `uuidgen`. Never change it, rules refer to it.
+IMAP_ACCOUNT_ID=6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11
+IMAP_ACCOUNT_NAME=Private
+IMAP_HOST=imap.example.com
+IMAP_PORT=993
+IMAP_SSL=true
+IMAP_USERNAME=me@example.com
+IMAP_PASSWORD=secret
+IMAP_PAGE_SIZE=50
+IMAP_POLL_INTERVAL=60
+RULES_PATH=rules/example.yml
