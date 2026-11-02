@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=../schemas/rules.schema.json
+rules:
+  - name: Newsletters of two inboxes to the archive
+    locations:
+      - account_id: 6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11
+      - account_id: 0b8d3f4c-2b6e-4f0e-8f4a-3c8f6f1e9d22
+        folder: Mailing
+        recursive: true
+    when:
+      type: all
+      conditions:
+        - type: bool
+          field: has_list_unsubscribe
+        - type: not
+          condition:
+            type: address
+            field: from
+            part: domain
+            operator: in
+            value: [example.com, example.org]
+        - type: any
+          conditions:
+            - type: text
+              field: subject
+              operator: regex
+              value: "(?i)newsletter|digest"
+            - type: number
+              field: spam_score
+              operator: gte
+              value: 5
+        - type: date
+          field: date_received
+          operator: lt
+          value: {relative: true, value: 7d}
+    actions:
+      - type: move
+        folder: Archive
+      - type: mark_read
