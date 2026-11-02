@@ -1,6 +1,9 @@
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 from uuid import UUID
+
+import pytest
 
 from remote_imap_mail_rules.matching import MatchKind, RuleMatch, matches
 from remote_imap_mail_rules.rules.loader import parse_rules
@@ -125,4 +128,14 @@ async def test_failures_are_raised_to_the_consumer() -> None:
     else:
         raise AssertionError("expected the failure")
     # end try
+# end def
+
+
+async def test_warns_when_no_rule_location_matches_the_account(caplog: pytest.LogCaptureFixture) -> None:
+    rules = parse_rules(f"rules:\n  - name: foreign\n    locations: [{{account_id: {OTHER}}}]\n    when: {{type: bool, field: seen}}\n")
+    with caplog.at_level(logging.WARNING):
+        found = [item async for item in matches(make_settings(), rules, FakeServer().connect, follow=False)]
+    assert found == []
+    assert "No folder to watch" in caplog.text
+    assert str(OTHER) in caplog.text
 # end def

@@ -1,0 +1,22 @@
+# NEVER RUN `--verbose` OR `--no-streamer-mode` AS AGENT!
+
+➜ uv run python -m remote_imap_mail_rules.demo --verbose
+…
+1 rules from rules/example.yml, watching account Main Mail
+DEBUG:aioimaplib.aioimaplib:Received : b'* OK [CAPABILITY IMAP4rev1 LOGIN-REFERRALS ID ENABLE IDLE SASL-IR LITERAL+ AUTH=PLAIN AUTH=LOGIN] Dovecot ready.\r\n'
+DEBUG:aioimaplib.aioimaplib:Sending : b'GJJH0 CAPABILITY\r\n'
+DEBUG:aioimaplib.aioimaplib:Received : b'* CAPABILITY IMAP4rev1 LOGIN-REFERRALS ID ENABLE IDLE SASL-IR LITERAL+ AUTH=PLAIN AUTH=LOGIN\r\nGJJH0 OK Pre-login capabilities listed, post-login capabilities have more.\r\n'
+DEBUG:aioimaplib.aioimaplib:tagged status b'GJJH0 OK Pre-login capabilities listed, post-login capabilities have more.'
+DEBUG:aioimaplib.aioimaplib:state -> NONAUTH
+DEBUG:aioimaplib.aioimaplib:Sending : b'GJJH1 LOGIN redacted-mail@example.com "******"\r\n'
+DEBUG:aioimaplib.aioimaplib:Received : b'* CAPABILITY IMAP4rev1 SASL-IR LOGIN-REFERRALS ID ENABLE IDLE SORT SORT=DISPLAY THREAD=REFERENCES THREAD=REFS THREAD=ORDEREDSUBJECT MULTIAPPEND URL-PARTIAL CATENATE UNSELECT CHILDREN NAMESPACE UIDPLUS LIST-EXTENDED I18NLEVEL=1 CONDSTORE QRESYNC ESEARCH ESORT SEARCHRES WITHIN CONTEXT=SEARCH LIST-STATUS BINARY MOVE REPLACE SNIPPET=FUZZY PREVIEW=FUZZY PREVIEW SPECIAL-USE STATUS=SIZE SAVEDATE COMPRESS=DEFLATE INPROGRESS NOTIFY LITERAL+ QUOTA\r\nGJJH1 OK Logged in\r\n'
+DEBUG:aioimaplib.aioimaplib:tagged status b'GJJH1 OK Logged in'
+DEBUG:aioimaplib.aioimaplib:state -> AUTH
+DEBUG:aioimaplib.aioimaplib:Sending : b'GJJH2 LOGOUT\r\n'
+DEBUG:aioimaplib.aioimaplib:Received : b'* BYE Logging out\r\nGJJH2 OK Logout completed (0.001 + 0.000 secs).\r\n'
+DEBUG:aioimaplib.aioimaplib:tagged status b'GJJH2 OK Logout completed (0.001 + 0.000 secs).'
+DEBUG:aioimaplib.aioimaplib:state -> LOGOUT
+DEBUG:remote_imap_mail_rules.matching:Inspecting 0 folders: []
+DEBUG:aioimaplib.aioimaplib:connection lost: None
+
+# exited with status 0
