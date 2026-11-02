@@ -123,3 +123,5 @@ For a human, so the typical stuff like unread etc must be obvious. And all the r
 ❯ Also add the folders inspected and queued by the rules.
 This should simply be the defined log-level DEBUG.
 
+❯ Fix [@`ai/errors/1.txt`](./errors/1.txt)
+

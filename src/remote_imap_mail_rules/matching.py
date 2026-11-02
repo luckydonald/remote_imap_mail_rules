@@ -44,6 +44,7 @@ async def rules_by_folder(client: ImapClient, rule_file: RuleFile, account_id: U
         # end if
         for location in rule.locations:
             if location.account_id != account_id:
+                logger.debug("Rule %r: skipping location of account %s, this is account %s", rule.name, location.account_id, account_id)
                 continue
             # end if
             for folder in await client.expand_folder(location.folder, location.recursive):
@@ -172,6 +173,13 @@ async def matches(
     async with ImapClient(settings, factory) as client:
         folders = await rules_by_folder(client, rule_file, settings.imap_account_id)
     # end with
+    if not folders:
+        logger.warning(
+            "No folder to watch: none of the enabled rules has a location for account %s (IMAP_ACCOUNT_ID); rules refer to %s",
+            settings.imap_account_id,
+            sorted({str(location.account_id) for rule in rule_file.rules if rule.enabled for location in rule.locations}),
+        )
+    # end if
     for folder, folder_rules in folders.items():
         logger.debug("Queued folder %s with rules %s", folder, [rule.name for rule in folder_rules])
     # end for
