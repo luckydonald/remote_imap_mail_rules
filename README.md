@@ -42,3 +42,20 @@ uv run python -m remote_imap_mail_rules.rules.schema --check
 See `rules/example.yml`.
 Conditions on a field that does not exist are false for every operator, use the `presence` condition to test for that.
 A relative date such as `7d` is the moment seven days before now, so `date_received lt 7d` means received more than a week ago.
+
+## IMAP
+
+Everything is read-only and async: folders are only opened with `EXAMINE`, mails are fetched with `BODY.PEEK`, and nothing writes to the mailbox.
+Headers, flags, size and structure are loaded per page (newest first), bodies are downloaded lazily and only when a rule needs `body_text` or `body_html`.
+New mails are noticed via `IDLE` push when the server supports it, otherwise by polling every `IMAP_POLL_INTERVAL` seconds; flag changes are detected with `CONDSTORE`, where available.
+A location with `recursive: true` covers the folder and the folders below it as they exist at start-up; folders that do not exist are skipped with a warning.
+Folder names are used as the server sends them (modified UTF-7 for non-ASCII names).
+
+`matching.matches()` is the core async generator: it yields every mail that matches a rule, first the existing ones, then new and changed ones as they arrive.
+
+```bash
+uv run python -m remote_imap_mail_rules.demo
+```
+
+prints those matches for the account in `.env`.
+`tests/test_integration.py` runs against a real server if the `TEST_IMAP_*` variables are set.
