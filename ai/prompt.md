@@ -110,3 +110,6 @@
 
 ❯ Include the decisions made and final rule fields & conditions in ˋCLAUDE.mdˋ
 
+❯ Add a README.md to the ˋrules/ˋ describing the rules in details.
+For a human, so the typical stuff like unread etc must be obvious. And all the rules I requested in the ˋai/inital.mdˋ document.
+
