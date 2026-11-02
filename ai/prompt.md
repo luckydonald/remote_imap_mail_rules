@@ -125,3 +125,6 @@ This should simply be the defined log-level DEBUG.
 
 ❯ Fix [@`ai/errors/1.txt`](./errors/1.txt)
 
+❯ That verbose IMAP is nice to keep, actually. It shall stay.
+Log the RULES_PATH at startup on DEBUG, that was my issue, printing it once more helps.
+
