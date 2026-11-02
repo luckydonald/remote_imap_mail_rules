@@ -113,3 +113,10 @@
 ❯ Add a README.md to the ˋrules/ˋ describing the rules in details.
 For a human, so the typical stuff like unread etc must be obvious. And all the rules I requested in the ˋai/inital.mdˋ document.
 
+❯ Make `uv run python -m remote_imap_mail_rules.demo --verbose`, where it shows which mails are inspected
+- account + folder + mail uuid + mail title
+- Add `--streamer-mode` for agent mode which md5 hashes titles and converts emails to `m…n@e…e.com` (only first + last char of both user and domain part.
+- If non-interactive (agent run) require either `--streamer-mode` or `--no-streamer-mode`.
+
+❯ Plan accepted, auto mode.
+
