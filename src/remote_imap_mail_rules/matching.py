@@ -172,6 +172,10 @@ async def matches(
     async with ImapClient(settings, factory) as client:
         folders = await rules_by_folder(client, rule_file, settings.imap_account_id)
     # end with
+    for folder, folder_rules in folders.items():
+        logger.debug("Queued folder %s with rules %s", folder, [rule.name for rule in folder_rules])
+    # end for
+    logger.debug("Inspecting %d folders: %s", len(folders), list(folders))
     queue: asyncio.Queue[Queued] = asyncio.Queue()
     tasks = [asyncio.create_task(follow_folder(settings, factory, folder, rules, queue, follow, on_inspect)) for folder, rules in folders.items()]
     running = len(tasks)
