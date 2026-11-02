@@ -115,7 +115,11 @@ async def main(args: argparse.Namespace) -> None:
 
 if __name__ == "__main__":
     cli_args = parse_args()
-    logging.basicConfig(level=logging.DEBUG if cli_args.verbose else logging.INFO)
+    logging.basicConfig(level=logging.INFO)
+    if cli_args.verbose:
+        # Only our own package: DEBUG of libraries like `aioimaplib` dumps the whole IMAP protocol, including the login.
+        logging.getLogger("remote_imap_mail_rules").setLevel(logging.DEBUG)
+    # end if
     try:
         asyncio.run(main(cli_args))
     except KeyboardInterrupt:
