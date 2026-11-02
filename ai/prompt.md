@@ -120,3 +120,6 @@ For a human, so the typical stuff like unread etc must be obvious. And all the r
 
 ❯ Plan accepted, auto mode.
 
+❯ Also add the folders inspected and queued by the rules.
+This should simply be the defined log-level DEBUG.
+

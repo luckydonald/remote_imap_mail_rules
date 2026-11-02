@@ -2,7 +2,7 @@
 
     uv run python -m remote_imap_mail_rules.demo [--verbose] [--streamer-mode | --no-streamer-mode]
 
-`--verbose` also lists every mail that gets inspected, matching or not.
+`--verbose` sets the log level to DEBUG (inspected and queued folders) and also lists every mail that gets inspected, matching or not.
 `--streamer-mode` hides personal data: titles become their md5 hash and email addresses are reduced to first and last characters.
 Without a terminal (agent runs, pipes) one of `--streamer-mode` / `--no-streamer-mode` is required.
 """
@@ -114,9 +114,10 @@ async def main(args: argparse.Namespace) -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    cli_args = parse_args()
+    logging.basicConfig(level=logging.DEBUG if cli_args.verbose else logging.INFO)
     try:
-        asyncio.run(main(parse_args()))
+        asyncio.run(main(cli_args))
     except KeyboardInterrupt:
         pass
     # end try
