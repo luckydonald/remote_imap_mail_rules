@@ -108,3 +108,5 @@
 
 ❯ Plan accepted, auto mode.
 
+❯ Include the decisions made and final rule fields & conditions in ˋCLAUDE.mdˋ
+
