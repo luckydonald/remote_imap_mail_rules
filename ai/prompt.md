@@ -15,3 +15,5 @@
 
 #### Previous user prompts:
 
+❯ [@`ai/initial.md`](./initial.md)
+
