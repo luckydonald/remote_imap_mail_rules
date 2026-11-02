@@ -135,6 +135,9 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
         if state is None:
             raise ImapError(f"examine {folder} gave no UIDVALIDITY/UIDNEXT: {response.lines!r}")
         # end if
+        # `aioimaplib` only moves to SELECTED on `select()`, not on `examine()`, and then refuses SEARCH / FETCH / IDLE with
+        # "command SEARCH illegal in state AUTH". The server did open the folder, so tell the library.
+        self.conn.protocol.state = aioimaplib.SELECTED
         self.folder, self.state = folder, state
         return state
     # end def

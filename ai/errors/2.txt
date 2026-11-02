@@ -1,0 +1,51 @@
+1 rules from rules/rules.local.yml, watching account Main Mail
+DEBUG:remote_imap_mail_rules.matching:Queued folder INBOX with rules ['Move to JUNK']
+DEBUG:remote_imap_mail_rules.matching:Inspecting 1 folders: ['INBOX']
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/src/remote_imap_mail_rules/demo.py", line 124, in <module>
+    asyncio.run(main(cli_args))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/user/.local/share/uv/python/cpython-3.14.3-macos-aarch64-none/lib/python3.14/asyncio/runners.py", line 204, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/Users/user/.local/share/uv/python/cpython-3.14.3-macos-aarch64-none/lib/python3.14/asyncio/runners.py", line 127, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/user/.local/share/uv/python/cpython-3.14.3-macos-aarch64-none/lib/python3.14/asyncio/base_events.py", line 719, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/src/remote_imap_mail_rules/demo.py", line 106, in main
+    async for found in matches(settings, rule_file, on_inspect=on_inspect if args.verbose else None):
+    ...<4 lines>...
+        )
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/src/remote_imap_mail_rules/matching.py", line 194, in matches
+    raise item
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/src/remote_imap_mail_rules/matching.py", line 149, in follow_folder
+    highest_uid = await load_existing(client, settings, folder, rules, queue, on_inspect)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/src/remote_imap_mail_rules/matching.py", line 91, in load_existing
+    async for page in client.iter_pages(settings.imap_account_id, folder, settings.imap_page_size):
+    ...<2 lines>...
+            await queue.put(item)
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/src/remote_imap_mail_rules/imap/client.py", line 204, in iter_pages
+    uids = sorted(await self.search_uids("ALL"), reverse=True)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/src/remote_imap_mail_rules/imap/client.py", line 178, in search_uids
+    return sorted(parse_search(check(await self.conn.uid_search(*criteria), "search").lines))
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/.venv/lib/python3.14/site-packages/aioimaplib/aioimaplib.py", line 759, in uid_search
+    return await asyncio.wait_for(self.protocol.search(*criteria, by_uid=True, charset=charset), self.timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/user/.local/share/uv/python/cpython-3.14.3-macos-aarch64-none/lib/python3.14/asyncio/tasks.py", line 488, in wait_for
+    return await fut
+           ^^^^^^^^^
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/.venv/lib/python3.14/site-packages/aioimaplib/aioimaplib.py", line 541, in search
+    return await self.execute(
+           ^^^^^^^^^^^^^^^^^^^
+        Command('SEARCH', self.new_tag(), *args, prefix=prefix, loop=self.loop))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/.venv/lib/python3.14/site-packages/aioimaplib/aioimaplib.py", line 428, in execute
+    raise Abort('command %s illegal in state %s' % (command.name, self.state))
+aioimaplib.aioimaplib.Abort: command SEARCH illegal in state AUTH
