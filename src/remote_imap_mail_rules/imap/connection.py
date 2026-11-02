@@ -28,4 +28,5 @@ class ImapConnection(Protocol):
 
 class ProtocolState(Protocol):
     capabilities: set[str]
+    state: str
 # end class

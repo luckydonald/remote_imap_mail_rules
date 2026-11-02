@@ -4,6 +4,7 @@ import asyncio
 import re
 from dataclasses import dataclass, field
 
+import aioimaplib
 from aioimaplib import Response
 
 from remote_imap_mail_rules.config import ImapSettings
@@ -30,7 +31,10 @@ class FakeFolder:
 
 @dataclass
 class FakeProtocol:
+    """Like `aioimaplib`: the state is AUTH after login and stays there on EXAMINE (only SELECT would change it)."""
+
     capabilities: set[str]
+    state: str = "AUTH"
 # end class
 
 
@@ -108,6 +112,12 @@ class FakeConnection:
         self.server.commands.append(command)
     # end def
 
+    def require_selected(self, command: str) -> None:
+        if self.protocol.state != "SELECTED":
+            raise aioimaplib.Abort(f"command {command} illegal in state {self.protocol.state}")
+        # end if
+    # end def
+
     async def wait_hello_from_server(self) -> None:
         return None
     # end def
@@ -157,6 +167,7 @@ class FakeConnection:
 
     async def uid_search(self, *criteria: str, charset: str | None = "utf-8") -> Response:
         self.log(f"UID SEARCH {' '.join(criteria)}")
+        self.require_selected("SEARCH")
         assert self.selected is not None
         messages = self.folder(self.selected).messages
         if criteria and criteria[0].startswith("UID "):
@@ -172,6 +183,7 @@ class FakeConnection:
         assert command.lower() == "fetch", "read only: only FETCH is allowed"
         uid_set, fields = criteria
         self.log(f"UID FETCH {uid_set} {fields}")
+        self.require_selected("UID")
         assert self.selected is not None
         wanted = {int(uid) for uid in uid_set.split(",")} if uid_set != "1:*" else None
         since = re.search(r"CHANGEDSINCE (\d+)", fields)
@@ -194,6 +206,7 @@ class FakeConnection:
 
     async def idle_start(self, timeout: float = 0) -> object:
         self.log("IDLE")
+        self.require_selected("IDLE")
         self.idle = True
         return None
     # end def
