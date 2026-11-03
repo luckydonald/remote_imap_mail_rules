@@ -4,7 +4,8 @@ const BASE = '/api/editor'
 
 export interface EditorConfig {
   mode: 'server'
-  file_name: string
+  source: 'file' | 'database'
+  file_name: string | null
   exists: boolean
 }
 
