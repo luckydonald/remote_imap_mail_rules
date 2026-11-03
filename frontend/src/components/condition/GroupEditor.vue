@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import ConditionNode from '../ConditionNode.vue'
 import { newExpression } from '@/model/catalog'
+import { fillExpression } from '@/model/fill-from-mail'
+import { useMailStore } from '@/model/mail-store'
 import type { GroupAll, GroupAny, GroupNot } from '@/model/types'
 
+const mail = useMailStore()
 const model = defineModel<GroupAll | GroupAny | GroupNot>('node', { required: true })
 
 function add(): void {
-  if (model.value.type !== 'not') model.value.conditions.push(newExpression('text'))
+  if (model.value.type === 'not') return
+  const added = newExpression('text')
+  // With a mail open the new condition starts from it.
+  model.value.conditions.push(mail.context ? fillExpression(added, mail.context) : added)
 }
 
 function remove(index: number): void {
