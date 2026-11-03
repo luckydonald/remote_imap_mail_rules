@@ -11,6 +11,7 @@ import {
 } from 'yaml'
 import type { Expression, RuleFile, TemplateDef, TemplateUse } from './types'
 import { isVar } from './types'
+import { applyComments, collectComments, moveNotes, type CommentMap } from './comments'
 
 const DEFAULT_SCHEMA_PATH = '../schemas/rules.schema.json'
 
@@ -47,7 +48,17 @@ function replaceUses(node: unknown, templates: Record<string, unknown>): unknown
   )
 }
 
+/** A parsed rules file together with the comments of its source, to write them back in `stringifyRules()`. */
+export interface ParsedRules {
+  file: RuleFile
+  comments: CommentMap
+}
+
 export function parseRules(text: string): RuleFile {
+  return parseRulesWithComments(text).file
+}
+
+export function parseRulesWithComments(text: string): ParsedRules {
   const doc = parseDocument(text, { customTags: [varTag], merge: false })
   if (doc.errors.length > 0)
     throw new RulesParseError(doc.errors.map((error) => error.message).join('\n'))
@@ -61,14 +72,14 @@ export function parseRules(text: string): RuleFile {
   const rules = replaceUses(raw.rules ?? [], rawTemplates) as RuleFile['rules']
   const file: RuleFile = { templates, rules }
   if (typeof raw.$schema === 'string') file.$schema = raw.$schema
-  return file
+  return { file, comments: collectComments(doc) }
 }
 
 function anchorName(template: string): string {
   return `template-${template.replace(/[^A-Za-z0-9_-]/g, '-')}`
 }
 
-export function stringifyRules(file: RuleFile): string {
+export function stringifyRules(file: RuleFile, comments?: CommentMap): string {
   const data: Json = {}
   if (file.$schema !== undefined) data.$schema = file.$schema
   if (Object.keys(file.templates).length > 0) data.templates = file.templates
@@ -77,6 +88,8 @@ export function stringifyRules(file: RuleFile): string {
   const doc = new Document(JSON.parse(JSON.stringify(data)), { customTags: [varTag] })
   if (file.$schema !== undefined)
     doc.commentBefore = ` yaml-language-server: $schema=${file.$schema || DEFAULT_SCHEMA_PATH}`
+
+  if (comments) applyComments(doc, comments)
 
   const templatesNode = doc.get('templates', true)
   const anchors = new Map<string, YAMLMap>()
@@ -103,6 +116,7 @@ export function stringifyRules(file: RuleFile): string {
         ) {
           const scalar = new Scalar(only.value.value)
           scalar.tag = '!var'
+          moveNotes(node, scalar)
           return scalar
         }
       }

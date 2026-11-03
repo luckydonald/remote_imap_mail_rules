@@ -139,6 +139,19 @@ test('downloads the YAML under the opened file name', async ({ page }) => {
   expect(text).toContain('rules:')
 })
 
+test('keeps comments of the opened file in the download', async ({ page }) => {
+  await openFile(page, 'rules.example.yml')
+  await page.getByLabel('Rule name').fill('Renamed by the test')
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Download' }).click(),
+  ])
+  const text = readFileSync(await download.path(), 'utf-8')
+  expect(text).toContain('name: Renamed by the test')
+  expect(text).toContain('# A mail forwarded by anonaddy')
+  expect(text).toContain('# Used when a rule does not set the variable.')
+})
+
 test('copies the YAML', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await openFile(page, 'example.yml')

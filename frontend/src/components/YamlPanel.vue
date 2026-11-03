@@ -28,7 +28,7 @@ function apply(): void {
   <section class="yaml-panel">
     <p class="hint">
       The generated file. Paste a rules file here and apply it to replace the current one. Comments
-      are not kept.
+      of the loaded text are kept as long as the commented entries still exist.
     </p>
     <ul v-if="store.problems.value.length > 0" class="problems">
       <li v-for="(problem, i) in store.problems.value" :key="i">

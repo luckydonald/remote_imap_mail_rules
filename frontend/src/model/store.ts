@@ -1,6 +1,7 @@
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { validateRules } from './validate'
-import { parseRules, stringifyRules } from './yaml-io'
+import { parseRulesWithComments, stringifyRules } from './yaml-io'
+import type { CommentMap } from './comments'
 import { newExpression } from './catalog'
 import type { Rule, RuleFile } from './types'
 
@@ -26,6 +27,8 @@ export function createStore(initial: RuleFile = emptyFile()) {
   const file = reactive<RuleFile>(initial)
   const view = ref<View>({ kind: 'yaml' })
   const fileName = ref('rules.yml')
+  /** Comments of the loaded text, written back when generating the YAML. */
+  const comments = shallowRef<CommentMap | undefined>()
   const past: string[] = []
   const future: string[] = []
   const canUndo = ref(false)
@@ -81,7 +84,9 @@ export function createStore(initial: RuleFile = emptyFile()) {
 
   /** Replaces the whole file, as one undo step. */
   function load(text: string, name?: string): void {
-    const data = parseRules(text)
+    const parsed = parseRulesWithComments(text)
+    const data = parsed.file
+    comments.value = parsed.comments
     file.$schema = data.$schema
     file.templates = data.templates
     file.rules = data.rules
@@ -90,7 +95,7 @@ export function createStore(initial: RuleFile = emptyFile()) {
   }
 
   const problems = computed(() => validateRules(file))
-  const yaml = computed(() => stringifyRules(file))
+  const yaml = computed(() => stringifyRules(file, comments.value))
 
   function addRule(): void {
     file.rules.push(newRule())
