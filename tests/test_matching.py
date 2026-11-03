@@ -57,6 +57,7 @@ async def test_existing_matches_across_locations_and_recursion() -> None:
     assert sorted((item.mail.folder, item.mail.uid) for item in found) == [("INBOX", 1), ("Lists", 1), ("Lists/a", 1)]
     assert {item.rule.name for item in found} == {"unread invoices"}
     assert {item.kind for item in found} == {MatchKind.existing}
+    assert {item.mail.uidvalidity for item in found} == {1}
 # end def
 
 
@@ -109,6 +110,7 @@ async def test_uidvalidity_change_reloads_folder() -> None:
     server.push()
     [reloaded] = await take(generator, 1)
     assert (reloaded.kind, reloaded.mail.headers["Subject"]) == (MatchKind.existing, "invoice renumbered")
+    assert reloaded.mail.uidvalidity == 2
     await generator.aclose()
 # end def
 
