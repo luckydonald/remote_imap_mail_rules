@@ -16,7 +16,7 @@ async def test_upgrade_creates_tables(tmp_path: Path) -> None:
     await upgrade(f"sqlite+aiosqlite:///{path}")
     engine = create_engine(f"sqlite:///{path}")
     with engine.connect() as connection:
-        assert {"accounts", "rules", "templates"} <= set(inspect(connection).get_table_names())
+        assert {"accounts", "mail_events", "rules", "templates"} <= set(inspect(connection).get_table_names())
         # No drift between the models and the migrations.
         assert compare_metadata(MigrationContext.configure(connection), Base.metadata) == []
     # end with

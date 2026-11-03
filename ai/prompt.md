@@ -422,3 +422,38 @@ Hoist mail into a shared pinia store, persisted/cached by localstorage.
 
 ❯ Plan accepted, auto mode.
 
+❯ Continue [@`ai/initial.md`](./initial.md) stages
+
+❯ Task Notification:
+> - Task `a48485bfe2ee7021b` <kbd>completed</kbd>
+> - Tool `toolu_016jjSKaYiWzxfD8795rYdxL`
+> - > Agent "Explore for mail action log" finished
+> - [Query (`1048` chars, `1.02 KB`)](output/agents/018.a48485bfe2ee7021b/prompt.md)
+> - [Answer (`14754` chars, `14.4 KB`)](output/agents/018.a48485bfe2ee7021b/result.md)
+> - [Raw log (`483350` chars, `472 KB`)](/private/tmp/claude-501/-Users-user-Documents-programming-Python-remote-imap-mail-rules/f7366d9f-ba98-4112-a086-01cf7718eaca/tasks/a48485bfe2ee7021b.output)
+> - `11` tools, `71447` tokens, `1.42017 s`
+
+❯ Question answered.
+> <details><summary>
+>
+>> 1. The server runs no background matching today, so nothing could write the per-mail action log (first seen, rule matches). How far should this step go?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Log scope** (1/1) <kbd>Single Select</kbd><br>
+>> The server runs no background matching today, so nothing could write the per-mail action log (first seen, rule matches). How far should this step go?
+> - [x] 1\. Log tables + API + UI, with a watcher (Recommended)
+>   - _New `mail_events` table and migration, a server background task per stored account running `matches()` that logs first seen and rule matches (actions stay unexecuted, so no action entries yet), `GET` events API, and a log section in the mail view._
+> - [ ] 2\. Log tables + API + UI, no watcher
+>   - _Same table, API and UI, but nothing writes first seen or matches yet; only an internal `record_event()` helper, covered by tests. The watcher comes as its own later step._
+> - [ ] 3\. Tables and recording helper only
+>   - _Just the model, migration and repository functions with tests; API and UI later._
+> - [ ] 4\. _Type something._
+>
+> </details>
+>
+
+❯ Plan accepted, auto mode.
+
