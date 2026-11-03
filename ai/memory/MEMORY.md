@@ -5,4 +5,5 @@
 - [Markdown line wrap](feedback_md_line_wrap_style.md) — wrap prose at sentence ends, not a fixed column; read the code-style `md.md` before writing any `.md`, plans included
 - [File deletion policy](feedback_file_deletion.md) — `git rm` for tracked files; rename untracked ones to `*.YYYY-MM-DD.bak.ext`
 - [Scripts in Python+uv](feedback_scripts_python_uv.md) — new scripts and hooks: Python with a `uv run --script` shebang, not bash
+- [Never touch the live account](feedback_never_touch_live_account.md) — action/write features: only `TEST_*`, FakeServer, separate-port servers
 - [Playwright, not Chrome](feedback_playwright_not_chrome.md) — verify the frontend with Playwright e2e tests, never the claude-in-chrome tools
