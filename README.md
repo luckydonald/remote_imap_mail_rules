@@ -73,6 +73,13 @@ Generate a `SECRET_KEY` once with `uv run python -c "from cryptography.fernet im
   The account from the `IMAP_*` variables is added once at start-up, and never overwritten afterwards.
   If it differs from the variables later (e.g. a changed password), the log warns and the accounts screen shows a badge.
 - Deleting an account that rules still refer to is refused.
+- Everything under `/api` except `/api/auth` needs a login (static files stay open).
+  Log in with the username and password of any registered account, it is a single user service.
+  The session is a signed cookie, valid for 30 days.
+  Without `SECRET_KEY` nobody can log in, the API then answers `503`.
+- The Mail screen is a read-only mail client for the registered accounts: folders, the message list (newest first, paged), and the message with its attachments.
+  HTML mail is sanitized (no scripts, no remote images) and shown in a sandboxed frame.
+  It works on a phone as well, where one pane shows at a time.
 
 ```bash
 cd frontend && yarn install && yarn build && cd ..
