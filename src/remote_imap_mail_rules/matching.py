@@ -5,6 +5,7 @@ import logging
 from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Never
 from uuid import UUID
 
 from .config import ImapSettings
@@ -29,15 +30,15 @@ class MatchKind(StrEnum):
 
 @dataclass(frozen=True)
 class RuleMatch:
-    rule: Rule
+    rule: Rule[Never]
     mail: Mail
     kind: MatchKind
 # end class
 
 
-async def rules_by_folder(client: ImapClient, rule_file: RuleFile, account_id: UUID) -> dict[str, list[Rule]]:
+async def rules_by_folder(client: ImapClient, rule_file: RuleFile[Never], account_id: UUID) -> dict[str, list[Rule[Never]]]:
     """Which enabled rules apply to which folder of this account; `recursive` locations are expanded via `LIST`."""
-    result: dict[str, list[Rule]] = {}
+    result: dict[str, list[Rule[Never]]] = {}
     for rule in rule_file.rules:
         if not rule.enabled:
             continue
@@ -59,7 +60,7 @@ async def rules_by_folder(client: ImapClient, rule_file: RuleFile, account_id: U
 # end def
 
 
-async def match_mails(rules: list[Rule], mails: list[Mail], kind: MatchKind, on_inspect: InspectCallback | None = None) -> list[RuleMatch]:
+async def match_mails(rules: list[Rule[Never]], mails: list[Mail], kind: MatchKind, on_inspect: InspectCallback | None = None) -> list[RuleMatch]:
     found: list[RuleMatch] = []
     for mail in mails:
         if on_inspect is not None:
@@ -84,7 +85,7 @@ Queued = RuleMatch | BaseException | Finished
 
 
 async def load_existing(
-    client: ImapClient, settings: ImapSettings, folder: str, rules: list[Rule], queue: "asyncio.Queue[Queued]", on_inspect: InspectCallback | None = None
+    client: ImapClient, settings: ImapSettings, folder: str, rules: list[Rule[Never]], queue: "asyncio.Queue[Queued]", on_inspect: InspectCallback | None = None
 ) -> int:
     """Puts the matches of all mails currently in the folder on the queue. Returns the highest UID seen."""
     highest_uid = 0
@@ -99,7 +100,7 @@ async def load_existing(
 
 
 async def follow_changes(
-    client: ImapClient, settings: ImapSettings, folder: str, rules: list[Rule], queue: "asyncio.Queue[Queued]", highest_uid: int,
+    client: ImapClient, settings: ImapSettings, folder: str, rules: list[Rule[Never]], queue: "asyncio.Queue[Queued]", highest_uid: int,
     on_inspect: InspectCallback | None = None,
 ) -> None:
     """Watches the folder and puts matches of new and changed mails on the queue."""
@@ -138,7 +139,7 @@ async def follow_folder(
     settings: ImapSettings,
     factory: ConnectionFactory,
     folder: str,
-    rules: list[Rule],
+    rules: list[Rule[Never]],
     queue: "asyncio.Queue[Queued]",
     follow: bool,
     on_inspect: InspectCallback | None = None,
@@ -161,7 +162,7 @@ async def follow_folder(
 
 
 async def matches(
-    settings: ImapSettings, rule_file: RuleFile, factory: ConnectionFactory = connect_aioimaplib, follow: bool = True,
+    settings: ImapSettings, rule_file: RuleFile[Never], factory: ConnectionFactory = connect_aioimaplib, follow: bool = True,
     on_inspect: InspectCallback | None = None,
 ) -> AsyncIterator[RuleMatch]:
     """Yields every mail matching a rule: existing mails first (newest first per folder), then new and changed ones as they arrive.

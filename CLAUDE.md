@@ -32,7 +32,7 @@ Planned later (not built yet): FastAPI server, Vue frontend, multi-account manag
 - Dates are a discriminated union on the bool `relative`: `AbsoluteTime` (datetime, naive means UTC) or `RelativeDuration` (`7d`, units `s m h d w`, measured back from now). `date_received lt 7d` means received more than a week ago. There is no `age` field, a relative duration replaces it.
 - IMAP has no last-modified date; `modseq` is only a change counter (CONDSTORE).
 - Folder names are used as the server sends them (modified UTF-7), not decoded.
-- Templates: root `templates` holds definitions (`type: template`, `defaults`, `content` with `{var: name}` / `!var name` markers). A use is `<<: *anchor` plus `variables`, valid wherever an expression is, checked by pydantic (every variable bound, none unknown). `parse_rules` returns `.concrete()` rules, so evaluator and matching never see a `Var` or `Template`. YAML anchors may not contain `.`.
+- Templates: root `templates` holds definitions (`type: template`, `defaults`, `content` with `{var: name}` / `!var name` markers). A use is `<<: *anchor` plus `variables`, valid wherever an expression is, checked by pydantic (every variable bound, none unknown). `parse_rules` returns `.concrete()` rules, so evaluator and matching never see a `Var` or `Template`: the models are generic in `V = Var` (`Templatable[T, V] = T | V`), `.concrete()` returns the `[Never]` form (`RuleFile[Never]`, `Rule[Never]`, `Expression[Never]`, where `T | Never` is just `T`), and consumers annotate with that form. YAML anchors may not contain `.`.
 - `actions` are parsed and validated but nothing executes them yet.
 
 ## Rule expressions
