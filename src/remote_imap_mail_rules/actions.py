@@ -134,6 +134,9 @@ def plan_steps(rule: Rule[Never], mail: Mail) -> list[Step]:
                 name, wanted = flag_change(action)
                 present = has(flags, name)
                 args: dict[str, Any] = {"keyword": name} if isinstance(action, KeywordAction) else {}
+                if isinstance(action, FlagAction | KeywordAction):
+                    args["value"] = wanted
+                # end if
                 if present == wanted:
                     steps.append(Step(action.type, args, StepStatus.noop, "already"))
                     continue
