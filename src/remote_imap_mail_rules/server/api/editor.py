@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response
 from pydantic import BaseModel
 
 from .. import rules_file
@@ -42,7 +42,7 @@ async def get_rules(request: Request) -> Response:
 
 
 @router.put("/rules", status_code=204)
-async def put_rules(request: Request) -> None:
+async def put_rules(request: Request, background: BackgroundTasks) -> None:
     """The body is the raw YAML text, not JSON."""
     try:
         text = (await request.body()).decode("utf-8")
@@ -54,4 +54,5 @@ async def put_rules(request: Request) -> None:
     except rules_file.InvalidRules as e:
         raise HTTPException(status_code=422, detail=e.messages) from e
     # end try
+    background.add_task(request.app.state.watcher.restart)
 # end def
