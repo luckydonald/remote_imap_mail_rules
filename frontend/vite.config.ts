@@ -14,5 +14,6 @@ export default defineConfig({
     },
   },
   // The schema lives one level up, in the backend part of the repo.
-  server: { fs: { allow: ['..'] } },
+  // `/api` goes to the FastAPI server (`uv run python -m remote_imap_mail_rules.server.main`) while developing.
+  server: { fs: { allow: ['..'] }, proxy: { '/api': 'http://127.0.0.1:8000' } },
 })

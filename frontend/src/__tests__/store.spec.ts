@@ -27,3 +27,26 @@ describe('store', () => {
     expect(store.yaml.value).toContain('<<: *template-b')
   })
 })
+
+describe('store server state', () => {
+  it('is only dirty on a server file, and clean again after saving', () => {
+    const store = createStore()
+    store.load('rules: []\n', 'local.yml')
+    store.addRule()
+    expect(store.serverFile.value).toBeNull()
+    expect(store.dirty.value).toBe(false)
+    store.markSaved('rules.yml', '')
+    expect(store.dirty.value).toBe(true)
+    store.markSaved()
+    expect(store.dirty.value).toBe(false)
+    store.addRule()
+    expect(store.dirty.value).toBe(true)
+  })
+
+  it('leaves server mode when a local file is loaded', () => {
+    const store = createStore()
+    store.markSaved('rules.yml')
+    store.load('rules: []\n', 'local.yml')
+    expect(store.serverFile.value).toBeNull()
+  })
+})
