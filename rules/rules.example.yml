@@ -27,6 +27,7 @@ rules:
     # [existing] 'Move to JUNK': INBOX #12345 from="That Service 'support at that-one-service.com'" <email-for-only-that-one-service@anonaddy.io> subject='👀 Your Early Black Friday Deals: Up to 12% OFF Extra!'
     locations:
       - account_id: 6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11
+        folder: INBOX
         recursive: false
     when:
       # Move only if already read. Also checks for specific senders matching the FROM after the anonaddy forward.
@@ -50,11 +51,16 @@ rules:
                   part: name
                   operator: endswith
                   value: " 'support at that-one-service.com'"
+    actions:
+      - type: move
+        folder: Boxed In/Promotions
+        account_id: 01a19e50-6c19-77bf-bae0-2802b9a3bbd7
 
-  - name: Move from INBOX to IN/UPDATES
+  - name: Move from INBOX to "Boxed In/Updates"
     # [existing] 'Move to JUNK': INBOX #45678 from="pejeio 'notifications at github.com'" <github.com-example-for-remote_imap_mail_rules@luckydonald.de> subject='Re: [altstoreio/AltStore] [Bug] HTTP 503 after 2FA on AltStore 2.3.1 / AltServer 1.8.2, including Remote AltServer (Issue #1842)'
     locations:
       - account_id: 01a19e50-6c19-77bf-bae0-2802b9a3bbd7
+        folder: INBOX
         recursive: false
     when:
       type: all
@@ -72,3 +78,7 @@ rules:
               variables:
                 forward_address: "gitlab.com-example-for-remote_imap_mail_rules@luckydonald.de"
                 forward_name: " 'noreply at gitlab.com'"
+    actions:
+      - type: move
+        folder: Boxed In/Updates
+        account_id: 01a19e50-6c19-77bf-bae0-2802b9a3bbd7
