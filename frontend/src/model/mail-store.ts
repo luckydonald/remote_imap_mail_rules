@@ -7,10 +7,12 @@ import type { MailContext } from './fill-from-mail'
 import { ApiError, describeError } from './http'
 import {
   getMessage,
+  listEvents,
   listFolders,
   listMessages,
   type Detail,
   type Folder,
+  type MailEvent,
   type Summary,
 } from './mail-api'
 
@@ -57,6 +59,8 @@ export const useMailStore = defineStore('mail', () => {
   const nextBefore = ref<number | null>(null)
   const detail = ref<Detail | null>(restore?.detail ?? null)
   const selectedUid = ref<number | null>(restore?.uid ?? null)
+  // The action log of the open mail; a failing log never hides the mail itself.
+  const events = ref<MailEvent[]>([])
   const error = ref('')
   const loading = ref(false)
   // True from the start until the accounts and the folders of the first account are in.
@@ -68,6 +72,7 @@ export const useMailStore = defineStore('mail', () => {
   // Answers of requests that were overtaken by a newer choice are dropped.
   let listTicket = 0
   let detailTicket = 0
+  let eventsTicket = 0
 
   const hasMore = computed(() => nextBefore.value !== null)
   /** The open mail with its place, for filling conditions; `null` offline or while no mail is open. */
@@ -102,6 +107,7 @@ export const useMailStore = defineStore('mail', () => {
     total.value = 0
     nextBefore.value = null
     detail.value = null
+    events.value = []
     selectedUid.value = null
     error.value = ''
     pane.value = 'folders'
@@ -220,13 +226,27 @@ export const useMailStore = defineStore('mail', () => {
     const ticket = ++detailTicket
     selectedUid.value = uid
     detail.value = null
+    events.value = []
     error.value = ''
     pane.value = 'message'
+    void loadEvents(id, name, uid)
     try {
       const found = await getMessage(id, name, uid)
       if (ticket === detailTicket) detail.value = found
     } catch (caught) {
       if (ticket === detailTicket) fail('Could not load the message', caught)
+    }
+  }
+
+  async function loadEvents(id: string, name: string, uid: number): Promise<void> {
+    const ticket = ++eventsTicket
+    try {
+      const found = await listEvents(id, name, uid)
+      if (ticket === eventsTicket) events.value = found
+    } catch (caught) {
+      if (ticket !== eventsTicket) return
+      events.value = []
+      if (caught instanceof ApiError && caught.status === 401) onUnauthorized()
     }
   }
 
@@ -246,6 +266,7 @@ export const useMailStore = defineStore('mail', () => {
     total,
     hasMore,
     detail,
+    events,
     selectedUid,
     error,
     loading,

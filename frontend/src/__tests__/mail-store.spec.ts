@@ -40,6 +40,16 @@ function stubServer(unauthorized = false): ReturnType<typeof vi.fn<typeof fetch>
         folder('INBOX', { special_use: 'inbox' }),
         folder('Hidden', { selectable: false }),
       ])
+    if (url.includes('/events?'))
+      return json([
+        {
+          id: 'e1',
+          kind: 'first_seen',
+          rule_name: null,
+          detail: {},
+          created_at: '2026-11-03T10:00:00Z',
+        },
+      ])
     if (url.includes('before_uid='))
       return json({ messages: [mail(1)], total: 3, next_before_uid: null })
     if (url.includes('/messages?'))
@@ -90,6 +100,7 @@ describe('mail store', () => {
     expect(store.hasMore).toBe(false)
     await store.openMessage(3)
     expect(store.detail?.text).toBe('hi')
+    await vi.waitFor(() => expect(store.events.map((item) => item.kind)).toEqual(['first_seen']))
     expect(store.pane).toBe('message')
     store.back()
     expect(store.pane).toBe('list')
