@@ -313,3 +313,62 @@ And what's going on with typescript 7 vs 5.9?
 > </details>
 >
 
+❯ Continue [@`ai/initial.md`](./initial.md) stages
+
+❯ Task Notification:
+> - Task `aa0d1d7e47e3ccaa1` <kbd>completed</kbd>
+> - Tool `toolu_01WCFS8A9SKvo1i6t39dQym7`
+> - > Agent "Explore IMAP client and server" finished
+> - [Query (`962` chars, `962 B`)](output/agents/015.aa0d1d7e47e3ccaa1/prompt.md)
+> - [Answer (`10379` chars, `10.1 KB`)](output/agents/015.aa0d1d7e47e3ccaa1/result.md)
+> - [Raw log (`357312` chars, `349 KB`)](/private/tmp/claude-501/-Users-user-Documents-programming-Python-remote-imap-mail-rules/d674116c-0b72-49ac-bb2d-f96c8bfbf0b0/tasks/aa0d1d7e47e3ccaa1.output)
+> - `7` tools, `52444` tokens, `0.912767 s`
+
+❯ Task Notification:
+> - Task `a93f410c80e691e31` <kbd>completed</kbd>
+> - Tool `toolu_01VNvZsqjCuKvsQHxWBAisLx`
+> - > Agent "Explore frontend structure" finished
+> - [Query (`650` chars, `650 B`)](output/agents/016.a93f410c80e691e31/prompt.md)
+> - [Answer (`9048` chars, `8.84 KB`)](output/agents/016.a93f410c80e691e31/result.md)
+> - [Raw log (`281109` chars, `275 KB`)](/private/tmp/claude-501/-Users-user-Documents-programming-Python-remote-imap-mail-rules/d674116c-0b72-49ac-bb2d-f96c8bfbf0b0/tasks/a93f410c80e691e31.output)
+> - `6` tools, `40116` tokens, `0.972483 s`
+
+❯ Question answered.
+> <details><summary>
+>
+>> 1. Stage 5 has four parts (mail viewer, login, rules from a mail, action log). Which should this plan cover?
+>> 2. How should the simple login work ("entering the mail creds allows access")?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Scope** (1/2) <kbd>Single Select</kbd><br>
+>> Stage 5 has four parts (mail viewer, login, rules from a mail, action log). Which should this plan cover?
+> - [ ] 1\. Viewer + login + fill from mail (Recommended)
+>   - _Read-only backend mail API, Apple-Mail-style responsive UI, login, and filling conditions from a mail. The action log is deferred because nothing executes actions yet._
+> - [x] 2\. Viewer + login only
+>   - _Backend mail API and UI plus login. Fill-from-mail and the action log come in later runs._
+> - [ ] 3\. Everything in stage 5
+>   - _Also the action log tables and first-seen/rule-match logging. Larger, and actions/user actions have nothing to log yet._
+> - [ ] 4\. _Type something._
+>
+>> **Login** (2/2) <kbd>Single Select</kbd><br>
+>> How should the simple login work ("entering the mail creds allows access")?
+> - [ ] 1\. Verify creds via IMAP, signed session cookie (Recommended)
+>   - _User enters host/user/password (or picks a registered account and enters its password); the server tries an IMAP login and sets a signed, HttpOnly cookie scoped to that account. Mail endpoints require it. Editor and accounts endpoints stay as they are._
+> - [ ] 2\. Same, but gate the whole API
+>   - _As above, but also require the session for /api/accounts and /api/editor._
+> - [ ] 3\. No login yet
+>   - _Mail endpoints open like the rest; only sensible for localhost._
+> - [x] 4\. _Type something:_
+>   - > We have the credentials stored in the DB so for now comparing them is fine.
+>
+> </details>
+>
+
+❯ Plan denied:
+> Everything except static files must be login gated. However any account login works for login, this is a single user service.
+
+❯ Plan accepted, auto mode.
+
