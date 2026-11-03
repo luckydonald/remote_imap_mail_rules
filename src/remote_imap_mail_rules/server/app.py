@@ -3,14 +3,15 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from ..config import ImapSettings
 from ..db import accounts as account_repository
 from ..db.engine import create_engine, create_session_factory
 from ..db.migrate import upgrade
-from .api import accounts, editor
+from .api import accounts, auth, editor
+from .auth import require_login
 from .rules_store import DatabaseRulesStore, FileRulesStore, RulesStore
 from .settings import ServerSettings
 
@@ -38,8 +39,11 @@ def create_app(settings: ServerSettings | None = None, env_account: ImapSettings
     app.state.env_account = env_account
     store: RulesStore = FileRulesStore(settings.rules_path) if settings.rules_path else DatabaseRulesStore(session_factory)
     app.state.rules_store = store
-    app.include_router(editor.router, prefix="/api/editor", tags=["editor"])
-    app.include_router(accounts.router, prefix="/api/accounts", tags=["accounts"])
+    app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+    # Everything else under `/api` needs the login, set here so that a new router cannot forget it.
+    protected = [Depends(require_login)]
+    app.include_router(editor.router, prefix="/api/editor", tags=["editor"], dependencies=protected)
+    app.include_router(accounts.router, prefix="/api/accounts", tags=["accounts"], dependencies=protected)
     if settings.frontend_dist.is_dir():
         # Mounted last, so `/api` wins; `html=True` serves `index.html` for `/`.
         app.mount("/", StaticFiles(directory=settings.frontend_dist, html=True), name="frontend")

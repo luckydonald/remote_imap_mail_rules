@@ -1,5 +1,6 @@
 """Account repository: CRUD, seeding from the environment and the drift check."""
 
+import hmac
 import logging
 from uuid import UUID, uuid4
 
@@ -8,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import ImapSettings
-from .crypto import decrypt, encrypt
+from .crypto import CryptoError, decrypt, encrypt
 from .models import Account
 
 logger = logging.getLogger(__name__)
@@ -150,4 +151,39 @@ async def seed_from_env(session: AsyncSession, env: ImapSettings | None, secret_
     )
     logger.info("Seeded account %s from the environment.", env.imap_account_id)
     return []
+# end def
+
+
+def imap_settings(account: Account, secret_key: SecretStr | None) -> ImapSettings:
+    """The connection settings of a stored account. Raises `CryptoError` if the password cannot be decrypted."""
+    return ImapSettings(
+        _env_file=None,  # type: ignore[call-arg]
+        imap_account_id=account.id,
+        imap_account_name=account.name,
+        imap_host=account.host,
+        imap_port=account.port,
+        imap_ssl=account.ssl,
+        imap_username=account.username,
+        imap_password=SecretStr(decrypt(secret_key, account.password_encrypted)),
+        imap_page_size=account.page_size,
+        imap_poll_interval=account.poll_interval,
+    )
+# end def
+
+
+async def find_by_credentials(session: AsyncSession, secret_key: SecretStr | None, username: str, password: str) -> Account | None:
+    """The first account whose username and password both match, compared in constant time. Accounts that cannot be decrypted are skipped."""
+    found: Account | None = None
+    for account in await list_accounts(session):
+        try:
+            stored = decrypt(secret_key, account.password_encrypted)
+        except CryptoError:
+            continue
+        # end try
+        matches = hmac.compare_digest(account.username.encode(), username.encode()) & hmac.compare_digest(stored.encode(), password.encode())
+        if matches and found is None:
+            found = account
+        # end if
+    # end for
+    return found
 # end def

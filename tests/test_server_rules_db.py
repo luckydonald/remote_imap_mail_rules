@@ -10,6 +10,7 @@ from cryptography.fernet import Fernet
 
 from remote_imap_mail_rules.rules.loader import parse_rules
 from remote_imap_mail_rules.server.app import create_app
+from remote_imap_mail_rules.server.auth import SESSION_COOKIE, make_session_token
 from remote_imap_mail_rules.server.settings import ServerSettings
 from tests.test_server import INVALID_SCHEMA, INVALID_YAML, VALID
 
@@ -59,6 +60,7 @@ def client(tmp_path: Path) -> Iterator[TestClient]:
         secret_key=SecretStr(Fernet.generate_key().decode()),
     )
     with TestClient(create_app(settings)) as test_client:
+        test_client.cookies.set(SESSION_COOKIE, make_session_token(settings))
         yield test_client
     # end with
 # end def
