@@ -2,9 +2,10 @@
 import { nextTick, ref, watch } from 'vue'
 import { addressList, fileSize, frameDocument, fullDate } from '@/model/mail-format'
 import type { MailStore } from '@/model/mail-store'
+import MailAddCondition from './MailAddCondition.vue'
 import MailSpinner from './MailSpinner.vue'
 
-const props = defineProps<{ store: MailStore }>()
+const props = defineProps<{ store: MailStore; compact?: boolean }>()
 
 const frame = ref<HTMLIFrameElement | null>(null)
 
@@ -44,6 +45,7 @@ watch(
         <dt>Date</dt>
         <dd>{{ fullDate(store.detail.date) }}</dd>
       </dl>
+      <MailAddCondition v-if="compact && store.context" :context="store.context" />
       <ul v-if="store.detail.attachments.some((item) => !item.inline)" class="attachments">
         <li v-for="item in store.detail.attachments.filter((a) => !a.inline)" :key="item.part">
           <a :href="item.url" :download="item.filename ?? undefined">

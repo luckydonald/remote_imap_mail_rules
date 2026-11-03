@@ -3,6 +3,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { listAccounts, type Account } from './accounts-api'
+import type { MailContext } from './fill-from-mail'
 import { ApiError, describeError } from './http'
 import {
   getMessage,
@@ -61,11 +62,21 @@ export const useMailStore = defineStore('mail', () => {
   // True from the start until the accounts and the folders of the first account are in.
   const foldersLoading = ref(true)
   const pane = ref<Pane>('folders')
+  // The side panel of the rule editor, and whether a server answers at all (see the context below).
+  const panelOpen = ref(false)
+  const active = ref(false)
   // Answers of requests that were overtaken by a newer choice are dropped.
   let listTicket = 0
   let detailTicket = 0
 
   const hasMore = computed(() => nextBefore.value !== null)
+  /** The open mail with its place, for filling conditions; `null` offline or while no mail is open. */
+  const context = computed<MailContext | null>(() => {
+    const id = accountId.value ?? restore?.accountId ?? null
+    const name = folder.value ?? restore?.folder ?? null
+    if (!active.value || !detail.value || id === null || name === null) return null
+    return { detail: detail.value, accountId: id, folder: name }
+  })
   const currentFolder = computed(() => folders.value.find((item) => item.name === folder.value))
 
   watch([accountId, folder, selectedUid, detail], () => {
@@ -79,6 +90,28 @@ export const useMailStore = defineStore('mail', () => {
       })
     }
   })
+
+  /** Forgets everything of the session, e.g. on log out. */
+  function clear(): void {
+    restore = null
+    accounts.value = []
+    accountId.value = null
+    folders.value = []
+    folder.value = null
+    messages.value = []
+    total.value = 0
+    nextBefore.value = null
+    detail.value = null
+    selectedUid.value = null
+    error.value = ''
+    pane.value = 'folders'
+    panelOpen.value = false
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // Nothing to forget when the storage is blocked.
+    }
+  }
 
   function setUnauthorizedHandler(handler: () => void): void {
     onUnauthorized = handler
@@ -218,12 +251,16 @@ export const useMailStore = defineStore('mail', () => {
     loading,
     foldersLoading,
     pane,
+    panelOpen,
+    active,
+    context,
     loadAccounts,
     selectAccount,
     selectFolder,
     loadMore,
     openMessage,
     back,
+    clear,
     setUnauthorizedHandler,
   }
 })
