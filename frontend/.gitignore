@@ -17,3 +17,7 @@ coverage
 .eslintcache
 __screenshots__/
 *.timestamp-*-*.mjs
+
+# Playwright
+test-results/
+playwright-report/

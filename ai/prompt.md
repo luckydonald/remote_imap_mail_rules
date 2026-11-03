@@ -225,3 +225,8 @@ And what's going on with typescript 7 vs 5.9?
 
 ❯ Continue [@`ai/initial.md`](./initial.md) 's stage 2
 
+❯ Plan denied:
+> Write playwright tests instead, no chrome claude.
+
+❯ Plan accepted, auto mode.
+
