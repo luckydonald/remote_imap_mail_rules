@@ -15,8 +15,9 @@ from ..config import ImapSettings
 from ..mail import Attachment, Bodies, Mail
 from .bodystructure import Part, parse_parts
 from .connection import ImapConnection
-from .fetch import parse_fetch, parse_folder_state, parse_list, parse_search
-from .models import FetchedMessage, FolderInfo, FolderState
+from .fetch import parse_fetch, parse_folder_counts, parse_folder_state, parse_list, parse_search
+from .models import FetchedMessage, FolderCounts, FolderInfo, FolderState
+from .transfer import decode_transfer
 
 FETCH_FIELDS = "(UID FLAGS INTERNALDATE RFC822.SIZE BODYSTRUCTURE BODY.PEEK[HEADER])"
 FETCH_FIELDS_CONDSTORE = "(UID FLAGS INTERNALDATE RFC822.SIZE BODYSTRUCTURE BODY.PEEK[HEADER] MODSEQ)"
@@ -213,6 +214,49 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
         # end for
     # end def
 
+    async def folder_counts(self, folder: str) -> FolderCounts:
+        """Total and unseen mails of a folder without selecting it."""
+        response = check(await self.conn.status(quote_folder(folder), "(MESSAGES UNSEEN)"), f"status {folder}")
+        counts = parse_folder_counts(response.lines)
+        if counts is None:
+            raise ImapError(f"status {folder} gave no counts: {response.lines!r}")
+        # end if
+        return counts
+    # end def
+
+    async def list_page(self, account_id: UUID, folder: str, limit: int, before_uid: int | None = None) -> tuple[list[Mail], int]:
+        """One page of a folder, newest first, starting below `before_uid`, and the total number of mails in the folder."""
+        await self.examine(folder)
+        uids = sorted(await self.search_uids("ALL"), reverse=True)
+        older = [uid for uid in uids if before_uid is None or uid < before_uid]
+        return await self.fetch_mails(account_id, folder, older[:limit]), len(uids)
+    # end def
+
+    async def fetch_message(self, account_id: UUID, folder: str, uid: int) -> Mail | None:
+        """Headers and structure of one mail, or `None` if the UID does not exist."""
+        await self.examine(folder)
+        mails = await self.fetch_mails(account_id, folder, [uid])
+        return mails[0] if mails else None
+    # end def
+
+    async def fetch_part(self, folder: str, uid: int, number: str) -> tuple[Part, bytes] | None:
+        """One part of a mail with its transfer encoding undone, or `None` if the mail or part does not exist."""
+        if self.folder != folder:
+            await self.examine(folder)
+        # end if
+        structure = next(iter(await self.fetch(str(uid), "(UID BODYSTRUCTURE)")), None)
+        part = next((item for item in parse_parts(structure.bodystructure) if item.number == number), None) if structure else None
+        if part is None or part.mime_type.startswith("multipart/"):
+            return None
+        # end if
+        fetched = await self.fetch(str(uid), f"(UID BODY.PEEK[{number}])")
+        data = next((item.sections[number] for item in fetched if number in item.sections), None)
+        if data is None:
+            return None
+        # end if
+        return part, decode_transfer(part.encoding, data)
+    # end def
+
     async def fetch_new(self, account_id: UUID, folder: str, since_uid: int) -> list[Mail]:
         """Mails with a UID above `since_uid`."""
         found = [uid for uid in await self.search_uids(f"UID {since_uid + 1}:*") if uid > since_uid]
@@ -239,7 +283,14 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
         top = parts[0].mime_type if parts else None
         uid = fetched.uid
         attachments = [
-            Attachment(mime_type=part.mime_type, filename=part.filename, size=part.size, inline=part.inline)
+            Attachment(
+                mime_type=part.mime_type,
+                filename=part.filename,
+                size=part.size,
+                inline=part.inline,
+                part=part.number,
+                content_id=part.content_id,
+            )
             for part in parts
             if part.is_attachment
         ]

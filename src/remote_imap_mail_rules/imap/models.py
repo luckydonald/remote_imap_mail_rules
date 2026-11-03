@@ -32,6 +32,27 @@ class FetchedMessage:
 
 
 @dataclass(frozen=True)
+class FolderCounts:
+    """`STATUS (MESSAGES UNSEEN)` of a folder."""
+
+    messages: int
+    unseen: int
+# end class
+
+
+SPECIAL_USE = ("inbox", "sent", "drafts", "trash", "junk", "archive", "flagged", "all")
+SPECIAL_USE_ATTRIBUTES = {
+    "\\sent": "sent",
+    "\\drafts": "drafts",
+    "\\trash": "trash",
+    "\\junk": "junk",
+    "\\archive": "archive",
+    "\\flagged": "flagged",
+    "\\all": "all",
+}
+
+
+@dataclass(frozen=True)
 class FolderInfo:
     name: str
     attributes: frozenset[str]
@@ -40,6 +61,20 @@ class FolderInfo:
     @property
     def selectable(self) -> bool:
         return "\\noselect" not in self.attributes and "\\nonexistent" not in self.attributes
+    # end def
+
+    @property
+    def special_use(self) -> str | None:
+        """One of `SPECIAL_USE`, from the RFC 6154 attributes, and `inbox` for `INBOX`."""
+        if self.name.upper() == "INBOX":
+            return "inbox"
+        # end if
+        for attribute, use in SPECIAL_USE_ATTRIBUTES.items():
+            if attribute in self.attributes:
+                return use
+            # end if
+        # end for
+        return None
     # end def
 # end class
 

@@ -6,7 +6,9 @@ Stages 1 to 4 are done: rules, editor, FastAPI server, and a database holding ac
 Stage 5 adds a simple read-only mail client for the registered accounts, styled like Apple Mail and usable on mobile.
 Scope for this run, as decided: the viewer and the login.
 Fill-from-mail and the action log stay in the unchecked part of stage 5 and come later.
-Login is deliberately simple: the user picks an account and enters its password, the server compares it with the stored (decrypted) password.
+Login is deliberately simple and guards the whole API: this is a single-user service, so the credentials of any registered account unlock everything.
+The server compares the entered username and password with the stored (decrypted) ones.
+Only static files and `/api/auth/*` stay open.
 
 ## Backend
 
@@ -24,16 +26,17 @@ Login is deliberately simple: the user picks an account and enters its password,
 - `db/accounts.py`: add `imap_settings(account, secret_key)` building `ImapSettings` (with `_env_file=None`) from an `Account` row; `CryptoError` maps to 503 like in `api/accounts.py`.
 - `app.py`: put an IMAP `ConnectionFactory` on `app.state` (default `connect_aioimaplib`), the seam for tests.
 - `server/auth.py` and `api/auth.py` at `/api/auth`:
-  - `POST /login` with `account_id` and `password`, compared against the decrypted stored password with `hmac.compare_digest`; 401 on mismatch.
-  - On success set an HttpOnly, SameSite=Lax cookie holding a Fernet token (from `SECRET_KEY`, with a TTL) of the account id.
-  - `POST /logout` clears it, `GET /me` returns the account or 401.
-  - `current_account` dependency for the mail router.
-  - Editor and accounts endpoints stay ungated, as today.
-- `api/mail.py` at `/api/mail`, all behind `current_account`, one `async with ImapClient` per request:
-  - `GET /folders`: name, display name, special use, total and unseen counts.
-  - `GET /folders/{folder}/messages?before_uid=&limit=`: summaries (uid, from, subject, date, seen, flagged, has attachments, size) and the total.
-  - `GET /folders/{folder}/messages/{uid}`: headers, text body, HTML body, attachment list.
-  - `GET /folders/{folder}/messages/{uid}/parts/{n}`: attachment download or inline image, with a safe `Content-Disposition`.
+  - `POST /login` with `username` and `password`; it matches against all accounts (username plus decrypted password, `hmac.compare_digest`), 401 on no match.
+  - On success set an HttpOnly, SameSite=Lax cookie holding a Fernet token (from `SECRET_KEY`, with a TTL).
+    The token only says "logged in", it grants no per-account scope.
+  - `POST /logout` clears it, `GET /me` returns 200 or 401.
+  - A `require_login` dependency is applied at `include_router` time in `app.py` to `accounts`, `editor` and `mail`, so a new router cannot forget it.
+  - Without `SECRET_KEY` login is impossible (503, same as the accounts API), and a fresh database is covered because the env account is seeded.
+- `api/mail.py` at `/api/mail`, behind `require_login`, with `account_id` in the path (`/accounts/{account_id}/folders`, ...), one `async with ImapClient` per request:
+  - `GET /accounts/{account_id}/folders`: name, display name, special use, total and unseen counts.
+  - `GET /accounts/{account_id}/folders/{folder}/messages?before_uid=&limit=`: summaries (uid, from, subject, date, seen, flagged, has attachments, size) and the total.
+  - `GET .../messages/{uid}`: headers, text body, HTML body, attachment list.
+  - `GET .../messages/{uid}/parts/{n}`: attachment download or inline image, with a safe `Content-Disposition`.
 - HTML safety: sanitize with `nh3` (new dependency) on the server, rewrite `cid:` URLs to the part endpoint, strip remote images by default, and render in a sandboxed iframe in the frontend.
 - Map `ImapError`, `AioImapException`, `OSError` to 502 and `TimeoutError` to 504 with a message.
 
@@ -44,12 +47,14 @@ Login is deliberately simple: the user picks an account and enters its password,
 - `AppShell.vue`: widen `screen` to `'rules' | 'accounts' | 'mail'`, turn the single topbar toggle into a small nav, and add a `v-else-if` branch.
 - Styles in `styles/main.scss` using the existing CSS variables and dark mode; at the existing 760px breakpoint the three panes collapse into a stack with back navigation (folders, then list, then message).
 - Infinite scroll in the list via `before_uid`.
-- Stay in file-only mode when no server answers, like the accounts screen.
+- Login gating changes how the shell probes the server: `GET /api/editor/config` answering 401 means "server present, log in", while a network error or 404 still means file-only mode.
+  `AppShell` shows `MailLogin` on 401 and loads the rules and accounts after login; a 401 later sends the user back to it.
+- Stay in file-only mode when no server answers, like today.
 
 ## Tests
 
 - Extend `tests/fake_imap.py`: list attributes, STATUS counts, multipart and attachment structures, `BODY.PEEK[1.2]` sections, `SEARCH` with `UID` ranges.
-- pytest: client additions, `imap_settings`, auth (wrong password, cookie, expiry), mail router via `TestClient` with the fake factory, HTML sanitizing, error mapping.
+- pytest: client additions, `imap_settings`, auth (wrong password, any account works, cookie, expiry, every non-auth `/api` route returns 401 without it; existing server tests log in first), mail router via `TestClient` with the fake factory, HTML sanitizing, error mapping.
 - Vitest: `mail-api.spec.ts` and component specs.
 - Playwright: `e2e/mail.spec.ts` with mocked `**/api/mail**` and `**/api/auth**`, including a mobile viewport below 760px.
 

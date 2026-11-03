@@ -13,6 +13,8 @@ class Attachment:
     filename: str | None = None
     size: int | None = None
     inline: bool = False
+    part: str | None = None
+    content_id: str | None = None
 
     @property
     def extension(self) -> str | None:
