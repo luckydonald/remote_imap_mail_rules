@@ -308,6 +308,7 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
             date_received=fetched.internaldate,
             size=fetched.size,
             modseq=fetched.modseq,
+            uidvalidity=self.state.uidvalidity if self.state is not None and self.folder == folder else None,
             mime_type=top,
             attachments=attachments,
             body_loader=load_bodies,
