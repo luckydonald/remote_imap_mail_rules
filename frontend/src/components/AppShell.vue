@@ -10,10 +10,12 @@ import YamlPanel from './YamlPanel.vue'
 import { fetchConfig, fetchRules, saveRules, SaveError } from '@/model/api'
 import { provideStore } from '@/model/context'
 import { logout } from '@/model/mail-api'
+import { useMailStore } from '@/model/mail-store'
 import { createStore } from '@/model/store'
 
 const store = createStore()
 provideStore(store)
+const mail = useMailStore()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const notice = ref('')
@@ -29,11 +31,13 @@ async function connect(): Promise<void> {
   if (config === 'login') {
     loginRequired.value = true
     online.value = false
+    mail.active = false
     return
   }
   if (!config) return
   loginRequired.value = false
   online.value = true
+  mail.active = true
   const label = config.file_name ?? 'the database'
   try {
     const text = await fetchRules()
@@ -57,6 +61,8 @@ async function loggedIn(): Promise<void> {
 async function logOut(): Promise<void> {
   await logout()
   online.value = false
+  mail.active = false
+  mail.clear()
   loginRequired.value = true
   screen.value = 'rules'
 }
@@ -164,6 +170,16 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         </button>
         <button type="button" class="ghost" @click="logOut">Log out</button>
       </nav>
+      <button
+        v-if="online && screen === 'rules'"
+        type="button"
+        class="ghost mail-toggle"
+        :class="{ current: mail.panelOpen }"
+        title="Show a mail beside the rule to fill conditions from it"
+        @click="mail.panelOpen = !mail.panelOpen"
+      >
+        Example mail
+      </button>
       <template v-if="screen !== 'mail'">
         <button type="button" @click="fileInput?.click()">Open…</button>
         <input ref="fileInput" type="file" accept=".yml,.yaml,text/yaml" hidden @change="onPick" />
@@ -211,7 +227,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     <MailLogin v-if="loginRequired" @logged-in="loggedIn" />
     <MailView v-else-if="screen === 'mail'" @unauthorized="logOut" />
     <AccountsView v-else-if="screen === 'accounts'" />
-    <div v-else class="body">
+    <div v-else class="body" :class="{ 'with-mail': online && mail.panelOpen }">
       <RuleList />
       <main>
         <RuleEditor
@@ -223,6 +239,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <TemplatesView v-else-if="store.view.value.kind === 'templates'" />
         <YamlPanel v-else />
       </main>
+      <aside v-if="online && mail.panelOpen" class="mail-panel">
+        <MailView compact @unauthorized="logOut" @close="mail.panelOpen = false" />
+      </aside>
     </div>
     <div v-if="dragging" class="drop">Drop a rules file to open it</div>
   </div>

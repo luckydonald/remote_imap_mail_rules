@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
+import { beforeEach, describe, expect, it } from 'vitest'
 import AppShell from '@/components/AppShell.vue'
 import ConditionNode from '@/components/ConditionNode.vue'
 import FieldValue from '@/components/FieldValue.vue'
@@ -9,6 +10,8 @@ import { defineComponent, h, reactive } from 'vue'
 import { ALLOW_VARS } from '@/model/context'
 import type { Expression } from '@/model/types'
 
+beforeEach(() => setActivePinia(createPinia()))
+
 function withStore(child: () => ReturnType<typeof h>) {
   const store = createStore()
   const Host = defineComponent({
@@ -17,7 +20,7 @@ function withStore(child: () => ReturnType<typeof h>) {
       return child
     },
   })
-  return { store, wrapper: mount(Host) }
+  return { store, wrapper: mount(Host, { global: { plugins: [createPinia()] } }) }
 }
 
 describe('ConditionNode', () => {
@@ -69,7 +72,7 @@ describe('FieldValue', () => {
 
 describe('AppShell', () => {
   it('creates a rule and shows it as valid or with problems', async () => {
-    const wrapper = mount(AppShell)
+    const wrapper = mount(AppShell, { global: { plugins: [createPinia()] } })
     await wrapper.find('button.add').trigger('click')
     expect(wrapper.find('.rule-editor').exists()).toBe(true)
     // The new rule has an empty account id, which is not a UUID yet.

@@ -309,3 +309,9 @@ export function conditionFor(
   const filled = fillExpression(base, ctx, granularity)
   return filled === base ? null : filled
 }
+
+/** Adds a condition to a rule's `when`: into an `all` group, else the two together in a new one. */
+export function appendCondition(when: Expression, added: Expression): Expression {
+  if (when.type === 'all') return { ...when, conditions: [...when.conditions, added] }
+  return { type: 'all', conditions: [when, added] }
+}

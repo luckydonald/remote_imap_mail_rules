@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { conditionFor, fillExpression, type MailContext } from '@/model/fill-from-mail'
+import {
+  appendCondition,
+  conditionFor,
+  fillExpression,
+  type MailContext,
+} from '@/model/fill-from-mail'
 import { newExpression } from '@/model/catalog'
 import type { Detail } from '@/model/mail-api'
 import type { Expression } from '@/model/types'
@@ -140,5 +145,15 @@ describe('fill from mail', () => {
     expect(conditionFor('uid', ctx)).toMatchObject({ type: 'number', operator: 'eq', value: 7 })
     expect(conditionFor('importance', ctx)).toBeNull()
     expect(conditionFor('nope', ctx)).toBeNull()
+  })
+
+  it('appends to an all group or wraps the rule in a new one', () => {
+    const added = newExpression('bool')
+    const first = newExpression('text')
+    expect(appendCondition({ type: 'all', conditions: [first] }, added)).toEqual({
+      type: 'all',
+      conditions: [first, added],
+    })
+    expect(appendCondition(first, added)).toEqual({ type: 'all', conditions: [first, added] })
   })
 })

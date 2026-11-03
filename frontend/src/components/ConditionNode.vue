@@ -9,11 +9,14 @@ import PresenceEditor from './condition/PresenceEditor.vue'
 import TemplateUseEditor from './condition/TemplateUseEditor.vue'
 import { expressionTypes, newExpression, typeLabels, type ExpressionType } from '@/model/catalog'
 import { useStore } from '@/model/context'
+import { fillExpression, type Granularity } from '@/model/fill-from-mail'
+import { useMailStore } from '@/model/mail-store'
 import type { Expression } from '@/model/types'
 
 const props = defineProps<{ modelValue: Expression; removable?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: Expression]; remove: [] }>()
 const store = useStore()
+const mail = useMailStore()
 
 const node = computed(() => props.modelValue)
 const isGroup = computed(() => ['all', 'any', 'not'].includes(node.value.type))
@@ -25,6 +28,25 @@ function changeType(type: ExpressionType): void {
     return
   }
   emit('update:modelValue', newExpression(type, Object.keys(store.file.templates)))
+}
+
+const fillable = computed(() =>
+  ['text', 'address', 'header', 'number', 'date', 'bool'].includes(node.value.type),
+)
+
+/** Takes the value from the open mail, or opens the mail panel to choose one. */
+function fillFromMail(): void {
+  const context = mail.context
+  if (!context) {
+    mail.panelOpen = true
+    return
+  }
+  const current = node.value
+  const part =
+    current.type === 'address' && typeof current.part === 'string'
+      ? (current.part as Granularity)
+      : 'address'
+  emit('update:modelValue', fillExpression(current, context, part))
 }
 
 function wrap(type: 'all' | 'any' | 'not'): void {
@@ -48,6 +70,15 @@ function wrap(type: 'all' | 'any' | 'not'): void {
         </option>
       </select>
       <span class="spacer" />
+      <button
+        v-if="fillable && mail.active"
+        type="button"
+        class="ghost fill-from-mail"
+        :title="mail.context ? 'Fill the value from the open mail' : 'Choose a mail to fill from'"
+        @click="fillFromMail"
+      >
+        From mail
+      </button>
       <button type="button" class="ghost" title="Wrap in NOT" @click="wrap('not')">not(…)</button>
       <button type="button" class="ghost" title="Wrap in ALL (AND)" @click="wrap('all')">
         all(…)

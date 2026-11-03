@@ -733,42 +733,106 @@ button {
   }
 }
 
-@media (max-width: 760px) {
-  .mail {
-    grid-template-columns: 1fr;
+@mixin single-pane {
+  grid-template-columns: 1fr;
 
-    .pane-head .back {
-      display: inline-block;
-    }
+  .pane-head .back {
+    display: inline-block;
+  }
 
-    .mail-folders .pane-head,
-    &[data-pane='folders'] .pane-head .back {
+  .mail-folders .pane-head,
+  &[data-pane='folders'] .pane-head .back {
+    display: none;
+  }
+
+  &[data-pane='folders'] {
+    .mail-list,
+    .mail-message {
       display: none;
     }
+  }
 
-    &[data-pane='folders'] {
-      .mail-list,
-      .mail-message {
-        display: none;
-      }
+  &[data-pane='list'] {
+    .mail-folders,
+    .mail-message {
+      display: none;
     }
+  }
 
-    &[data-pane='list'] {
-      .mail-folders,
-      .mail-message {
-        display: none;
-      }
+  &[data-pane='message'] {
+    .mail-folders,
+    .mail-list {
+      display: none;
     }
+  }
+}
 
-    &[data-pane='message'] {
-      .mail-folders,
-      .mail-list {
-        display: none;
-      }
-    }
+@media (max-width: 760px) {
+  .mail {
+    @include single-pane;
   }
 
   .mail-list {
     border-right: 0;
+  }
+}
+
+// The mail beside the rule editor: one pane at a time, like on a phone.
+.mail-view {
+  display: contents;
+
+  &.compact {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 52px);
+
+    .mail {
+      @include single-pane;
+      flex: 1;
+      height: auto;
+    }
+
+    .mail-list {
+      border-right: 0;
+    }
+  }
+
+  .panel-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+}
+
+.mail-panel {
+  min-width: 0;
+  border-left: 1px solid var(--border);
+}
+
+.add-to-rule {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 10px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.body.with-mail {
+  grid-template-columns: 260px minmax(0, 1fr) minmax(340px, 42%);
+
+  @media (max-width: 760px) {
+    grid-template-columns: 1fr;
+
+    .rule-list,
+    > main {
+      display: none;
+    }
   }
 }
