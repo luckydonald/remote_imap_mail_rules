@@ -1,5 +1,7 @@
 /** Client of the server's account endpoints. */
 
+import { failure } from './http'
+
 const BASE = '/api/accounts'
 
 export interface Account {
@@ -28,31 +30,7 @@ export interface AccountInput {
   poll_interval: number
 }
 
-export class AccountError extends Error {
-  readonly messages: string[]
-
-  constructor(messages: string[]) {
-    super(messages.join('; '))
-    this.messages = messages
-  }
-}
-
-async function failure(response: Response): Promise<AccountError> {
-  let messages = [`The server answered ${response.status}.`]
-  try {
-    const body = (await response.json()) as { detail?: unknown }
-    if (typeof body.detail === 'string') messages = [body.detail]
-    else if (Array.isArray(body.detail))
-      messages = body.detail.map((item) =>
-        typeof item === 'object' && item !== null && 'msg' in item
-          ? `${((item as { loc?: unknown[] }).loc ?? []).slice(1).join('.')}: ${String((item as { msg: unknown }).msg)}`
-          : String(item),
-      )
-  } catch {
-    // keep the status message
-  }
-  return new AccountError(messages)
-}
+export { ApiError as AccountError } from './http'
 
 function body(input: AccountInput, update: boolean): string {
   const { password, ...rest } = input
