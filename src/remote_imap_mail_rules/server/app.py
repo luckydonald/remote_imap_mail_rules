@@ -5,6 +5,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException
+from starlette.types import Scope
 
 from ..config import ImapSettings
 from ..db import accounts as account_repository
@@ -16,6 +18,23 @@ from .auth import require_login
 from .rules_store import DatabaseRulesStore, FileRulesStore, RulesStore
 from .settings import ServerSettings
 from .watcher import Watcher
+
+
+class SpaStaticFiles(StaticFiles):
+    """Serves `index.html` for paths without a file, so the frontend router can own the URLs (`/mail/<account>/<folder>`)."""
+
+    async def get_response(self, path: str, scope: Scope):
+        try:
+            return await super().get_response(path, scope)
+        except HTTPException as exception:
+            # An unknown `/api` path stays a 404, a missing built asset too; folder names may contain dots, so no check for an extension.
+            if exception.status_code != 404 or path.startswith(("api/", "assets/")):
+                raise
+            # end if
+            return await super().get_response("index.html", scope)
+        # end try
+    # end def
+# end class
 
 
 def create_app(
@@ -59,7 +78,7 @@ def create_app(
     app.include_router(events.router, prefix="/api/mail", tags=["mail"], dependencies=protected)
     if settings.frontend_dist.is_dir():
         # Mounted last, so `/api` wins; `html=True` serves `index.html` for `/`.
-        app.mount("/", StaticFiles(directory=settings.frontend_dist, html=True), name="frontend")
+        app.mount("/", SpaStaticFiles(directory=settings.frontend_dist, html=True), name="frontend")
     # end if
     return app
 # end def
