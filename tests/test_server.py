@@ -92,6 +92,11 @@ def test_serves_built_frontend(rules_path: Path, tmp_path: Path) -> None:
     with TestClient(create_app(settings)) as test_client:
         test_client.cookies.set(SESSION_COOKIE, make_session_token(settings))
         assert "editor" in test_client.get("/").text
+        # Deep links of the frontend router get the app, API and asset misses stay 404.
+        assert "editor" in test_client.get("/mail/some-account/INBOX%2FSub/12").text
+        assert "editor" in test_client.get("/mail/some-account/INBOX.Sub").text
+        assert test_client.get("/api/nope").status_code == 404
+        assert test_client.get("/assets/missing.js").status_code == 404
         assert test_client.get("/api/editor/config").status_code == 200
     # end with
 # end def
