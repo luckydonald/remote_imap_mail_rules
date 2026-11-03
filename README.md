@@ -79,6 +79,7 @@ Generate a `SECRET_KEY` once with `uv run python -c "from cryptography.fernet im
   Without `SECRET_KEY` nobody can log in, the API then answers `503`.
 - The Mail screen is a read-only mail client for the registered accounts: folders, the message list (newest first, paged), and the message with its attachments.
   HTML mail is sanitized (no scripts, no remote images) and shown in a sandboxed frame.
+- The rule editor can show a mail beside it ("Example mail") and fill conditions from it, e.g. the sender as name, email or domain.
   It works on a phone as well, where one pane shows at a time.
 
 ```bash
