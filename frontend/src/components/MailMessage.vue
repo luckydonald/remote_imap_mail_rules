@@ -2,6 +2,7 @@
 import { nextTick, ref, watch } from 'vue'
 import { addressList, fileSize, frameDocument, fullDate } from '@/model/mail-format'
 import type { MailStore } from '@/model/mail-store'
+import MailSpinner from './MailSpinner.vue'
 
 const props = defineProps<{ store: MailStore }>()
 
@@ -26,7 +27,7 @@ watch(
     </header>
     <p v-if="store.error.value" class="message error" role="alert">{{ store.error.value }}</p>
     <p v-else-if="store.selectedUid.value === null" class="hint empty">No message selected.</p>
-    <p v-else-if="!store.detail.value" class="hint">Loading…</p>
+    <MailSpinner v-else-if="!store.detail.value" />
     <template v-else>
       <h2 class="subject">{{ store.detail.value.subject || '(no subject)' }}</h2>
       <dl class="meta">
