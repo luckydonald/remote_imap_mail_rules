@@ -25,7 +25,9 @@ Read from the environment and from `.env` in the working directory (see `.exampl
 | `IMAP_PASSWORD` | required | Login password. |
 | `IMAP_PAGE_SIZE` | `50` | Mails per page when loading a folder. |
 | `IMAP_POLL_INTERVAL` | `60` | Seconds between polls when the server has no IDLE. |
-| `RULES_PATH` | `rules/example.yml` | The YAML rules file. The server edits this file. |
+| `RULES_PATH` | `rules/example.yml` for the demo, unset for the server | The YAML rules file. When set, the server edits this file; when unset, the rules live in the database. |
+| `DATABASE_URL` | `sqlite+aiosqlite:///./db.sqlite3` | Any async SQLAlchemy URL. The server runs the Alembic migrations at start-up. |
+| `SECRET_KEY` | none | Fernet key that encrypts the account passwords in the database. Without it no password can be stored. |
 | `SERVER_HOST` | `127.0.0.1` | Interface of the server. It has no login yet, so only expose it on a trusted network. |
 | `SERVER_PORT` | `8000` | Port of the server. |
 | `FRONTEND_DIST` | `frontend/dist` | Built editor that the server serves at `/`. |
@@ -61,8 +63,16 @@ The editor validates against `schemas/rules.schema.json`, and keeps the comments
 
 ### Server
 
-The FastAPI server serves the built editor and lets it load and save the file at `RULES_PATH`.
+The FastAPI server serves the built editor and lets it load and save the rules, and manages the accounts.
 It needs no IMAP credentials.
+Generate a `SECRET_KEY` once with `uv run python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.
+
+- The rules are stored in the file at `RULES_PATH` when that is set, otherwise in the database, one row per rule.
+  A file keeps comments and YAML anchors, the database does not, because it stores the parsed rules.
+- The accounts live in the database, passwords encrypted with `SECRET_KEY`.
+  The account from the `IMAP_*` variables is added once at start-up, and never overwritten afterwards.
+  If it differs from the variables later (e.g. a changed password), the log warns and the accounts screen shows a badge.
+- Deleting an account that rules still refer to is refused.
 
 ```bash
 cd frontend && yarn install && yarn build && cd ..
