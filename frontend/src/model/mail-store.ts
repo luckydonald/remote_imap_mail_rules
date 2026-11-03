@@ -76,6 +76,8 @@ export const useMailStore = defineStore('mail', () => {
   // The side panel of the rule editor, and whether a server answers at all (see the context below).
   const panelOpen = ref(false)
   const active = ref(false)
+  // Whether the server applies the actions of matching rules (`ACTIONS_ENABLED`); the dry run works either way.
+  const actionsEnabled = ref(false)
   // Answers of requests that were overtaken by a newer choice are dropped.
   let listTicket = 0
   let detailTicket = 0
@@ -303,6 +305,7 @@ export const useMailStore = defineStore('mail', () => {
     pane,
     panelOpen,
     active,
+    actionsEnabled,
     context,
     loadAccounts,
     selectAccount,
