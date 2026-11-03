@@ -1,6 +1,7 @@
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import AppShell from './components/AppShell.vue'
+import { createAppRouter } from './router'
 import './styles/main.scss'
 
-createApp(AppShell).use(createPinia()).mount('#app')
+createApp(AppShell).use(createPinia()).use(createAppRouter()).mount('#app')

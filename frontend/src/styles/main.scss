@@ -448,7 +448,16 @@ button {
   display: flex;
   gap: 4px;
 
-  .current {
+  a.ghost {
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    text-decoration: none;
+  }
+
+  .current,
+  a.router-link-active {
     background: color-mix(in srgb, var(--accent) 18%, transparent);
     color: var(--accent);
   }
