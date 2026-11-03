@@ -126,6 +126,16 @@ Status: done, see this checklist; additionally "Status so far" below.
   - First seen and rule matches are written by a background watcher in the server and shown in the message view.
   - The `action` and `user_action` kinds exist in the table, but nothing writes them until actions are executed.
 
+## 6a. Rule actions within an account
+Status: done, see this checklist; additionally "Status so far" below.
+Moving between accounts and user actions are still open, see "Not built yet".
+
+- [x] Execute the actions (`move`, `mark_read`, `mark_unread`, `flag`, `keyword`) inside one account.
+  - Rules run in file order and the first matching rule wins; if it changed the mail, the rules are evaluated again from the top without refetching, a move ends the pass.
+  - Off by default: `ACTIONS_ENABLED=false` means the server never writes to a mailbox.
+- [x] `action` entries in the log of a mail, shown in the message view.
+- [x] Dry run in the rule editor: a summary of what the actions would do, a drill-down into the affected mails, and "Run now" (disabled with a hint while `ACTIONS_ENABLED` is off).
+
 # Status so far
 #### Done
 
@@ -158,9 +168,10 @@ Status: done, see this checklist; additionally "Status so far" below.
 
 - Action log per mail (`mail_events`): a background watcher (`WATCH_ENABLED`) runs the rules on every stored account and records first seen and rule matches, the message view shows them.
 
+- Rule actions inside one account (`actions.py`): first matching rule wins with re-evaluation, `ImapClient` write methods, `ACTIONS_ENABLED` (default off), `action` log entries, and a dry run with "Run now" in the editor.
+
 #### Not built yet
 
 - Moving mails between accounts.
-- Executing rule actions (all IMAP access is read-only for now).
-- Action and user action entries of the log, they come with executing actions.
+- `user_action` entries of the log, and the continuation of a moved mail's log under its new folder and UID.
 - Easy custom fields and headers beyond the `header` condition, e.g. a picker in the editor.

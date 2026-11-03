@@ -100,7 +100,10 @@ For development run the server and `yarn dev` side by side, the dev server proxi
 
 ## IMAP
 
-Everything is read-only and async: folders are only opened with `EXAMINE`, mails are fetched with `BODY.PEEK`, and nothing writes to the mailbox.
+Reading is async and read-only: folders are opened with `EXAMINE` and mails are fetched with `BODY.PEEK`.
+The only writes are the actions of rules (`STORE` for flags and keywords, `MOVE` or `COPY` + `UID EXPUNGE` for moves) and they only run when `ACTIONS_ENABLED=true`; by default the server never writes to a mailbox.
+The first matching rule (in file order) wins; if it changed the mail the rules are evaluated again from the top, and a move ends the pass.
+In the rule editor the **Dry run** button of a rule shows what the rules would do to the mails it covers, without changing anything; **Run now** applies it once the server is allowed to.
 Headers, flags, size and structure are loaded per page (newest first), bodies are downloaded lazily and only when a rule needs `body_text` or `body_html`.
 New mails are noticed via `IDLE` push when the server supports it, otherwise by polling every `IMAP_POLL_INTERVAL` seconds; flag changes are detected with `CONDSTORE`, where available.
 A location with `recursive: true` covers the folder and the folders below it as they exist at start-up; folders that do not exist are skipped with a warning.

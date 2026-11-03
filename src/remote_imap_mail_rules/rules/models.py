@@ -480,7 +480,7 @@ class Rule[V = Var](Concrete):
     enabled: Templatable[bool, V] = True
     locations: list[Location[V]] = Field(min_length=1)
     when: Expression[V]
-    actions: list[Action[V]] = Field(default_factory=list, description="Parsed only; nothing executes them yet.")
+    actions: list[Action[V]] = Field(default_factory=list, description="Applied by the server when `ACTIONS_ENABLED` is on (the first matching rule wins); otherwise only shown by the dry run.")
 
     def concrete(self, variables: Mapping[str, Any] | None = None) -> "Rule[Never]":
         return concretize(self, variables)
