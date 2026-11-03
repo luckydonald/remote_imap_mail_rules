@@ -1,0 +1,144 @@
+import { describe, expect, it } from 'vitest'
+import { conditionFor, fillExpression, type MailContext } from '@/model/fill-from-mail'
+import { newExpression } from '@/model/catalog'
+import type { Detail } from '@/model/mail-api'
+import type { Expression } from '@/model/types'
+
+const detail: Detail = {
+  uid: 7,
+  sender: { name: 'Max Muster', address: 'max.muster@example.com' },
+  subject: 'Hello',
+  date: '2026-11-03T08:30:00Z',
+  seen: true,
+  flagged: false,
+  answered: false,
+  has_attachments: true,
+  size: 1234,
+  to: [
+    { name: '', address: 'a@example.org' },
+    { name: 'B', address: 'b@example.org' },
+  ],
+  cc: [],
+  bcc: [],
+  reply_to: [],
+  sender_header: [],
+  return_path: [],
+  delivered_to: [],
+  headers: [
+    { name: 'Subject', value: 'Hello' },
+    { name: 'List-Id', value: '<news.example.com>' },
+    { name: 'X-Custom', value: 'one' },
+    { name: 'x-custom', value: 'two' },
+    { name: 'Authentication-Results', value: 'mx; spf=pass; dkim=PASS; dmarc=fail' },
+    { name: 'X-Spam-Status', value: 'No, score=2.5 required=5' },
+  ],
+  flags: ['\\Seen', 'Work'],
+  keywords: ['Work'],
+  date_sent: '2026-11-03T08:00:00+01:00',
+  mime_type: 'multipart/mixed',
+  modseq: 9,
+  message_id: '<id@x>',
+  text: 'hi',
+  html: null,
+  attachments: [
+    {
+      part: '2',
+      filename: 'Report.PDF',
+      mime_type: 'application/pdf',
+      size: 100,
+      inline: false,
+      content_id: null,
+      extension: 'pdf',
+      url: '/p',
+    },
+  ],
+}
+const ctx: MailContext = { detail, accountId: 'acc-1', folder: 'INBOX' }
+
+function fill(expr: Expression, granularity?: Parameters<typeof fillExpression>[2]) {
+  return fillExpression(expr, ctx, granularity)
+}
+
+describe('fill from mail', () => {
+  it('fills address conditions by granularity', () => {
+    const base = newExpression('address')
+    expect(fill(base, 'full')).toMatchObject({
+      part: 'full',
+      value: 'Max Muster <max.muster@example.com>',
+    })
+    expect(fill(base, 'address')).toMatchObject({
+      part: 'address',
+      value: 'max.muster@example.com',
+    })
+    expect(fill(base, 'name')).toMatchObject({ part: 'name', value: 'Max Muster' })
+    expect(fill(base, 'local_part')).toMatchObject({ value: 'max.muster' })
+    expect(fill(base, 'domain')).toMatchObject({ value: 'example.com' })
+  })
+
+  it('takes every address for the in operator and the first one otherwise', () => {
+    const to = { ...newExpression('address'), field: 'to' } as Expression
+    expect(fill(to)).toMatchObject({ value: 'a@example.org' })
+    expect(fill({ ...to, operator: 'in' } as Expression)).toMatchObject({
+      value: ['a@example.org', 'b@example.org'],
+    })
+  })
+
+  it('fills text, header, number, date and bool conditions', () => {
+    expect(fill(newExpression('text'))).toMatchObject({ value: 'Hello' })
+    expect(fill({ ...newExpression('text'), field: 'folder' } as Expression)).toMatchObject({
+      value: 'INBOX',
+    })
+    expect(fill({ ...newExpression('text'), field: 'auth_dkim' } as Expression)).toMatchObject({
+      value: 'pass',
+    })
+    expect(fill({ ...newExpression('text'), field: 'keywords' } as Expression)).toMatchObject({
+      value: 'Work',
+    })
+    expect(fill({ ...newExpression('header'), name: 'X-CUSTOM' } as Expression)).toMatchObject({
+      value: 'one',
+    })
+    expect(fill(newExpression('number'))).toMatchObject({ value: 1234 })
+    expect(
+      fill({ ...newExpression('number'), field: 'spam_score', operator: 'between' } as Expression),
+    ).toMatchObject({ value: [2.5, 2.5] })
+    expect(fill(newExpression('date'))).toMatchObject({
+      value: { relative: false, value: '2026-11-03T08:30:00' },
+    })
+    expect(fill({ ...newExpression('date'), field: 'date_sent' } as Expression)).toMatchObject({
+      value: { relative: false, value: '2026-11-03T07:00:00' },
+    })
+    expect(fill({ ...newExpression('bool'), field: 'flagged' } as Expression)).toMatchObject({
+      value: false,
+    })
+  })
+
+  it('leaves what the mail does not have, variables and groups alone', () => {
+    const missing = { ...newExpression('text'), field: 'list_id' } as Expression
+    expect(fill({ ...missing, field: 'importance' } as Expression)).toMatchObject({ value: '' })
+    expect(fill({ ...newExpression('text'), field: { var: 'f' } } as Expression)).toMatchObject({
+      value: '',
+    })
+    expect(fill({ ...newExpression('text'), field: 'body_text' } as Expression)).toMatchObject({
+      value: '',
+    })
+    const group = newExpression('all')
+    expect(fill(group)).toBe(group)
+  })
+
+  it('makes a new condition on a field, or none', () => {
+    expect(conditionFor('from', ctx, 'domain')).toMatchObject({
+      type: 'address',
+      field: 'from',
+      part: 'domain',
+      operator: 'equals',
+      value: 'example.com',
+    })
+    expect(conditionFor('list_id', ctx)).toMatchObject({
+      type: 'text',
+      value: '<news.example.com>',
+    })
+    expect(conditionFor('uid', ctx)).toMatchObject({ type: 'number', operator: 'eq', value: 7 })
+    expect(conditionFor('importance', ctx)).toBeNull()
+    expect(conditionFor('nope', ctx)).toBeNull()
+  })
+})
