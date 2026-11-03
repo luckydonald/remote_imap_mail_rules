@@ -715,6 +715,29 @@ button {
     }
   }
 
+  .mail-log {
+    margin: 16px 16px 0;
+    color: var(--muted);
+    font-size: 13px;
+
+    summary {
+      cursor: pointer;
+    }
+
+    ol {
+      display: grid;
+      gap: 4px;
+      margin: 6px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    time {
+      margin-right: 8px;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
   .body-frame {
     display: block;
     width: calc(100% - 32px);

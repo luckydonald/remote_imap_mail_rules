@@ -1,6 +1,6 @@
 /** Display helpers of the mail browser. */
 
-import type { Address, Folder } from './mail-api'
+import type { Address, Folder, MailEvent } from './mail-api'
 
 const ICONS: Record<string, string> = {
   inbox: '📥',
@@ -68,4 +68,20 @@ const FRAME_STYLE =
 /** The sandboxed iframe's document: the server's sanitized HTML with a base style and links that open in a new tab. */
 export function frameDocument(html: string): string {
   return `<!doctype html><meta charset="utf-8"><base target="_blank"><style>${FRAME_STYLE}</style><body>${html}</body>`
+}
+
+/** One line of the action log, e.g. `Matched the rule "invoices" (new)`. */
+export function eventLabel(event: MailEvent): string {
+  const rule = event.rule_name ?? '(unnamed rule)'
+  const how = typeof event.detail.match_kind === 'string' ? ` (${event.detail.match_kind})` : ''
+  switch (event.kind) {
+    case 'first_seen':
+      return 'First seen'
+    case 'rule_match':
+      return `Matched the rule "${rule}"${how}`
+    case 'action':
+      return `Rule "${rule}" ran an action`
+    case 'user_action':
+      return 'Changed by you'
+  }
 }
