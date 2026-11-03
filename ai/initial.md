@@ -74,15 +74,15 @@ Status: done, see "Status so far" below.
 - keep in mind we need to support all the rest at a later stage, too.
 
 ## 2. The rule editor
-Status: in progress, see this checklist; additionally "Status so far" below.
+Status: done, see this checklist; additionally "Status so far" below.
 
 - [x] Vue 3, TypeScript, SCSS, Yarn 4
 - [x] standalone, file based
-- [?] open or drop a rules YML, edit rules, locations, the condition tree, actions and templates, then download or copy the YML
-- [?] live validation against the generated schema
-- [?] undo/redo
-- [?] light and dark mode
-- [?] comments in the YML are kept when saving
+- [x] open or drop a rules YML, edit rules, locations, the condition tree, actions and templates, then download or copy the YML
+- [x] live validation against the generated schema
+- [x] undo/redo
+- [x] light and dark mode
+- [x] comments in the YML are kept when saving
 
 
 ## 3. The initial FastAPI server
@@ -129,8 +129,9 @@ Status: in progress, see this checklist; additionally "Status so far" below.
 - Vue rule editor in `frontend/` (Vue 3, TypeScript, SCSS, Yarn 4), standalone and file-based:
   - Open or drop a rules YAML, edit rules, locations, the condition tree, actions and templates, then download or copy the YAML.
   - Live validation against the generated schema, undo/redo, light and dark mode.
-  - Comments in the YAML are not kept when saving.
-  - Not looked at in a browser yet, only covered by the Vitest tests, the type check and the build.
+  - Comments in the YAML are kept when saving, matched by path (rules by name), so they follow moved rules and vanish with removed ones.
+  - Covered by Vitest and by Playwright end-to-end tests (`yarn test:e2e`) that drive the real app: open, drop, edit, validation, undo/redo, download, copy and the color scheme.
+  - Light and dark mode follow the system; there is no manual toggle.
 
 #### Not built yet
 
