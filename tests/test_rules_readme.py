@@ -17,7 +17,7 @@ BLOCKS = [block for block in re.findall(r"```yaml\n(.*?)```", README.read_text(e
 def test_readme_example_is_valid(block: str) -> None:
     data = yaml.safe_load(block)
     if isinstance(data, dict) and "rules" in data:
-        RuleFile.model_validate(data)
+        RuleFile.model_validate(data).concrete()
     elif isinstance(data, dict) and set(data) == {"when"}:
         TypeAdapter(Expression).validate_python(data["when"])
     elif isinstance(data, dict) and set(data) == {"actions"}:

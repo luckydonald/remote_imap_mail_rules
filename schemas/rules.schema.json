@@ -35,36 +35,24 @@
           "type": "string"
         },
         "field": {
-          "$ref": "#/$defs/AddressField"
+          "$ref": "#/$defs/Templatable_AddressField_"
         },
         "part": {
-          "$ref": "#/$defs/AddressPart",
+          "$ref": "#/$defs/Templatable_AddressPart_",
           "default": "address"
         },
         "operator": {
-          "$ref": "#/$defs/TextOperator"
+          "$ref": "#/$defs/Templatable_TextOperator_"
         },
         "value": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ],
-          "title": "Value"
+          "$ref": "#/$defs/Templatable_Union_str__list_str___"
         },
         "case_sensitive": {
-          "default": false,
-          "title": "Case Sensitive",
-          "type": "boolean"
+          "$ref": "#/$defs/Templatable_bool_",
+          "default": false
         },
         "quantifier": {
-          "$ref": "#/$defs/Quantifier",
+          "$ref": "#/$defs/Templatable_Quantifier_",
           "default": "any"
         }
       },
@@ -127,6 +115,7 @@
                 "not": "#/$defs/NotExpression",
                 "number": "#/$defs/NumberCondition",
                 "presence": "#/$defs/PresenceCondition",
+                "template": "#/$defs/Template_Expression_",
                 "text": "#/$defs/TextCondition"
               },
               "propertyName": "type"
@@ -161,6 +150,9 @@
               },
               {
                 "$ref": "#/$defs/PresenceCondition"
+              },
+              {
+                "$ref": "#/$defs/Template_Expression_"
               }
             ]
           },
@@ -198,6 +190,7 @@
                 "not": "#/$defs/NotExpression",
                 "number": "#/$defs/NumberCondition",
                 "presence": "#/$defs/PresenceCondition",
+                "template": "#/$defs/Template_Expression_",
                 "text": "#/$defs/TextCondition"
               },
               "propertyName": "type"
@@ -232,6 +225,9 @@
               },
               {
                 "$ref": "#/$defs/PresenceCondition"
+              },
+              {
+                "$ref": "#/$defs/Template_Expression_"
               }
             ]
           },
@@ -256,15 +252,14 @@
           "type": "string"
         },
         "field": {
-          "$ref": "#/$defs/BoolField"
+          "$ref": "#/$defs/Templatable_BoolField_"
         },
         "value": {
-          "default": true,
-          "title": "Value",
-          "type": "boolean"
+          "$ref": "#/$defs/Templatable_bool_",
+          "default": true
         },
         "quantifier": {
-          "$ref": "#/$defs/Quantifier",
+          "$ref": "#/$defs/Templatable_Quantifier_",
           "default": "any"
         }
       },
@@ -314,73 +309,13 @@
           "type": "string"
         },
         "field": {
-          "$ref": "#/$defs/DateField"
+          "$ref": "#/$defs/Templatable_DateField_"
         },
         "operator": {
-          "$ref": "#/$defs/CompareOperator"
+          "$ref": "#/$defs/Templatable_CompareOperator_"
         },
         "value": {
-          "anyOf": [
-            {
-              "discriminator": {
-                "mapping": {
-                  "false": "#/$defs/AbsoluteTime",
-                  "true": "#/$defs/RelativeDuration"
-                },
-                "propertyName": "relative"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/AbsoluteTime"
-                },
-                {
-                  "$ref": "#/$defs/RelativeDuration"
-                }
-              ]
-            },
-            {
-              "maxItems": 2,
-              "minItems": 2,
-              "prefixItems": [
-                {
-                  "discriminator": {
-                    "mapping": {
-                      "false": "#/$defs/AbsoluteTime",
-                      "true": "#/$defs/RelativeDuration"
-                    },
-                    "propertyName": "relative"
-                  },
-                  "oneOf": [
-                    {
-                      "$ref": "#/$defs/AbsoluteTime"
-                    },
-                    {
-                      "$ref": "#/$defs/RelativeDuration"
-                    }
-                  ]
-                },
-                {
-                  "discriminator": {
-                    "mapping": {
-                      "false": "#/$defs/AbsoluteTime",
-                      "true": "#/$defs/RelativeDuration"
-                    },
-                    "propertyName": "relative"
-                  },
-                  "oneOf": [
-                    {
-                      "$ref": "#/$defs/AbsoluteTime"
-                    },
-                    {
-                      "$ref": "#/$defs/RelativeDuration"
-                    }
-                  ]
-                }
-              ],
-              "type": "array"
-            }
-          ],
-          "title": "Value"
+          "$ref": "#/$defs/Templatable_Union_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____tuple_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative______"
         }
       },
       "required": [
@@ -410,9 +345,8 @@
           "type": "string"
         },
         "value": {
-          "default": true,
-          "title": "Value",
-          "type": "boolean"
+          "$ref": "#/$defs/Templatable_bool_",
+          "default": true
         }
       },
       "title": "FlagAction",
@@ -429,34 +363,20 @@
           "type": "string"
         },
         "name": {
-          "minLength": 1,
-          "title": "Name",
-          "type": "string"
+          "$ref": "#/$defs/Templatable_Annotated_str__FieldInfo_annotation_NoneType__required_True__metadata__MinLen_min_length_1_____"
         },
         "operator": {
-          "$ref": "#/$defs/TextOperator"
+          "$ref": "#/$defs/Templatable_TextOperator_"
         },
         "value": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ],
-          "title": "Value"
+          "$ref": "#/$defs/Templatable_Union_str__list_str___"
         },
         "case_sensitive": {
-          "default": false,
-          "title": "Case Sensitive",
-          "type": "boolean"
+          "$ref": "#/$defs/Templatable_bool_",
+          "default": false
         },
         "quantifier": {
-          "$ref": "#/$defs/Quantifier",
+          "$ref": "#/$defs/Templatable_Quantifier_",
           "default": "any"
         }
       },
@@ -478,14 +398,11 @@
           "type": "string"
         },
         "keyword": {
-          "minLength": 1,
-          "title": "Keyword",
-          "type": "string"
+          "$ref": "#/$defs/Templatable_Annotated_str__FieldInfo_annotation_NoneType__required_True__metadata__MinLen_min_length_1_____"
         },
         "value": {
-          "default": true,
-          "title": "Value",
-          "type": "boolean"
+          "$ref": "#/$defs/Templatable_bool_",
+          "default": true
         }
       },
       "required": [
@@ -499,19 +416,15 @@
       "description": "Where a rule applies. The account is referenced by its immutable id, never by its changeable name.",
       "properties": {
         "account_id": {
-          "format": "uuid",
-          "title": "Account Id",
-          "type": "string"
+          "$ref": "#/$defs/Templatable_UUID_"
         },
         "folder": {
-          "default": "INBOX",
-          "title": "Folder",
-          "type": "string"
+          "$ref": "#/$defs/Templatable_str_",
+          "default": "INBOX"
         },
         "recursive": {
-          "default": false,
-          "title": "Recursive",
-          "type": "boolean"
+          "$ref": "#/$defs/Templatable_bool_",
+          "default": false
         }
       },
       "required": [
@@ -556,22 +469,19 @@
           "type": "string"
         },
         "folder": {
-          "title": "Folder",
-          "type": "string"
+          "$ref": "#/$defs/Templatable_str_"
         },
         "account_id": {
           "anyOf": [
             {
-              "format": "uuid",
-              "type": "string"
+              "$ref": "#/$defs/Templatable_UUID_"
             },
             {
               "type": "null"
             }
           ],
           "default": null,
-          "description": "Target account; the mail's own account if unset.",
-          "title": "Account Id"
+          "description": "Target account; the mail's own account if unset."
         }
       },
       "required": [
@@ -601,6 +511,7 @@
               "not": "#/$defs/NotExpression",
               "number": "#/$defs/NumberCondition",
               "presence": "#/$defs/PresenceCondition",
+              "template": "#/$defs/Template_Expression_",
               "text": "#/$defs/TextCondition"
             },
             "propertyName": "type"
@@ -635,6 +546,9 @@
             },
             {
               "$ref": "#/$defs/PresenceCondition"
+            },
+            {
+              "$ref": "#/$defs/Template_Expression_"
             }
           ],
           "title": "Condition"
@@ -656,34 +570,16 @@
           "type": "string"
         },
         "field": {
-          "$ref": "#/$defs/NumberField"
+          "$ref": "#/$defs/Templatable_NumberField_"
         },
         "operator": {
-          "$ref": "#/$defs/CompareOperator"
+          "$ref": "#/$defs/Templatable_CompareOperator_"
         },
         "value": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "maxItems": 2,
-              "minItems": 2,
-              "prefixItems": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "number"
-                }
-              ],
-              "type": "array"
-            }
-          ],
-          "title": "Value"
+          "$ref": "#/$defs/Templatable_Union_float__tuple_float__float___"
         },
         "quantifier": {
-          "$ref": "#/$defs/Quantifier",
+          "$ref": "#/$defs/Templatable_Quantifier_",
           "default": "any"
         }
       },
@@ -721,48 +617,32 @@
         "field": {
           "anyOf": [
             {
-              "$ref": "#/$defs/TextField"
-            },
-            {
-              "$ref": "#/$defs/AddressField"
-            },
-            {
-              "$ref": "#/$defs/NumberField"
-            },
-            {
-              "$ref": "#/$defs/DateField"
-            },
-            {
-              "$ref": "#/$defs/BoolField"
+              "$ref": "#/$defs/Templatable_Union_TextField__AddressField__NumberField__DateField__BoolField__"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Field"
+          "default": null
         },
         "header": {
           "anyOf": [
             {
-              "minLength": 1,
-              "type": "string"
+              "$ref": "#/$defs/Templatable_Annotated_str__FieldInfo_annotation_NoneType__required_True__metadata__MinLen_min_length_1_____"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Header"
+          "default": null
         },
         "operator": {
-          "$ref": "#/$defs/PresenceOperator",
+          "$ref": "#/$defs/Templatable_PresenceOperator_",
           "default": "exists"
         },
         "value": {
-          "default": true,
-          "title": "Value",
-          "type": "boolean"
+          "$ref": "#/$defs/Templatable_bool_",
+          "default": true
         }
       },
       "title": "PresenceCondition",
@@ -817,9 +697,8 @@
           "type": "string"
         },
         "enabled": {
-          "default": true,
-          "title": "Enabled",
-          "type": "boolean"
+          "$ref": "#/$defs/Templatable_bool_",
+          "default": true
         },
         "locations": {
           "items": {
@@ -841,6 +720,7 @@
               "not": "#/$defs/NotExpression",
               "number": "#/$defs/NumberCondition",
               "presence": "#/$defs/PresenceCondition",
+              "template": "#/$defs/Template_Expression_",
               "text": "#/$defs/TextCondition"
             },
             "propertyName": "type"
@@ -875,6 +755,9 @@
             },
             {
               "$ref": "#/$defs/PresenceCondition"
+            },
+            {
+              "$ref": "#/$defs/Template_Expression_"
             }
           ],
           "title": "When"
@@ -922,6 +805,433 @@
       "title": "Rule",
       "type": "object"
     },
+    "Templatable_AddressField_": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AddressField"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_AddressPart_": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AddressPart"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_Annotated_str__FieldInfo_annotation_NoneType__required_True__metadata__MinLen_min_length_1_____": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_BoolField_": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BoolField"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_CompareOperator_": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CompareOperator"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_DateField_": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DateField"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_NumberField_": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NumberField"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_PresenceOperator_": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PresenceOperator"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_Quantifier_": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Quantifier"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_TextField_": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TextField"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_TextOperator_": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TextOperator"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_UUID_": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_Union_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____tuple_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative______": {
+      "anyOf": [
+        {
+          "discriminator": {
+            "mapping": {
+              "false": "#/$defs/AbsoluteTime",
+              "true": "#/$defs/RelativeDuration"
+            },
+            "propertyName": "relative"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/AbsoluteTime"
+            },
+            {
+              "$ref": "#/$defs/RelativeDuration"
+            }
+          ]
+        },
+        {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "false": "#/$defs/AbsoluteTime",
+                  "true": "#/$defs/RelativeDuration"
+                },
+                "propertyName": "relative"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/AbsoluteTime"
+                },
+                {
+                  "$ref": "#/$defs/RelativeDuration"
+                }
+              ]
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "false": "#/$defs/AbsoluteTime",
+                  "true": "#/$defs/RelativeDuration"
+                },
+                "propertyName": "relative"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/AbsoluteTime"
+                },
+                {
+                  "$ref": "#/$defs/RelativeDuration"
+                }
+              ]
+            }
+          ],
+          "type": "array"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_Union_TextField__AddressField__NumberField__DateField__BoolField__": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TextField"
+        },
+        {
+          "$ref": "#/$defs/AddressField"
+        },
+        {
+          "$ref": "#/$defs/NumberField"
+        },
+        {
+          "$ref": "#/$defs/DateField"
+        },
+        {
+          "$ref": "#/$defs/BoolField"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_Union_float__tuple_float__float___": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_Union_str__list_str___": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_bool_": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_str_": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "TemplateDefinition": {
+      "additionalProperties": false,
+      "description": "A reusable expression under the root `templates`. Its `Var`s may stay unfilled, `defaults` fill some of them.",
+      "properties": {
+        "type": {
+          "const": "template",
+          "default": "template",
+          "title": "Type",
+          "type": "string"
+        },
+        "defaults": {
+          "additionalProperties": true,
+          "description": "Values for variables an instance does not set.",
+          "title": "Defaults",
+          "type": "object"
+        },
+        "content": {
+          "discriminator": {
+            "mapping": {
+              "address": "#/$defs/AddressCondition",
+              "all": "#/$defs/AllExpression",
+              "any": "#/$defs/AnyExpression",
+              "bool": "#/$defs/BoolCondition",
+              "date": "#/$defs/DateCondition",
+              "header": "#/$defs/HeaderCondition",
+              "not": "#/$defs/NotExpression",
+              "number": "#/$defs/NumberCondition",
+              "presence": "#/$defs/PresenceCondition",
+              "template": "#/$defs/Template_Expression_",
+              "text": "#/$defs/TextCondition"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/AllExpression"
+            },
+            {
+              "$ref": "#/$defs/AnyExpression"
+            },
+            {
+              "$ref": "#/$defs/NotExpression"
+            },
+            {
+              "$ref": "#/$defs/TextCondition"
+            },
+            {
+              "$ref": "#/$defs/HeaderCondition"
+            },
+            {
+              "$ref": "#/$defs/AddressCondition"
+            },
+            {
+              "$ref": "#/$defs/NumberCondition"
+            },
+            {
+              "$ref": "#/$defs/DateCondition"
+            },
+            {
+              "$ref": "#/$defs/BoolCondition"
+            },
+            {
+              "$ref": "#/$defs/PresenceCondition"
+            },
+            {
+              "$ref": "#/$defs/Template_Expression_"
+            }
+          ],
+          "title": "Content"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "title": "TemplateDefinition",
+      "type": "object"
+    },
+    "Template_Expression_": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "template",
+          "default": "template",
+          "title": "Type",
+          "type": "string"
+        },
+        "defaults": {
+          "additionalProperties": true,
+          "description": "Values for variables `variables` does not set.",
+          "title": "Defaults",
+          "type": "object"
+        },
+        "variables": {
+          "additionalProperties": true,
+          "description": "Values of the template's variables, by name.",
+          "title": "Variables",
+          "type": "object"
+        },
+        "content": {
+          "discriminator": {
+            "mapping": {
+              "address": "#/$defs/AddressCondition",
+              "all": "#/$defs/AllExpression",
+              "any": "#/$defs/AnyExpression",
+              "bool": "#/$defs/BoolCondition",
+              "date": "#/$defs/DateCondition",
+              "header": "#/$defs/HeaderCondition",
+              "not": "#/$defs/NotExpression",
+              "number": "#/$defs/NumberCondition",
+              "presence": "#/$defs/PresenceCondition",
+              "template": "#/$defs/Template_Expression_",
+              "text": "#/$defs/TextCondition"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/AllExpression"
+            },
+            {
+              "$ref": "#/$defs/AnyExpression"
+            },
+            {
+              "$ref": "#/$defs/NotExpression"
+            },
+            {
+              "$ref": "#/$defs/TextCondition"
+            },
+            {
+              "$ref": "#/$defs/HeaderCondition"
+            },
+            {
+              "$ref": "#/$defs/AddressCondition"
+            },
+            {
+              "$ref": "#/$defs/NumberCondition"
+            },
+            {
+              "$ref": "#/$defs/DateCondition"
+            },
+            {
+              "$ref": "#/$defs/BoolCondition"
+            },
+            {
+              "$ref": "#/$defs/PresenceCondition"
+            },
+            {
+              "$ref": "#/$defs/Template_Expression_"
+            }
+          ],
+          "title": "Content"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "title": "Template[Expression]",
+      "type": "object"
+    },
     "TextCondition": {
       "additionalProperties": false,
       "description": "Compares a text field. `case_sensitive` is available for every operator.",
@@ -933,32 +1243,20 @@
           "type": "string"
         },
         "field": {
-          "$ref": "#/$defs/TextField"
+          "$ref": "#/$defs/Templatable_TextField_"
         },
         "operator": {
-          "$ref": "#/$defs/TextOperator"
+          "$ref": "#/$defs/Templatable_TextOperator_"
         },
         "value": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            }
-          ],
-          "title": "Value"
+          "$ref": "#/$defs/Templatable_Union_str__list_str___"
         },
         "case_sensitive": {
-          "default": false,
-          "title": "Case Sensitive",
-          "type": "boolean"
+          "$ref": "#/$defs/Templatable_bool_",
+          "default": false
         },
         "quantifier": {
-          "$ref": "#/$defs/Quantifier",
+          "$ref": "#/$defs/Templatable_Quantifier_",
           "default": "any"
         }
       },
@@ -1009,6 +1307,22 @@
       ],
       "title": "TextOperator",
       "type": "string"
+    },
+    "Var": {
+      "additionalProperties": false,
+      "description": "A replaceable field of a template, filled from the `variables` (or `defaults`) of the template instance. YAML shorthand: `!var name`.",
+      "properties": {
+        "var": {
+          "minLength": 1,
+          "title": "Var",
+          "type": "string"
+        }
+      },
+      "required": [
+        "var"
+      ],
+      "title": "Var",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -1024,6 +1338,14 @@
       ],
       "default": null,
       "title": "$Schema"
+    },
+    "templates": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TemplateDefinition"
+      },
+      "description": "Reusable expressions, used with `<<: *anchor`.",
+      "title": "Templates",
+      "type": "object"
     },
     "rules": {
       "items": {
