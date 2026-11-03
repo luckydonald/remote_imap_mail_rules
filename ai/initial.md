@@ -92,17 +92,20 @@ Status: done, see this checklist; additionally "Status so far" below.
   - File set via env var (`RULES_PATH`, default; save writes to disk), or via the editor (upload/download; no disk write).
 
 ## 4. A database for accounts, rules, actions and logs
-- [ ] multiple accounts
-  - [ ] seeded from env vars, but editable via the server
-    - [ ] warn if different to the env vars (e.g. if the user changed the password)
-    - [ ] add, edit, delete accounts
-  - [ ] passwords are encrypted in the database, not stored in plain text
-- [ ] Editor still part of it.
-- [ ] If `RULES_PATH` is set, the server will use (and update) the file, otherwise the database for rules and such.
-- [ ] Modern async typed SQLAlchemy with Alembic for migrations.
+Status: done, see this checklist; additionally "Status so far" below.
+The action and log tables are not part of it, they come with stage 5.
+
+- [x] multiple accounts
+  - [x] seeded from env vars, but editable via the server
+    - [x] warn if different to the env vars (e.g. if the user changed the password)
+    - [x] add, edit, delete accounts
+  - [x] passwords are encrypted in the database, not stored in plain text
+- [x] Editor still part of it.
+- [x] If `RULES_PATH` is set, the server will use (and update) the file, otherwise the database for rules and such.
+- [x] Modern async typed SQLAlchemy with Alembic for migrations.
   - sqlite for now, but the database layer is abstracted so we can switch to Postgres or MySQL later.
-- [ ] Database URL env var: `DATABASE_URL` (default `sqlite+aiosqlite:///./db.sqlite3`).
-- [ ] Gitignore `*.sqlite3` and `*.sqlite3-journal` if not already.
+- [x] Database URL env var: `DATABASE_URL` (default `sqlite+aiosqlite:///./db.sqlite3`).
+- [x] Gitignore `*.sqlite3` and `*.sqlite3-journal` if not already.
 
 
 ## 5. Mail browser for the accounts registered in the server
@@ -138,10 +141,13 @@ Status: done, see this checklist; additionally "Status so far" below.
   - `/api/editor` loads and saves the file at `RULES_PATH`, validating first and writing atomically.
   - The editor shows a Save button with a dirty marker when a server answers, and stays file based otherwise.
   - Covered by pytest (`TestClient`), Vitest and Playwright with the API mocked.
+- Database (`db/`, async SQLAlchemy, Alembic, SQLite by default via `DATABASE_URL`) holding the accounts, and the rules when `RULES_PATH` is not set (one row per rule, so no YAML comments or anchors there).
+  - Accounts are seeded once from the env vars, editable via `/api/accounts`, passwords Fernet-encrypted with `SECRET_KEY`, and a difference to the env vars is warned about and shown as a badge.
+  - The editor has an accounts screen (add, edit, delete) when a server answers.
 
 #### Not built yet
 
-- Multiple accounts and moving mails between them.
+- Moving mails between accounts.
 - Executing rule actions (all IMAP access is read-only for now).
 - The full action log per mail (first seen, rule matches, actions, user actions).
 - Rules from a mail: filling conditions from a mail, and the "fill from mail" button on conditions.
