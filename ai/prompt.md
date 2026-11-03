@@ -182,3 +182,36 @@ Of cause this can use improvements, but that's my initial idea here.
 
 The return type of ˋ.concrete()ˋ should be typed correctly to narrow those types down without templates and variables.
 
+❯ Build a vuejs frontend for the rules file.
+
+❯ Question answered.
+> <details><summary>
+>
+>> 1. There is no FastAPI server yet. How should the Vue rule editor load and save the rules file?
+>> 2. Which editor scope for the first version?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Data flow** (1/2) <kbd>Single Select</kbd><br>
+>> There is no FastAPI server yet. How should the Vue rule editor load and save the rules file?
+> - [x] 1\. Standalone, file-based (Recommended)
+>   - _Vue 3 + Vite + TS + SCSS app in `frontend/`. Open/paste/drop a rules YAML, edit visually, download or copy YAML. No backend needed; server load/save can be added later._
+> - [ ] 2\. Add minimal FastAPI endpoints too
+>   - _Also build `GET/PUT /api/rules` (validated with the pydantic model) so the editor reads and writes `RULES_PATH` directly. Larger scope._
+> - [ ] 3\. _Type something._
+>
+>> **Scope** (2/2) <kbd>Single Select</kbd><br>
+>> Which editor scope for the first version?
+> - [ ] 1\. Full rule tree editor (Recommended)
+>   - _Rules list, locations, nested all/any/not condition tree with every condition type, actions, enabled toggle, live schema validation, YAML preview. Templates (`!var`, anchors) kept as raw/read-only._
+> - [x] 2\. Also edit templates
+>   - _Everything above plus a template definitions editor and template uses with variables. Considerably more work._
+> - [ ] 3\. _Type something._
+>
+> </details>
+>
+
+❯ Plan accepted, auto mode.
+
