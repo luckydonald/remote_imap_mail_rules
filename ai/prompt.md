@@ -464,3 +464,72 @@ Hoist mail into a shared pinia store, persisted/cached by localstorage.
 - mail shall have sub routes/paths for account, folder, and displayed message.
 - fix existing tests
 
+❯ Continue [@`ai/initial.md`](./initial.md) stages
+
+❯ Task Notification:
+> - Task `ae1ad2329ba987f4f` <kbd>completed</kbd>
+> - Tool `toolu_016jUos7WJANYuweQ73M5Kio`
+> - > Agent "Explore IMAP and action code" finished
+> - [Query (`1010` chars, `1010 B`)](output/agents/019.ae1ad2329ba987f4f/prompt.md)
+> - [Answer (`12169` chars, `11.9 KB`)](output/agents/019.ae1ad2329ba987f4f/result.md)
+> - [Raw log (`428780` chars, `419 KB`)](/private/tmp/claude-501/-Users-user-Documents-programming-Python-remote-imap-mail-rules/f7366d9f-ba98-4112-a086-01cf7718eaca/tasks/ae1ad2329ba987f4f.output)
+> - `8` tools, `64459` tokens, `1.11645 s`
+
+❯ Question answered.
+> <details><summary>
+>
+>> 1. Stage 6 will make the server write to real mailboxes for the first time. How should rule actions be gated?
+>> 2. What should stage 6 cover?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Safety** (1/2) <kbd>Single Select</kbd><br>
+>> Stage 6 will make the server write to real mailboxes for the first time. How should rule actions be gated?
+> - [ ] 1\. Dry-run default (Recommended)
+>   - _Env `ACTIONS_ENABLED=false` by default: the watcher logs what it would do as `action` events with detail `dry_run: true`, and only writes to IMAP when switched on._
+> - [ ] 2\. On by default
+>   - _Actions run as soon as a rule matches, no extra switch._
+> - [ ] 3\. Per-rule opt-in
+>   - _Rules need an `execute: true` field, otherwise their actions only get logged._
+> - [x] 4\. _Type something:_
+>   - > Actually postpone the writing, only write the actions for it and log, if that env var is false. This stays only until i'm confident.
+>
+>> **Scope** (2/2) <kbd>Single Select</kbd><br>
+>> What should stage 6 cover?
+> - [x] 1\. Same-account actions first (Recommended)
+>   - _Plan 1: move within an account, mark read/unread, flag, keyword, plus `action` log entries. Cross-account move and `user_action` follow as plans 2 and 3._
+> - [ ] 2\. Everything at once
+>   - _Same-account actions, cross-account move (FETCH full message + APPEND) and user actions from the mail browser in one stage._
+> - [ ] 3\. _Type something._
+>
+> </details>
+>
+
+❯ Plan denied:
+> Actually, i want a first class UI for dry run, let's make that a feature for the user, too. You can click the dry run button on a rule and it would collect what actions to do. This shows a summary first, how many of what actions.
+> You can then drill down to look at actual emails if you want, listing the affected ones and what would happen to them.
+
+❯ Plan denied:
+> With the dry run UI, the env var now just disables actually running the actions, so the "Run now" button in the UI is disabled, too, and a hint is displayed that the server is currently not applying rules.
+
+❯ Plan denied:
+> - > Only the first move of a mail runs per pass; once moved the remaining actions and rules for that old UID are skipped, since the UID is gone.
+>   - this sounds not very helpful?
+> - > The same hint, small, appears in the mail log for dry-run entries written by the watcher.
+>   - the watcher should not write anything for dry runs.
+
+❯ Plan denied:
+> Ah, that was what it was about. 
+> Yeah, actually process it rule by rule in order, and first matching rule in order wins. If the mail is changed by the rule, the rules must be re-evaluated from the top with the new data, anyways. Maybe we can optimize this as we already have the mail (as opposed to doing a full mail listing again)
+
+❯ Plan denied:
+> Claude, make sure to not accidentally run against the live account. Use only `TEST_*` for your stuff, and separate-port servers.
+
+❯ Plan accepted, auto mode.
+
+❯ Plan denied:
+> Ah, that was what it was about. 
+> Yeah, actually process it rule by rule in order, and first matching rule in order wins. If the mail is changed by the rule, the rules must be re-evaluated from the top with the new data, anyways. Maybe we can optimize this as we already have the mail (as opposed to doing a full mail listing again)
+
