@@ -21,6 +21,13 @@ export type Pane = 'folders' | 'list' | 'message'
 
 const STORAGE_KEY = 'mail-browser'
 
+/** Where the browser is: account, folder and open mail, each `null` while not chosen. */
+export interface Place {
+  accountId: string | null
+  folder: string | null
+  uid: number | null
+}
+
 /** What survives a reload: the place and the open mail, never credentials. */
 interface Saved {
   accountId: string | null
@@ -131,7 +138,9 @@ export const useMailStore = defineStore('mail', () => {
     error.value = `${prefix}: ${describeError(caught)}`
   }
 
-  async function loadAccounts(): Promise<void> {
+  /** `target` is the place a URL asks for, which wins over the one of the last session. */
+  async function loadAccounts(target?: Place): Promise<void> {
+    if (target?.accountId) restore = { ...target, accountId: target.accountId, detail: null }
     try {
       accounts.value = await listAccounts()
       const saved = restore
@@ -250,6 +259,26 @@ export const useMailStore = defineStore('mail', () => {
     }
   }
 
+  /** Brings the browser to a place from the URL (deep link, back button); parts already shown are kept. */
+  async function goTo(place: Place): Promise<void> {
+    const id = place.accountId
+    if (id === null || !accounts.value.some((item) => item.id === id)) return
+    if (id !== accountId.value) {
+      restore = { ...place, accountId: id, detail: null }
+      await selectAccount(id, true)
+    } else if (place.folder !== null && place.folder !== folder.value) {
+      await selectFolder(place.folder, place.uid)
+    } else if (place.uid === null) {
+      if (selectedUid.value === null) return
+      selectedUid.value = null
+      detail.value = null
+      events.value = []
+      pane.value = 'list'
+    } else if (place.uid !== selectedUid.value) {
+      await openMessage(place.uid)
+    }
+  }
+
   /** The back button of the narrow layout. */
   function back(): void {
     if (pane.value === 'message') pane.value = 'list'
@@ -280,6 +309,7 @@ export const useMailStore = defineStore('mail', () => {
     selectFolder,
     loadMore,
     openMessage,
+    goTo,
     back,
     clear,
     setUnauthorizedHandler,

@@ -456,8 +456,7 @@ button {
     text-decoration: none;
   }
 
-  .current,
-  a.router-link-active {
+  .current {
     background: color-mix(in srgb, var(--accent) 18%, transparent);
     color: var(--accent);
   }
