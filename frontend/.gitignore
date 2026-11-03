@@ -8,3 +8,12 @@ dist
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+.DS_Store
+dist-ssr
+coverage
+*.local
+.vscode/*
+!.vscode/extensions.json
+.eslintcache
+__screenshots__/
+*.timestamp-*-*.mjs

@@ -219,3 +219,7 @@ The return type of ˋ.concrete()ˋ should be typed correctly to narrow those typ
 
 And what's going on with typescript 7 vs 5.9?
 
+❯ Check what a freshly bootstraped vue project currently comes with, in terms of libs.
+
+❯ Yes, apply as many best practices from the vue template as possible.
+

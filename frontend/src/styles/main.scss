@@ -15,7 +15,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme='light']) {
     --bg: #12151b;
     --panel: #1b2029;
     --text: #e6e9ef;
@@ -40,10 +40,14 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.45 system-ui, sans-serif;
+  font:
+    14px/1.45 system-ui,
+    sans-serif;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   margin: 0;
 }
 
@@ -61,17 +65,23 @@ h3 {
   margin: 18px 0 6px;
 }
 
-code, .mono {
+code,
+.mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12.5px;
 }
 
-input, select, textarea, button {
+input,
+select,
+textarea,
+button {
   font: inherit;
   color: inherit;
 }
 
-input:not([type="checkbox"]), select, textarea {
+input:not([type='checkbox']),
+select,
+textarea {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -328,10 +338,18 @@ button {
   padding: 8px;
   margin: 6px 0;
 
-  &.node-all { border-left-color: var(--node-all); }
-  &.node-any { border-left-color: var(--node-any); }
-  &.node-not { border-left-color: var(--node-not); }
-  &.node-template { border-left-color: var(--ok); }
+  &.node-all {
+    border-left-color: var(--node-all);
+  }
+  &.node-any {
+    border-left-color: var(--node-any);
+  }
+  &.node-not {
+    border-left-color: var(--node-not);
+  }
+  &.node-template {
+    border-left-color: var(--ok);
+  }
 }
 
 .node-bar {
