@@ -4,11 +4,15 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+from cryptography.fernet import Fernet
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 
 from remote_imap_mail_rules.server.app import create_app
+from remote_imap_mail_rules.server.auth import SESSION_COOKIE, make_session_token
 from remote_imap_mail_rules.server.settings import ServerSettings
 
+KEY = Fernet.generate_key().decode()
 VALID = """# my comment
 rules:
   - name: Newsletters
@@ -33,8 +37,9 @@ def rules_path(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def client(rules_path: Path, tmp_path: Path) -> Iterator[TestClient]:
-    settings = ServerSettings(_env_file=None, rules_path=rules_path, database_url=f"sqlite+aiosqlite:///{tmp_path.parent / (tmp_path.name + '-db.sqlite3')}", frontend_dist=tmp_path / "missing")
+    settings = ServerSettings(_env_file=None, rules_path=rules_path, database_url=f"sqlite+aiosqlite:///{tmp_path.parent / (tmp_path.name + '-db.sqlite3')}", frontend_dist=tmp_path / "missing", secret_key=SecretStr(KEY))
     with TestClient(create_app(settings)) as test_client:
+        test_client.cookies.set(SESSION_COOKIE, make_session_token(settings))
         yield test_client
     # end with
 # end def
@@ -83,8 +88,9 @@ def test_serves_built_frontend(rules_path: Path, tmp_path: Path) -> None:
     dist = tmp_path / "dist"
     dist.mkdir()
     (dist / "index.html").write_text("<html>editor</html>", encoding="utf-8")
-    settings = ServerSettings(_env_file=None, rules_path=rules_path, database_url=f"sqlite+aiosqlite:///{tmp_path.parent / (tmp_path.name + '-db.sqlite3')}", frontend_dist=dist)
+    settings = ServerSettings(_env_file=None, rules_path=rules_path, database_url=f"sqlite+aiosqlite:///{tmp_path.parent / (tmp_path.name + '-db.sqlite3')}", frontend_dist=dist, secret_key=SecretStr(KEY))
     with TestClient(create_app(settings)) as test_client:
+        test_client.cookies.set(SESSION_COOKIE, make_session_token(settings))
         assert "editor" in test_client.get("/").text
         assert test_client.get("/api/editor/config").status_code == 200
     # end with
