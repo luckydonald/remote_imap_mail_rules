@@ -29,6 +29,7 @@ Read from the environment and from `.env` in the working directory (see `.exampl
 | `DATABASE_URL` | `sqlite+aiosqlite:///./db.sqlite3` | Any async SQLAlchemy URL. The server runs the Alembic migrations at start-up. |
 | `SECRET_KEY` | none | Fernet key that encrypts the account passwords in the database. Without it no password can be stored. |
 | `WATCH_ENABLED` | `true` | Whether the server runs the rules in the background and writes the action log of each mail. |
+| `ACTIONS_ENABLED` | `false` | Whether the watcher applies the actions of matching rules (the first matching rule wins) and logs them. Off, nothing is ever written to a mailbox. |
 | `SERVER_HOST` | `127.0.0.1` | Interface of the server. It has no login yet, so only expose it on a trusted network. |
 | `SERVER_PORT` | `8000` | Port of the server. |
 | `FRONTEND_DIST` | `frontend/dist` | Built editor that the server serves at `/`. |
