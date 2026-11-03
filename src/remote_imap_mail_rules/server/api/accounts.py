@@ -3,7 +3,7 @@
 from collections.abc import AsyncIterator
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -97,12 +97,13 @@ async def list_accounts(request: Request, session: AsyncSession = Depends(get_se
 
 
 @router.post("", status_code=201)
-async def create_account(request: Request, body: AccountCreate, session: AsyncSession = Depends(get_session)) -> AccountOut:
+async def create_account(request: Request, background: BackgroundTasks, body: AccountCreate, session: AsyncSession = Depends(get_session)) -> AccountOut:
     try:
         account = await repository.create_account(session, get_settings(request).secret_key, **body.model_dump())
     except CryptoError as e:
         raise no_key() from e
     # end try
+    background.add_task(request.app.state.watcher.restart)
     return to_out(request, account)
 # end def
 
@@ -114,19 +115,20 @@ async def get_account(request: Request, account_id: UUID, session: AsyncSession 
 
 
 @router.put("/{account_id}")
-async def update_account(request: Request, account_id: UUID, body: AccountUpdate, session: AsyncSession = Depends(get_session)) -> AccountOut:
+async def update_account(request: Request, background: BackgroundTasks, account_id: UUID, body: AccountUpdate, session: AsyncSession = Depends(get_session)) -> AccountOut:
     account = await find(session, account_id)
     try:
         await repository.update_account(session, get_settings(request).secret_key, account, **body.model_dump())
     except CryptoError as e:
         raise no_key() from e
     # end try
+    background.add_task(request.app.state.watcher.restart)
     return to_out(request, account)
 # end def
 
 
 @router.delete("/{account_id}", status_code=204)
-async def delete_account(request: Request, account_id: UUID, session: AsyncSession = Depends(get_session)) -> None:
+async def delete_account(request: Request, background: BackgroundTasks, account_id: UUID, session: AsyncSession = Depends(get_session)) -> None:
     account = await find(session, account_id)
     store: RulesStore = request.app.state.rules_store
     names = await rules_referencing(store, account_id)
@@ -134,4 +136,5 @@ async def delete_account(request: Request, account_id: UUID, session: AsyncSessi
         raise HTTPException(status_code=409, detail=[f"Still used by the rule: {name}" for name in names])
     # end if
     await repository.delete_account(session, account)
+    background.add_task(request.app.state.watcher.restart)
 # end def

@@ -21,5 +21,6 @@ class ServerSettings(BaseSettings):
     secret_key: SecretStr | None = Field(default=None, description="Fernet key that encrypts the account passwords.")
     server_host: str = "127.0.0.1"
     server_port: int = Field(default=8000, ge=1, le=65535)
+    watch_enabled: bool = Field(default=True, description="Run the rules in the background and write the action log of each mail.")
     frontend_dist: Path = Field(default=Path("frontend/dist"), description="Built editor; served at `/` when the folder exists.")
 # end class

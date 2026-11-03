@@ -15,6 +15,7 @@ from .api import accounts, auth, editor, mail
 from .auth import require_login
 from .rules_store import DatabaseRulesStore, FileRulesStore, RulesStore
 from .settings import ServerSettings
+from .watcher import Watcher
 
 
 def create_app(
@@ -35,7 +36,9 @@ def create_app(
             await account_repository.seed_from_env(session, env_account, settings.secret_key)
             await session.commit()
         # end with
+        app.state.watcher.start()
         yield
+        await app.state.watcher.stop()
         await engine.dispose()
     # end def
 
@@ -46,6 +49,7 @@ def create_app(
     app.state.imap_factory = imap_factory
     store: RulesStore = FileRulesStore(settings.rules_path) if settings.rules_path else DatabaseRulesStore(session_factory)
     app.state.rules_store = store
+    app.state.watcher = Watcher(session_factory, store, settings.secret_key, imap_factory, enabled=settings.watch_enabled)
     app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
     # Everything else under `/api` needs the login, set here so that a new router cannot forget it.
     protected = [Depends(require_login)]
