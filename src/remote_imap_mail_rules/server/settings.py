@@ -2,8 +2,10 @@
 
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from ..db.engine import DEFAULT_DATABASE_URL
 
 
 class ServerSettings(BaseSettings):
@@ -15,6 +17,8 @@ class ServerSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore", case_sensitive=False)
 
     rules_path: Path = Path("rules/example.yml")
+    database_url: str = Field(default=DEFAULT_DATABASE_URL, description="Any async SQLAlchemy URL.")
+    secret_key: SecretStr | None = Field(default=None, description="Fernet key that encrypts the account passwords.")
     server_host: str = "127.0.0.1"
     server_port: int = Field(default=8000, ge=1, le=65535)
     frontend_dist: Path = Field(default=Path("frontend/dist"), description="Built editor; served at `/` when the folder exists.")

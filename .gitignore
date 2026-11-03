@@ -979,3 +979,5 @@ coverage/
 
 
 # automatically added unversioned files:
+*.sqlite3
+*.sqlite3-journal
