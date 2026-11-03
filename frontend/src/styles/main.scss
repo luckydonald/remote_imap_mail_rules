@@ -603,6 +603,11 @@ button {
       background: var(--accent);
     }
 
+    &.active.unread .dot {
+      // "inverted" dot as the background is highlighted in the accent color, too.
+      background: var(--accent-text);
+    }
+
     &.unread .from {
       font-weight: 700;
     }
