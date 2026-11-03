@@ -56,7 +56,7 @@ To run it in the agent you may use `@ai/initial.md`.
 ## Implementation scope
 
 #### 1. The basic PoC
-Status: to be implemented.
+Status: done, see "Status so far" below.
 
 - There are to be understood as separate tasks for commiting.
 1. YML based rules
@@ -72,3 +72,30 @@ Status: to be implemented.
     - load recent changes only
     - have the server notify of updates/changes
 - keep in mind we need to support all the rest at a later stage, too.
+
+## Status so far
+
+#### Done
+
+- YAML rules with pydantic, and the JSON schema generated from it (`schemas/rules.schema.json`, checked by a test).
+  - Full expression syntax: `all` / `any` / `not`, text, address, header, number, date, bool and presence conditions, with the operators and quantifiers listed in `CLAUDE.md`.
+  - Rule templates with `Var`, `Template` and `.concrete()`, so the evaluator never sees a variable.
+  - Several `locations` per rule (account, folder, recursive).
+  - `actions` are parsed and validated only.
+- No account management: one account loaded from the environment, documented in `README.md`.
+- Async, read-only IMAP: `EXAMINE` and `BODY.PEEK` only, one connection per folder, lazy body fetch, IDLE push with polling as the fallback, change detection via UID, `CONDSTORE` and `UIDVALIDITY`.
+- `matches()` yields the existing, new and changed matches, and `demo.py` prints them (`--verbose`, `--streamer-mode`).
+- Vue rule editor in `frontend/` (Vue 3, TypeScript, SCSS, Yarn 4), standalone and file-based:
+  - Open or drop a rules YAML, edit rules, locations, the condition tree, actions and templates, then download or copy the YAML.
+  - Live validation against the generated schema, undo/redo, light and dark mode.
+  - Comments in the YAML are not kept when saving.
+  - Not looked at in a browser yet, only covered by the Vitest tests, the type check and the build.
+
+#### Not built yet
+
+- FastAPI server, and the editor talking to it instead of working on files.
+- Multiple accounts and moving mails between them.
+- Executing rule actions (all IMAP access is read-only for now).
+- The full action log per mail (first seen, rule matches, actions, user actions).
+- Rules from a mail: filling conditions from a mail, and the "fill from mail" button on conditions.
+- Easy custom fields and headers beyond the `header` condition, e.g. a picker in the editor.

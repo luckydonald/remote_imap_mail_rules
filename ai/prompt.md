@@ -215,3 +215,7 @@ The return type of ˋ.concrete()ˋ should be typed correctly to narrow those typ
 
 ❯ Plan accepted, auto mode.
 
+❯ Update the ˋai/initial.mdˋ with what's done so far.
+
+And what's going on with typescript 7 vs 5.9?
+
