@@ -124,6 +124,7 @@ export const mockServer = async (
     const url = new URL(route.request().url())
     calls.push(url.pathname.replace(`/api/mail/accounts/${ACCOUNT_ID}`, '') + url.search)
     if (url.pathname.endsWith('/folders')) return route.fulfill({ json: FOLDERS })
+    if (url.pathname.endsWith('/events')) return route.fulfill({ json: EVENTS })
     if (url.pathname.endsWith('/messages') && url.searchParams.has('before_uid'))
       return route.fulfill({
         json: { messages: [summary(1, true)], total: 3, next_before_uid: null },
@@ -137,9 +138,19 @@ export const mockServer = async (
   return calls
 }
 
+export const EVENTS = [
+  { id: 'e1', kind: 'first_seen', rule_name: null, detail: {}, created_at: '2026-11-03T10:00:00Z' },
+  {
+    id: 'e2',
+    kind: 'rule_match',
+    rule_name: 'invoices',
+    detail: { match_kind: 'new' },
+    created_at: '2026-11-03T10:00:05Z',
+  },
+]
+
 export const logIn = async (page: Page): Promise<void> => {
   await page.getByLabel('Username').fill('me@example.com')
   await page.getByLabel('Password').fill('secret')
   await page.getByRole('button', { name: 'Log in' }).click()
 }
-

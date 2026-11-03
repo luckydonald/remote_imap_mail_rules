@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import AppShell from '@/components/AppShell.vue'
 import ConditionNode from '@/components/ConditionNode.vue'
 import FieldValue from '@/components/FieldValue.vue'
+import MailLog from '@/components/MailLog.vue'
 import { provideStore } from '@/model/context'
 import { createStore } from '@/model/store'
 import { defineComponent, h, reactive } from 'vue'
@@ -77,5 +78,39 @@ describe('AppShell', () => {
     expect(wrapper.find('.rule-editor').exists()).toBe(true)
     // The new rule has an empty account id, which is not a UUID yet.
     expect(wrapper.find('.topbar .badge.error').exists()).toBe(true)
+  })
+})
+
+describe('MailLog', () => {
+  it('lists the entries and hides itself without any', () => {
+    const entry = (
+      id: string,
+      kind: 'first_seen' | 'rule_match',
+      rule: string | null,
+      detail = {},
+    ) => ({
+      id,
+      kind,
+      rule_name: rule,
+      detail,
+      created_at: '2026-11-03T10:00:00Z',
+    })
+    const wrapper = mount(MailLog, {
+      props: {
+        events: [
+          entry('a', 'first_seen', null),
+          entry('b', 'rule_match', 'invoices', { match_kind: 'new' }),
+        ],
+      },
+    })
+    expect(wrapper.findAll('li').map((item) => item.find('.what').text())).toEqual([
+      'First seen',
+      'Matched the rule "invoices" (new)',
+    ])
+    expect(
+      mount(MailLog, { props: { events: [] } })
+        .find('.mail-log')
+        .exists(),
+    ).toBe(false)
   })
 })

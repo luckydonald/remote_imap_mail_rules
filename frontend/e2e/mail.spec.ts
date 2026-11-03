@@ -19,6 +19,11 @@ test('asks for a login, then browses folders, pages and reads a message', async 
   await expect(page.locator('.mail-message h2')).toHaveText('Subject 3')
   await expect(page.locator('.mail-message .meta')).toContainText('Sender 3 <s3@example.com>')
   await expect(page.locator('.attachments a')).toContainText('report.pdf')
+  await expect(page.locator('.mail-log li')).toHaveCount(2)
+  await expect(page.locator('.mail-log li').first()).toContainText('First seen')
+  await expect(page.locator('.mail-log li').nth(1)).toContainText(
+    'Matched the rule "invoices" (new)',
+  )
   await expect(page.frameLocator('iframe.body-frame').locator('b')).toHaveText('rich')
   await expect(page.locator('iframe.body-frame')).toHaveAttribute(
     'sandbox',
