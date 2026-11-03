@@ -39,13 +39,29 @@ export interface Attachment {
   size: number | null
   inline: boolean
   content_id: string | null
+  extension: string | null
   url: string
+}
+
+export interface Header {
+  name: string
+  value: string
 }
 
 export interface Detail extends Summary {
   to: Address[]
   cc: Address[]
+  bcc: Address[]
   reply_to: Address[]
+  sender_header: Address[]
+  return_path: Address[]
+  delivered_to: Address[]
+  headers: Header[]
+  flags: string[]
+  keywords: string[]
+  date_sent: string | null
+  mime_type: string | null
+  modseq: number | null
   message_id: string | null
   text: string | null
   html: string | null

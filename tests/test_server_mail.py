@@ -114,6 +114,17 @@ def test_message_is_sanitized_and_cid_resolved(client: TestClient, account_id: s
 # end def
 
 
+def test_message_detail_has_headers_and_flags(client: TestClient, account_id: str) -> None:
+    detail = client.get(f"/api/mail/accounts/{account_id}/messages/6", params={"folder": "INBOX"}).json()
+    names = [header["name"].lower() for header in detail["headers"]]
+    assert "from" in names and "subject" in names
+    assert isinstance(detail["flags"], list) and isinstance(detail["keywords"], list)
+    assert all(not keyword.startswith("\\") for keyword in detail["keywords"])
+    assert {"bcc", "sender_header", "return_path", "delivered_to", "date_sent", "mime_type", "modseq"} <= detail.keys()
+    assert {a["filename"]: a["extension"] for a in detail["attachments"]} == {"logo.png": "png", "evil.html": "html"}
+# end def
+
+
 def test_parts_are_served_safely(client: TestClient, account_id: str) -> None:
     base = f"/api/mail/accounts/{account_id}/messages/6/parts"
     logo = client.get(f"{base}/3", params={"folder": "INBOX"})

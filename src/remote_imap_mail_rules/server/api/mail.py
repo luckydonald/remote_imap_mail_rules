@@ -10,7 +10,7 @@ from ...imap.client import ImapError
 from ...imap.models import FolderCounts
 from ..html_sanitize import sanitize_html
 from ..imap_session import imap_session
-from ..mail_view import DetailOut, FolderOut, PageOut, addresses, attachment_out, folder_out, summary_fields, summary_out
+from ..mail_view import DetailOut, FolderOut, PageOut, addresses, attachment_out, detail_fields, folder_out, summary_fields, summary_out
 from .accounts import get_session
 
 router = APIRouter()
@@ -71,6 +71,7 @@ async def get_message(request: Request, account_id: UUID, uid: int, folder: str 
     html = sanitize_html(bodies.html, by_content_id.get) if bodies.html else None
     return DetailOut(
         **summary_fields(mail),  # type: ignore[arg-type]
+        **detail_fields(mail),  # type: ignore[arg-type]
         to=addresses(mail, "To"),
         cc=addresses(mail, "Cc"),
         reply_to=addresses(mail, "Reply-To"),

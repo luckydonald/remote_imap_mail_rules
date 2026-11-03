@@ -378,3 +378,47 @@ And what's going on with typescript 7 vs 5.9?
 
 ❯ For the mail content, too.
 
+❯ Continue [@`ai/initial.md`](./initial.md) stages
+
+❯ Task Notification:
+> - Task `af9995f9b85b9ba32` <kbd>completed</kbd>
+> - Tool `toolu_01CuPerdm6SmS5jXvkDvSLyH`
+> - > Agent "Explore editor and mail browser" finished
+> - [Query (`1112` chars, `1.09 KB`)](output/agents/017.af9995f9b85b9ba32/prompt.md)
+> - [Answer (`14082` chars, `13.8 KB`)](output/agents/017.af9995f9b85b9ba32/result.md)
+> - [Raw log (`402295` chars, `393 KB`)](/private/tmp/claude-501/-Users-user-Documents-programming-Python-remote-imap-mail-rules/f7366d9f-ba98-4112-a086-01cf7718eaca/tasks/af9995f9b85b9ba32.output)
+> - `9` tools, `60375` tokens, `1.26318 s`
+
+❯ Question answered.
+> <details><summary>
+>
+>> 1. How should the editor get at a mail for "fill from mail", given that the Rules and Mail screens are mutually exclusive today?
+>> 2. Should the mail detail API be extended so more fields can be filled (headers, flags, keywords, date_sent, bcc, etc.)?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Layout** (1/2) <kbd>Single Select</kbd><br>
+>> How should the editor get at a mail for "fill from mail", given that the Rules and Mail screens are mutually exclusive today?
+> - [ ] 1\. Shared store + mail picker (Recommended)
+>   - _Hoist the mail store into AppShell so the open mail survives screen switches. The mail screen gets a "Use for rule" button that jumps to Rules with that mail pinned. Conditions get a fill button that uses the pinned mail, or sends you to Mail to pick one._
+> - [ ] 2\. Side panel in the editor
+>   - _Show a collapsible mail panel next to the rule editor. More UI work and poor on phones._
+> - [x] 3\. _Type something:_
+>   - > Side panel is good. On mobile it's a subpage instead, like the navigation of mail already is.
+Hoist mail into a shared pinia store, persisted/cached by localstorage.
+>
+>> **Backend** (2/2) <kbd>Single Select</kbd><br>
+>> Should the mail detail API be extended so more fields can be filled (headers, flags, keywords, date_sent, bcc, etc.)?
+> - [x] 1\. Yes, add headers and flags (Recommended)
+>   - _DetailOut gains headers, flags/keywords, date_sent and mime_type, so every field type (including header conditions) can be filled._
+> - [ ] 2\. No, use today's fields only
+>   - _Only subject, from/to/cc/reply_to, message_id, size, attachments, date_received, seen/flagged/answered, folder and account can be filled._
+> - [ ] 3\. _Type something._
+>
+> </details>
+>
+
+❯ Plan accepted, auto mode.
+
