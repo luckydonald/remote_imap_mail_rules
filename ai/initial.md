@@ -1,5 +1,5 @@
-This is a newly bootstrapped repo, using `base/base` to get started quickly. Here's what we'll gonna build,
-please follow /commit-with-lplp-style and /code-style along the way.
+This is a not yet finished repo, using `base/base` to get started quickly.
+Here's what we'll gonna build, please follow /commit-with-lplp-style and /code-style along the way.
 Also, if not done already, please enable /plan mode for this.
 
 To run it in the agent you may use `@ai/initial.md`.
@@ -46,16 +46,16 @@ To run it in the agent you may use `@ai/initial.md`.
     - once you add a condition it fills default values from that mail
       - granularity choosable where it makes sense.
       - e.g. sender:
-        - Sender Name + Email: ˋMax Mustermann <m.muster@example.com>ˋ 
-        - Sender Email: ˋm.muster@example.comˋ 
-        - Sender Name: ˋ Max Mustermannˋ 
+        - Sender Name + Email: ˋMax Mustermann <m.muster@example.com>ˋ
+        - Sender Email: ˋm.muster@example.comˋ
+        - Sender Name: ˋ Max Mustermannˋ
   - (b) rule first
     - you get a fill from mail button on conditions.
     - otherwise similar to **(a)**
 
-## Implementation scope
+# Implementation scope/stages
 
-#### 1. The basic PoC
+## 1. The basic PoC
 Status: done, see "Status so far" below.
 
 - There are to be understood as separate tasks for commiting.
@@ -67,14 +67,55 @@ Status: done, see "Status so far" below.
    - just load from ˋ.envˋ & document the vars in ˋREADME.mdˋ.
 3. Async IMAP
   - we need to support for this stage (all read only):
-    - connect to an acount
-    - load INBOX asyncly & ipaginated
+    - connect to an account
+    - load INBOX asyncly & paginated
     - load recent changes only
     - have the server notify of updates/changes
 - keep in mind we need to support all the rest at a later stage, too.
 
-## Status so far
+## 2. The rule editor
+Status: in progress, see this checklist; additionally "Status so far" below.
 
+- [x] Vue 3, TypeScript, SCSS, Yarn 4
+- [x] standalone, file based
+- [?] open or drop a rules YML, edit rules, locations, the condition tree, actions and templates, then download or copy the YML
+- [?] live validation against the generated schema
+- [?] undo/redo
+- [?] light and dark mode
+- [?] comments in the YML are kept when saving
+
+
+## 3. The initial FastAPI server
+- [ ] FastAPI server, and the editor talking to it instead of working on files.
+  - File set via env var (`RULES_PATH`, default; save writes to disk), or via the editor (upload/download; no disk write).
+
+## 4. A database for accounts, rules, actions and logs
+- [ ] multiple accounts
+  - [ ] seeded from env vars, but editable via the server
+    - [ ] warn if different to the env vars (e.g. if the user changed the password)
+    - [ ] add, edit, delete accounts
+  - [ ] passwords are encrypted in the database, not stored in plain text
+- [ ] Editor still part of it.
+- [ ] If `RULES_PATH` is set, the server will use (and update) the file, otherwise the database for rules and such.
+- [ ] Modern async typed SQLAlchemy with Alembic for migrations.
+  - sqlite for now, but the database layer is abstracted so we can switch to Postgres or MySQL later.
+- [ ] Database URL env var: `DATABASE_URL` (default `sqlite+aiosqlite:///./db.sqlite3`).
+- [ ] Gitignore `*.sqlite3` and `*.sqlite3-journal` if not already.
+
+
+## 5. Mail browser for the accounts registered in the server
+- [ ] basic mail viewer for the accounts registered in the server
+  - Basically implement a simple readonly mail client
+  - Style wise: Apple Mail
+  - Works on mobile, too (responsive)
+- [ ] Needs login tech.
+  - For now simple: entering the mail creds allows access.
+- [ ] Rules from a mail:
+  - [ ] basic mail viewer for the accounts registered in the server
+  - [ ] filling conditions from a mail, and the "fill from mail" button on conditions
+- [ ] the full action log per mail (first seen, rule matches, actions, user actions)
+
+# Status so far
 #### Done
 
 - YAML rules with pydantic, and the JSON schema generated from it (`schemas/rules.schema.json`, checked by a test).
