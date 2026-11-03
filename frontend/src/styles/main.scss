@@ -867,3 +867,74 @@ button {
     }
   }
 }
+
+.dry-run {
+  margin-top: 8px;
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .blocked {
+    margin: 6px 0;
+  }
+
+  .summary {
+    border-collapse: collapse;
+
+    tr {
+      cursor: pointer;
+
+      &.active {
+        background: var(--panel);
+        font-weight: 600;
+      }
+
+      &.muted {
+        color: var(--muted);
+      }
+    }
+
+    td {
+      padding: 3px 10px 3px 0;
+    }
+
+    .count {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .affected {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+
+    > li {
+      padding: 8px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .subject {
+      font-weight: 600;
+    }
+
+    .from {
+      margin-left: 8px;
+      color: var(--muted);
+    }
+  }
+
+  .chain {
+    margin: 4px 0 0;
+    padding-left: 20px;
+    color: var(--muted);
+
+    .own {
+      color: inherit;
+    }
+  }
+}

@@ -70,6 +70,7 @@ async function connect(): Promise<void> {
   loginRequired.value = false
   online.value = true
   mail.active = true
+  mail.actionsEnabled = config.actions_enabled === true
   const label = config.file_name ?? 'the database'
   try {
     const text = await fetchRules()
