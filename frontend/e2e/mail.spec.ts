@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { logIn, mockServer } from './mail-mock'
+import { ACCOUNT_ID, logIn, mockServer } from './mail-mock'
 
 test('asks for a login, then browses folders, pages and reads a message', async ({ page }) => {
   const calls = await mockServer(page)
@@ -128,13 +128,45 @@ test('the screens have their own URLs and the back button returns to the previou
   await mockServer(page)
   await page.goto('/')
   await logIn(page)
-  await expect(page).toHaveURL(/#\/rules$/)
+  await expect(page).toHaveURL(/\/rules$/)
   await page.getByRole('link', { name: 'Mail', exact: true }).click()
-  await expect(page).toHaveURL(/#\/mail$/)
   await expect(page.locator('.mail-folders .folder')).toHaveCount(2)
+  await expect(page).toHaveURL(`/mail/${ACCOUNT_ID}/INBOX`)
   await page.goBack()
-  await expect(page).toHaveURL(/#\/rules$/)
+  await expect(page).toHaveURL(/\/rules$/)
   await expect(page.locator('.mail-folders')).toHaveCount(0)
-  await page.goto('/#/mail')
-  await expect(page.locator('.mail-folders .folder')).toHaveCount(2)
+})
+
+test('the mail browser keeps account, folder and message in the URL', async ({ page }) => {
+  await mockServer(page)
+  await page.goto('/')
+  await logIn(page)
+  await page.getByRole('link', { name: 'Mail', exact: true }).click()
+  await expect(page).toHaveURL(`/mail/${ACCOUNT_ID}/INBOX`)
+  await page.locator('.row-mail', { hasText: 'Subject 3' }).click()
+  await expect(page).toHaveURL(`/mail/${ACCOUNT_ID}/INBOX/3`)
+  await page.locator('.mail-folders .folder', { hasText: 'Sent' }).click()
+  await expect(page).toHaveURL(`/mail/${ACCOUNT_ID}/Sent`)
+  // The back button walks the places in reverse.
+  await page.goBack()
+  await expect(page).toHaveURL(`/mail/${ACCOUNT_ID}/INBOX/3`)
+  await expect(page.locator('.mail-folders .folder.active')).toContainText('INBOX')
+  await expect(page.locator('.mail-message h2')).toHaveText('Subject 3')
+  await page.goBack()
+  await expect(page).toHaveURL(`/mail/${ACCOUNT_ID}/INBOX`)
+  await expect(page.locator('.mail-message h2')).toHaveCount(0)
+})
+
+test('opens a mail from its URL', async ({ page }) => {
+  await mockServer(page)
+  await page.goto('/')
+  await logIn(page)
+  await page.goto(`/mail/${ACCOUNT_ID}/Sent/3`)
+  await expect(page.locator('.mail-folders .folder.active')).toContainText('Sent')
+  await expect(page.locator('.mail-message h2')).toHaveText('Subject 3')
+  await expect(page).toHaveURL(`/mail/${ACCOUNT_ID}/Sent/3`)
+  // A URL with only the account falls back to the inbox.
+  await page.goto(`/mail/${ACCOUNT_ID}`)
+  await expect(page.locator('.mail-folders .folder.active')).toContainText('INBOX')
+  await expect(page).toHaveURL(`/mail/${ACCOUNT_ID}/INBOX`)
 })

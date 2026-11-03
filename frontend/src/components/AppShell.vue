@@ -193,8 +193,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <RouterLink :to="rulesLink" class="ghost" :class="{ current: screen === 'rules' }">
           Rules
         </RouterLink>
-        <RouterLink :to="{ name: 'accounts' }" class="ghost">Accounts</RouterLink>
-        <RouterLink :to="{ name: 'mail' }" class="ghost">Mail</RouterLink>
+        <RouterLink
+          :to="{ name: 'accounts' }"
+          class="ghost"
+          :class="{ current: screen === 'accounts' }"
+          >Accounts</RouterLink
+        >
+        <RouterLink :to="{ name: 'mail' }" class="ghost" :class="{ current: screen === 'mail' }"
+          >Mail</RouterLink
+        >
         <button type="button" class="ghost" @click="logOut">Log out</button>
       </nav>
       <button
