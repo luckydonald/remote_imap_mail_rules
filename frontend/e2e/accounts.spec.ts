@@ -52,7 +52,7 @@ test('lists accounts with the drift badge, and the database shows as the source'
   await mockServer(page)
   await page.goto('/')
   await expect(page.locator('.notice')).toContainText('the database has no rules yet')
-  await page.getByRole('button', { name: 'Accounts' }).click()
+  await page.getByRole('link', { name: 'Accounts' }).click()
   await expect(page.locator('.account')).toContainText('Private')
   await expect(page.locator('.badge.error')).toContainText('differs from env: password')
 })
@@ -60,7 +60,7 @@ test('lists accounts with the drift badge, and the database shows as the source'
 test('adds, edits and deletes an account', async ({ page }) => {
   const mock = await mockServer(page)
   await page.goto('/')
-  await page.getByRole('button', { name: 'Accounts' }).click()
+  await page.getByRole('link', { name: 'Accounts' }).click()
 
   await page.getByRole('button', { name: 'Add account' }).click()
   await page.locator('input[name=name]').fill('Work')
@@ -86,7 +86,7 @@ test('adds, edits and deletes an account', async ({ page }) => {
 test('shows why an account cannot be deleted', async ({ page }) => {
   await mockServer(page, ['Still used by the rule: Newsletters'])
   await page.goto('/')
-  await page.getByRole('button', { name: 'Accounts' }).click()
+  await page.getByRole('link', { name: 'Accounts' }).click()
   await page.getByRole('button', { name: 'Delete' }).click()
   await page.getByRole('button', { name: 'Really delete' }).click()
   await expect(page.locator('.message')).toContainText('Not deleted: Still used by the rule: Newsletters')

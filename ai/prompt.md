@@ -457,3 +457,5 @@ Hoist mail into a shared pinia store, persisted/cached by localstorage.
 
 ❯ Plan accepted, auto mode.
 
+❯ The frontend shall use proper router for its navigation.
+

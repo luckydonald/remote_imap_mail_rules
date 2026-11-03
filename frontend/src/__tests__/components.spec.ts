@@ -1,5 +1,7 @@
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { createMemoryHistory } from 'vue-router'
+import { createAppRouter } from '@/router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import AppShell from '@/components/AppShell.vue'
 import ConditionNode from '@/components/ConditionNode.vue'
@@ -73,11 +75,26 @@ describe('FieldValue', () => {
 
 describe('AppShell', () => {
   it('creates a rule and shows it as valid or with problems', async () => {
-    const wrapper = mount(AppShell, { global: { plugins: [createPinia()] } })
+    const router = createAppRouter(createMemoryHistory())
+    await router.push('/rules')
+    const wrapper = mount(AppShell, { global: { plugins: [createPinia(), router] } })
     await wrapper.find('button.add').trigger('click')
     expect(wrapper.find('.rule-editor').exists()).toBe(true)
     // The new rule has an empty account id, which is not a UUID yet.
     expect(wrapper.find('.topbar .badge.error').exists()).toBe(true)
+    // The store's selection shows in the URL.
+    await flushPromises()
+    expect(router.currentRoute.value.fullPath).toBe('/rules/0')
+  })
+
+  it('opens the view of the route', async () => {
+    const router = createAppRouter(createMemoryHistory())
+    await router.push('/rules/templates')
+    const wrapper = mount(AppShell, { global: { plugins: [createPinia(), router] } })
+    expect(wrapper.find('.templates').exists()).toBe(true)
+    await router.push('/accounts')
+    await flushPromises()
+    expect(wrapper.find('.body').exists()).toBe(false)
   })
 })
 
