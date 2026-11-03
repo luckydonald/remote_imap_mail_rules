@@ -7,6 +7,8 @@ export interface EditorConfig {
   source: 'file' | 'database'
   file_name: string | null
   exists: boolean
+  /** Whether the server applies the actions of matching rules; off, only the dry run shows them. */
+  actions_enabled?: boolean
 }
 
 export class SaveError extends Error {

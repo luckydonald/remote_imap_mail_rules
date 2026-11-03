@@ -1,5 +1,6 @@
 /** Display helpers of the mail browser. */
 
+import { describeLoggedAction } from './dry-run'
 import type { Address, Folder, MailEvent } from './mail-api'
 
 const ICONS: Record<string, string> = {
@@ -80,7 +81,7 @@ export function eventLabel(event: MailEvent): string {
     case 'rule_match':
       return `Matched the rule "${rule}"${how}`
     case 'action':
-      return `Rule "${rule}" ran an action`
+      return `${describeLoggedAction(event.detail)} by the rule "${rule}"`
     case 'user_action':
       return 'Changed by you'
   }
