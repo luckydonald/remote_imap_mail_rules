@@ -109,14 +109,17 @@ The action and log tables are not part of it, they come with stage 5.
 
 
 ## 5. Mail browser for the accounts registered in the server
-- [ ] basic mail viewer for the accounts registered in the server
+Status: viewer and login done; fill from mail and the action log are open.
+
+- [x] basic mail viewer for the accounts registered in the server
   - Basically implement a simple readonly mail client
   - Style wise: Apple Mail
   - Works on mobile, too (responsive)
-- [ ] Needs login tech.
+- [x] Needs login tech.
   - For now simple: entering the mail creds allows access.
+  - Gates the whole API, the credentials of any registered account work (single user).
 - [ ] Rules from a mail:
-  - [ ] basic mail viewer for the accounts registered in the server
+  - [x] basic mail viewer for the accounts registered in the server
   - [ ] filling conditions from a mail, and the "fill from mail" button on conditions
 - [ ] the full action log per mail (first seen, rule matches, actions, user actions)
 
@@ -144,6 +147,8 @@ The action and log tables are not part of it, they come with stage 5.
 - Database (`db/`, async SQLAlchemy, Alembic, SQLite by default via `DATABASE_URL`) holding the accounts, and the rules when `RULES_PATH` is not set (one row per rule, so no YAML comments or anchors there).
   - Accounts are seeded once from the env vars, editable via `/api/accounts`, passwords Fernet-encrypted with `SECRET_KEY`, and a difference to the env vars is warned about and shown as a badge.
   - The editor has an accounts screen (add, edit, delete) when a server answers.
+
+- Login (`/api/auth`, a signed cookie) in front of the whole API, and a read-only mail browser (`/api/mail`, the Mail screen): folders with counts, paged message list, message view with attachments, sanitized and sandboxed HTML, one pane at a time on a phone.
 
 #### Not built yet
 
