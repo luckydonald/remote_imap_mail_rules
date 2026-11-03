@@ -218,3 +218,21 @@ test('shows a loading spinner in the folder pane while the folders are fetched',
   await expect(page.locator('.mail-folders .folder')).toHaveCount(2)
   await expect(page.locator('.mail-folders .mail-spinner')).toHaveCount(0)
 })
+
+test('shows a loading spinner while the message is fetched', async ({ page }) => {
+  await mockServer(page)
+  let release: () => void = () => {}
+  const gate = new Promise<void>((resolve) => (release = resolve))
+  await page.route('**/api/mail/**/messages/3*', async (route) => {
+    await gate
+    await route.fallback()
+  })
+  await page.goto('/')
+  await logIn(page)
+  await page.getByRole('button', { name: 'Mail', exact: true }).click()
+  await page.locator('.row-mail', { hasText: 'Subject 3' }).click()
+  await expect(page.locator('.mail-message .mail-spinner')).toContainText('Loading…')
+  release()
+  await expect(page.locator('.mail-message h2')).toHaveText('Subject 3')
+  await expect(page.locator('.mail-message .mail-spinner')).toHaveCount(0)
+})
