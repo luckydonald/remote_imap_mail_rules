@@ -112,4 +112,24 @@ export async function getMessage(accountId: string, folder: string, uid: number)
   return json<Detail>(await fetch(`${MAIL}/accounts/${accountId}/messages/${uid}?${query}`))
 }
 
+/** One entry of the action log of a mail, written by the server's watcher. */
+export interface MailEvent {
+  id: string
+  kind: 'first_seen' | 'rule_match' | 'action' | 'user_action'
+  rule_name: string | null
+  detail: Record<string, unknown>
+  created_at: string
+}
+
+export async function listEvents(
+  accountId: string,
+  folder: string,
+  uid: number,
+): Promise<MailEvent[]> {
+  const query = new URLSearchParams({ folder })
+  return json<MailEvent[]>(
+    await fetch(`${MAIL}/accounts/${accountId}/messages/${uid}/events?${query}`),
+  )
+}
+
 export { ApiError }
