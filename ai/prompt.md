@@ -130,3 +130,14 @@ Log the RULES_PATH at startup on DEBUG, that was my issue, printing it once more
 
 ❯ Fix [@`ai/errors/2.txt`](./errors/2.txt)
 
+❯ I am starting to implement rules.
+Now, adding rules in the format needed for anonaddy is quite teadious.
+I'd like to basically have some kind of miniture macro system based on the `&ref`/`*ref` system of yaml.
+Basically I could specify a root level `templates: []`, where an item has an `&ref`, and some special syntax for replacable fields (here: each `value`s).
+Then you could do something like [@`rules/rules.example.yml`](../rules/rules.example.yml) 
+Of cause this can use improvements, but that's my initial idea here.
+
+❯ Plan denied:
+> I like the ˋtype: templateˋ to be a pydantic-parsable type; so the json schema stays valid before replacement operations.
+> Basically the template would be ˋTemplatable<CONTENT> = Template<CONTENT> | CONTENTˋ applied to pretty much every field?
+
