@@ -33,7 +33,7 @@ def rules_path(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def client(rules_path: Path, tmp_path: Path) -> Iterator[TestClient]:
-    settings = ServerSettings(_env_file=None, rules_path=rules_path, frontend_dist=tmp_path / "missing")
+    settings = ServerSettings(_env_file=None, rules_path=rules_path, database_url=f"sqlite+aiosqlite:///{tmp_path.parent / (tmp_path.name + '-db.sqlite3')}", frontend_dist=tmp_path / "missing")
     with TestClient(create_app(settings)) as test_client:
         yield test_client
     # end with
@@ -83,7 +83,7 @@ def test_serves_built_frontend(rules_path: Path, tmp_path: Path) -> None:
     dist = tmp_path / "dist"
     dist.mkdir()
     (dist / "index.html").write_text("<html>editor</html>", encoding="utf-8")
-    settings = ServerSettings(_env_file=None, rules_path=rules_path, frontend_dist=dist)
+    settings = ServerSettings(_env_file=None, rules_path=rules_path, database_url=f"sqlite+aiosqlite:///{tmp_path.parent / (tmp_path.name + '-db.sqlite3')}", frontend_dist=dist)
     with TestClient(create_app(settings)) as test_client:
         assert "editor" in test_client.get("/").text
         assert test_client.get("/api/editor/config").status_code == 200

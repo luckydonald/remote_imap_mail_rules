@@ -1,0 +1,130 @@
+"""Endpoints of the account management, mounted at `/api/accounts`."""
+
+from collections.abc import AsyncIterator
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ...config import ImapSettings
+from ...db import accounts as repository
+from ...db.crypto import CryptoError
+from ...db.engine import iter_session
+from ...db.models import Account
+from ..settings import ServerSettings
+
+router = APIRouter()
+
+
+class AccountIn(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    host: str = Field(min_length=1, max_length=255)
+    port: int = Field(default=993, ge=1, le=65535)
+    ssl: bool = True
+    username: str = Field(min_length=1, max_length=255)
+    page_size: int = Field(default=50, ge=1)
+    poll_interval: float = Field(default=60.0, gt=0)
+
+
+class AccountCreate(AccountIn):
+    password: str = Field(min_length=1)
+
+
+class AccountUpdate(AccountIn):
+    password: str | None = Field(default=None, description="Omitted keeps the stored password.")
+
+
+class AccountOut(AccountIn):
+    id: UUID
+    has_password: bool = True
+    env_differs: list[str] = Field(default_factory=list, description="Fields that differ from the environment's account.")
+
+
+async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
+    async for session in iter_session(request.app.state.session_factory):
+        yield session
+    # end for
+# end def
+
+
+def get_settings(request: Request) -> ServerSettings:
+    settings: ServerSettings = request.app.state.settings
+    return settings
+# end def
+
+
+def to_out(request: Request, account: Account) -> AccountOut:
+    env: ImapSettings | None = request.app.state.env_account
+    differs: list[str] = []
+    if env is not None and env.imap_account_id == account.id:
+        differs = repository.env_differences(account, env, get_settings(request).secret_key)
+    # end if
+    return AccountOut(
+        id=account.id,
+        name=account.name,
+        host=account.host,
+        port=account.port,
+        ssl=account.ssl,
+        username=account.username,
+        page_size=account.page_size,
+        poll_interval=account.poll_interval,
+        has_password=bool(account.password_encrypted),
+        env_differs=differs,
+    )
+# end def
+
+
+async def find(session: AsyncSession, account_id: UUID) -> Account:
+    account = await repository.get_account(session, account_id)
+    if account is None:
+        raise HTTPException(status_code=404, detail="No such account.")
+    # end if
+    return account
+# end def
+
+
+def no_key() -> HTTPException:
+    return HTTPException(status_code=503, detail="SECRET_KEY is not set (or invalid), so passwords cannot be stored.")
+# end def
+
+
+@router.get("")
+async def list_accounts(request: Request, session: AsyncSession = Depends(get_session)) -> list[AccountOut]:
+    return [to_out(request, account) for account in await repository.list_accounts(session)]
+# end def
+
+
+@router.post("", status_code=201)
+async def create_account(request: Request, body: AccountCreate, session: AsyncSession = Depends(get_session)) -> AccountOut:
+    try:
+        account = await repository.create_account(session, get_settings(request).secret_key, **body.model_dump())
+    except CryptoError as e:
+        raise no_key() from e
+    # end try
+    return to_out(request, account)
+# end def
+
+
+@router.get("/{account_id}")
+async def get_account(request: Request, account_id: UUID, session: AsyncSession = Depends(get_session)) -> AccountOut:
+    return to_out(request, await find(session, account_id))
+# end def
+
+
+@router.put("/{account_id}")
+async def update_account(request: Request, account_id: UUID, body: AccountUpdate, session: AsyncSession = Depends(get_session)) -> AccountOut:
+    account = await find(session, account_id)
+    try:
+        await repository.update_account(session, get_settings(request).secret_key, account, **body.model_dump())
+    except CryptoError as e:
+        raise no_key() from e
+    # end try
+    return to_out(request, account)
+# end def
+
+
+@router.delete("/{account_id}", status_code=204)
+async def delete_account(account_id: UUID, session: AsyncSession = Depends(get_session)) -> None:
+    await repository.delete_account(session, await find(session, account_id))
+# end def
