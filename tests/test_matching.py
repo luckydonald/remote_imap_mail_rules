@@ -84,6 +84,24 @@ async def test_new_and_changed_mails_arrive_after_existing() -> None:
 # end def
 
 
+async def test_new_mail_is_not_reported_again_as_changed() -> None:
+    server = FakeServer()
+    server.add("INBOX", 1, "invoice first")
+    generator = matches(make_settings(), parse_rules(RULES), server.connect)
+    await take(generator, 1)
+    await asyncio.sleep(0.05)
+    server.add("INBOX", 2, "another invoice")
+    server.push()
+    [second] = await take(generator, 1)
+    assert (second.kind, second.mail.uid) == (MatchKind.new, 2)
+    # Adding the mail raised the mod-sequence, but only a later change may report it again.
+    with pytest.raises(TimeoutError):
+        await take(generator, 1)
+    # end with
+    await generator.aclose()
+# end def
+
+
 async def test_polling_without_idle_finds_new_mails() -> None:
     server = FakeServer(capabilities={"IMAP4REV1"})
     server.add("INBOX", 1, "nothing")

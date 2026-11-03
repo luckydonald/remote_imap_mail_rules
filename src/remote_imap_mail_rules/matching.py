@@ -115,6 +115,7 @@ async def follow_changes(
             highest_uid = await load_existing(client, settings, folder, rules, queue, on_inspect)
             continue
         # end if
+        known_uid = highest_uid
         if current.uidnext > highest_uid + 1:
             await client.examine(folder)
             fresh = await client.fetch_new(settings.imap_account_id, folder, highest_uid)
@@ -126,7 +127,7 @@ async def follow_changes(
         if modseq is not None and current.highestmodseq is not None and current.highestmodseq > modseq:
             await client.examine(folder)
             changed = await client.fetch_changed(settings.imap_account_id, folder, modseq)
-            for item in await match_mails(rules, [mail for mail in changed if mail.uid <= highest_uid], MatchKind.changed, on_inspect):
+            for item in await match_mails(rules, [mail for mail in changed if mail.uid <= known_uid], MatchKind.changed, on_inspect):
                 await queue.put(item)
             # end for
             modseq = current.highestmodseq
