@@ -5,7 +5,7 @@ Most fields are `Templatable`: instead of a plain value they may hold a `Var`, w
 """
 
 from collections.abc import Mapping
-from typing import Annotated, Any, Literal, Self
+from typing import Annotated, Any, Literal, Never, Self
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -37,7 +37,7 @@ class Var(Strict):
 # end class
 
 
-type Templatable[T] = T | Var
+type Templatable[T, V = Var] = T | V
 
 
 def is_var_reference(value: Any) -> bool:
@@ -109,28 +109,38 @@ def substitute(value: Any, variables: Mapping[str, Any]) -> Any:
 # end def
 
 
-class Concrete(Strict):
-    """Base of everything that can hold a `Var`. `concrete()` returns the same thing with all variables replaced and validated again."""
+def concretize(model: "Concrete", variables: Mapping[str, Any] | None) -> Any:
+    """Replaces the variables in the fields of `model` and validates again. The subclasses narrow the return type to their `[Never]` form."""
+    data = {name: substitute(getattr(model, name), variables or {}) for name in type(model).model_fields}
+    return type(model).model_validate(data)
+# end def
 
-    def concrete(self, variables: Mapping[str, Any] | None = None) -> Self:
-        data = {name: substitute(getattr(self, name), variables or {}) for name in type(self).model_fields}
-        return type(self).model_validate(data)
+
+class Concrete(Strict):
+    """Base of everything that can hold a `Var`.
+
+    The classes with fields are generic in `V`: `Rule` is `Rule[Var]`, the form that is parsed and may hold variables.
+    `concrete()` returns the `[Never]` form, where `Templatable[T, Never]` is just `T`, so a type checker sees no `Var` and no `Template` anymore.
+    """
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> Any:
+        return concretize(self, variables)
     # end def
 # end class
 
 
-class TextCondition(Concrete):
+class TextCondition[V = Var](Concrete):
     """Compares a text field. `case_sensitive` is available for every operator."""
 
     type: Literal["text"] = "text"
-    field: Templatable[TextField]
-    operator: Templatable[TextOperator]
-    value: Templatable[str | list[str]]
-    case_sensitive: Templatable[bool] = False
-    quantifier: Templatable[Quantifier] = Quantifier.any
+    field: Templatable[TextField, V]
+    operator: Templatable[TextOperator, V]
+    value: Templatable[str | list[str], V]
+    case_sensitive: Templatable[bool, V] = False
+    quantifier: Templatable[Quantifier, V] = Quantifier.any
 
     @model_validator(mode="after")
-    def check_value(self) -> "TextCondition":
+    def check_value(self) -> Self:
         if isinstance(self.operator, Var) or isinstance(self.value, Var):
             return self
         # end if
@@ -142,21 +152,25 @@ class TextCondition(Concrete):
         # end if
         return self
     # end def
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "TextCondition[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
-class HeaderCondition(Concrete):
+class HeaderCondition[V = Var](Concrete):
     """Compares any header by name, for fields without a dedicated entry. Multiple headers of that name are quantified."""
 
     type: Literal["header"] = "header"
-    name: Templatable[Annotated[str, Field(min_length=1)]]
-    operator: Templatable[TextOperator]
-    value: Templatable[str | list[str]]
-    case_sensitive: Templatable[bool] = False
-    quantifier: Templatable[Quantifier] = Quantifier.any
+    name: Templatable[Annotated[str, Field(min_length=1)], V]
+    operator: Templatable[TextOperator, V]
+    value: Templatable[str | list[str], V]
+    case_sensitive: Templatable[bool, V] = False
+    quantifier: Templatable[Quantifier, V] = Quantifier.any
 
     @model_validator(mode="after")
-    def check_value(self) -> "HeaderCondition":
+    def check_value(self) -> Self:
         if isinstance(self.operator, Var) or isinstance(self.value, Var):
             return self
         # end if
@@ -168,22 +182,26 @@ class HeaderCondition(Concrete):
         # end if
         return self
     # end def
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "HeaderCondition[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
-class AddressCondition(Concrete):
+class AddressCondition[V = Var](Concrete):
     """Compares an address field, at the granularity given by `part`."""
 
     type: Literal["address"] = "address"
-    field: Templatable[AddressField]
-    part: Templatable[AddressPart] = AddressPart.address
-    operator: Templatable[TextOperator]
-    value: Templatable[str | list[str]]
-    case_sensitive: Templatable[bool] = False
-    quantifier: Templatable[Quantifier] = Quantifier.any
+    field: Templatable[AddressField, V]
+    part: Templatable[AddressPart, V] = AddressPart.address
+    operator: Templatable[TextOperator, V]
+    value: Templatable[str | list[str], V]
+    case_sensitive: Templatable[bool, V] = False
+    quantifier: Templatable[Quantifier, V] = Quantifier.any
 
     @model_validator(mode="after")
-    def check_value(self) -> "AddressCondition":
+    def check_value(self) -> Self:
         if isinstance(self.operator, Var) or isinstance(self.value, Var):
             return self
         # end if
@@ -195,18 +213,22 @@ class AddressCondition(Concrete):
         # end if
         return self
     # end def
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "AddressCondition[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
-class NumberCondition(Concrete):
+class NumberCondition[V = Var](Concrete):
     type: Literal["number"] = "number"
-    field: Templatable[NumberField]
-    operator: Templatable[CompareOperator]
-    value: Templatable[float | tuple[float, float]]
-    quantifier: Templatable[Quantifier] = Quantifier.any
+    field: Templatable[NumberField, V]
+    operator: Templatable[CompareOperator, V]
+    value: Templatable[float | tuple[float, float], V]
+    quantifier: Templatable[Quantifier, V] = Quantifier.any
 
     @model_validator(mode="after")
-    def check_value(self) -> "NumberCondition":
+    def check_value(self) -> Self:
         if isinstance(self.operator, Var) or isinstance(self.value, Var):
             return self
         # end if
@@ -218,19 +240,23 @@ class NumberCondition(Concrete):
         # end if
         return self
     # end def
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "NumberCondition[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
-class DateCondition(Concrete):
+class DateCondition[V = Var](Concrete):
     """Compares a date. A relative value `7d` is the moment 7 days before now."""
 
     type: Literal["date"] = "date"
-    field: Templatable[DateField]
-    operator: Templatable[CompareOperator]
-    value: Templatable[TimeValue | tuple[TimeValue, TimeValue]]
+    field: Templatable[DateField, V]
+    operator: Templatable[CompareOperator, V]
+    value: Templatable[TimeValue | tuple[TimeValue, TimeValue], V]
 
     @model_validator(mode="after")
-    def check_value(self) -> "DateCondition":
+    def check_value(self) -> Self:
         if isinstance(self.operator, Var) or isinstance(self.value, Var):
             return self
         # end if
@@ -242,55 +268,79 @@ class DateCondition(Concrete):
         # end if
         return self
     # end def
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "DateCondition[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
-class BoolCondition(Concrete):
+class BoolCondition[V = Var](Concrete):
     type: Literal["bool"] = "bool"
-    field: Templatable[BoolField]
-    value: Templatable[bool] = True
-    quantifier: Templatable[Quantifier] = Quantifier.any
+    field: Templatable[BoolField, V]
+    value: Templatable[bool, V] = True
+    quantifier: Templatable[Quantifier, V] = Quantifier.any
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "BoolCondition[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
-class PresenceCondition(Concrete):
+class PresenceCondition[V = Var](Concrete):
     """Tests whether a field or header is there (`exists`) or there but without content (`empty`)."""
 
     type: Literal["presence"] = "presence"
-    field: Templatable[TextField | AddressField | NumberField | DateField | BoolField] | None = None
-    header: Templatable[Annotated[str, Field(min_length=1)]] | None = None
-    operator: Templatable[PresenceOperator] = PresenceOperator.exists
-    value: Templatable[bool] = True
+    field: Templatable[TextField | AddressField | NumberField | DateField | BoolField, V] | None = None
+    header: Templatable[Annotated[str, Field(min_length=1)], V] | None = None
+    operator: Templatable[PresenceOperator, V] = PresenceOperator.exists
+    value: Templatable[bool, V] = True
 
     @model_validator(mode="after")
-    def check_target(self) -> "PresenceCondition":
+    def check_target(self) -> Self:
         if (self.field is None) == (self.header is None):
             raise ValueError("exactly one of `field` and `header` is needed")
         # end if
         return self
     # end def
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "PresenceCondition[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
-class AllExpression(Concrete):
+class AllExpression[V = Var](Concrete):
     """AND: true if every nested expression is true."""
 
     type: Literal["all"] = "all"
-    conditions: list["Expression"] = Field(min_length=1)
+    conditions: list["Expression[V]"] = Field(min_length=1)
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "AllExpression[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
-class AnyExpression(Concrete):
+class AnyExpression[V = Var](Concrete):
     """OR: true if at least one nested expression is true."""
 
     type: Literal["any"] = "any"
-    conditions: list["Expression"] = Field(min_length=1)
+    conditions: list["Expression[V]"] = Field(min_length=1)
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "AnyExpression[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
-class NotExpression(Concrete):
+class NotExpression[V = Var](Concrete):
     type: Literal["not"] = "not"
-    condition: "Expression"
+    condition: "Expression[V]"
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "NotExpression[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
@@ -303,13 +353,13 @@ class TemplateDefinition(Strict):
 # end class
 
 
-class Template[C](Concrete):
+class Template[V = Var](Concrete):
     """Use of a template: the `content` with every `Var` replaced by `variables`, else `defaults`. Instance it with `<<: *anchor`."""
 
     type: Literal["template"] = "template"
     defaults: dict[str, Any] = Field(default_factory=dict, description="Values for variables `variables` does not set.")
     variables: dict[str, Any] = Field(default_factory=dict, description="Values of the template's variables, by name.")
-    content: C
+    content: "Expression[V]"
 
     @model_validator(mode="after")
     def check_variables(self) -> Self:
@@ -325,7 +375,7 @@ class Template[C](Concrete):
         return self
     # end def
 
-    def concrete(self, variables: Mapping[str, Any] | None = None) -> Any:
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "Expression[Never]":
         """Unlike other models this is replaced by its (resolved) content, not by a copy of itself."""
         scope = {**self.defaults, **bind(self.variables, variables or {})}
         return self.content.concrete(scope)
@@ -333,18 +383,18 @@ class Template[C](Concrete):
 # end class
 
 
-Expression = Annotated[
-    AllExpression
-    | AnyExpression
-    | NotExpression
-    | TextCondition
-    | HeaderCondition
-    | AddressCondition
-    | NumberCondition
-    | DateCondition
-    | BoolCondition
-    | PresenceCondition
-    | Template["Expression"],
+type Expression[V = Var] = Annotated[
+    AllExpression[V]
+    | AnyExpression[V]
+    | NotExpression[V]
+    | TextCondition[V]
+    | HeaderCondition[V]
+    | AddressCondition[V]
+    | NumberCondition[V]
+    | DateCondition[V]
+    | BoolCondition[V]
+    | PresenceCondition[V]
+    | Template[V],
     Field(discriminator="type"),
 ]
 
@@ -355,66 +405,94 @@ AnyExpression.model_rebuild()
 NotExpression.model_rebuild()
 
 
-class Location(Concrete):
+class Location[V = Var](Concrete):
     """Where a rule applies. The account is referenced by its immutable id, never by its changeable name."""
 
-    account_id: Templatable[UUID]
-    folder: Templatable[str] = "INBOX"
-    recursive: Templatable[bool] = False
+    account_id: Templatable[UUID, V]
+    folder: Templatable[str, V] = "INBOX"
+    recursive: Templatable[bool, V] = False
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "Location[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
-class MoveAction(Concrete):
+class MoveAction[V = Var](Concrete):
     type: Literal["move"] = "move"
-    folder: Templatable[str]
-    account_id: Templatable[UUID] | None = Field(default=None, description="Target account; the mail's own account if unset.")
+    folder: Templatable[str, V]
+    account_id: Templatable[UUID, V] | None = Field(default=None, description="Target account; the mail's own account if unset.")
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "MoveAction[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
 class MarkReadAction(Concrete):
     type: Literal["mark_read"] = "mark_read"
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> Self:
+        return self
+    # end def
 # end class
 
 
 class MarkUnreadAction(Concrete):
     type: Literal["mark_unread"] = "mark_unread"
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> Self:
+        return self
+    # end def
 # end class
 
 
-class FlagAction(Concrete):
+class FlagAction[V = Var](Concrete):
     type: Literal["flag"] = "flag"
-    value: Templatable[bool] = True
+    value: Templatable[bool, V] = True
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "FlagAction[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
-class KeywordAction(Concrete):
+class KeywordAction[V = Var](Concrete):
     type: Literal["keyword"] = "keyword"
-    keyword: Templatable[Annotated[str, Field(min_length=1)]]
-    value: Templatable[bool] = True
+    keyword: Templatable[Annotated[str, Field(min_length=1)], V]
+    value: Templatable[bool, V] = True
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "KeywordAction[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
-Action = Annotated[
-    MoveAction | MarkReadAction | MarkUnreadAction | FlagAction | KeywordAction,
+type Action[V = Var] = Annotated[
+    MoveAction[V] | MarkReadAction | MarkUnreadAction | FlagAction[V] | KeywordAction[V],
     Field(discriminator="type"),
 ]
 
 
-class Rule(Concrete):
+class Rule[V = Var](Concrete):
     name: str = Field(min_length=1)
-    enabled: Templatable[bool] = True
-    locations: list[Location] = Field(min_length=1)
-    when: Expression
-    actions: list[Action] = Field(default_factory=list, description="Parsed only; nothing executes them yet.")
+    enabled: Templatable[bool, V] = True
+    locations: list[Location[V]] = Field(min_length=1)
+    when: Expression[V]
+    actions: list[Action[V]] = Field(default_factory=list, description="Parsed only; nothing executes them yet.")
+
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "Rule[Never]":
+        return concretize(self, variables)
+    # end def
 # end class
 
 
-class RuleFile(Concrete):
+class RuleFile[V = Var](Concrete):
     schema_: str | None = Field(default=None, alias="$schema")
     templates: dict[str, TemplateDefinition] = Field(default_factory=dict, description="Reusable expressions, used with `<<: *anchor`.")
-    rules: list[Rule] = Field(default_factory=list)
+    rules: list["Rule[V]"] = Field(default_factory=list)
 
-    def concrete(self, variables: Mapping[str, Any] | None = None) -> Self:
-        return super().concrete(variables).model_copy(update={"templates": {}})
+    def concrete(self, variables: Mapping[str, Any] | None = None) -> "RuleFile[Never]":
+        return concretize(self, variables).model_copy(update={"templates": {}})
     # end def
 # end class

@@ -1,6 +1,7 @@
 """Evaluates a rule expression tree against a mail."""
 
 from datetime import UTC, datetime
+from typing import Never
 
 from ..mail import Mail
 from .extract import address_values, bool_values, date_value, header_values, number_values, text_values
@@ -68,7 +69,7 @@ def aware(value: datetime) -> datetime:
 # end def
 
 
-async def evaluate_presence(condition: PresenceCondition, mail: Mail) -> bool:
+async def evaluate_presence(condition: PresenceCondition[Never], mail: Mail) -> bool:
     values: list | None
     if condition.header is not None:
         values = header_values(mail, condition.header)
@@ -101,7 +102,7 @@ async def evaluate_presence(condition: PresenceCondition, mail: Mail) -> bool:
 # end def
 
 
-async def evaluate(expression: Expression, mail: Mail, now: datetime | None = None) -> bool:
+async def evaluate(expression: Expression[Never], mail: Mail, now: datetime | None = None) -> bool:
     """True if the mail matches. `now` is the reference for relative durations."""
     now = now or datetime.now(UTC)
     match expression:
@@ -149,7 +150,7 @@ async def evaluate(expression: Expression, mail: Mail, now: datetime | None = No
 # end def
 
 
-def evaluate_texts(texts: list[str] | None, condition: TextCondition | HeaderCondition | AddressCondition) -> bool:
+def evaluate_texts(texts: list[str] | None, condition: TextCondition[Never] | HeaderCondition[Never] | AddressCondition[Never]) -> bool:
     if texts is None:
         return False
     # end if
@@ -158,7 +159,7 @@ def evaluate_texts(texts: list[str] | None, condition: TextCondition | HeaderCon
 # end def
 
 
-def evaluate_date(condition: DateCondition, mail: Mail, now: datetime) -> bool:
+def evaluate_date(condition: DateCondition[Never], mail: Mail, now: datetime) -> bool:
     actual = date_value(mail, condition.field)
     if actual is None:
         return False
