@@ -8,24 +8,24 @@ defineProps<{ store: MailStore }>()
 
 <template>
   <nav class="mail-folders" aria-label="Folders">
-    <label v-if="store.accounts.value.length > 1" class="account-pick">
+    <label v-if="store.accounts.length > 1" class="account-pick">
       <span class="sr-only">Account</span>
       <select
-        :value="store.accountId.value ?? ''"
+        :value="store.accountId ?? ''"
         @change="store.selectAccount(($event.target as HTMLSelectElement).value)"
       >
-        <option v-for="account in store.accounts.value" :key="account.id" :value="account.id">
+        <option v-for="account in store.accounts" :key="account.id" :value="account.id">
           {{ account.name }}
         </option>
       </select>
     </label>
-    <MailSpinner v-if="store.foldersLoading.value" />
+    <MailSpinner v-if="store.foldersLoading" />
     <ul>
-      <li v-for="item in store.folders.value" :key="item.name">
+      <li v-for="item in store.folders" :key="item.name">
         <button
           type="button"
           class="folder"
-          :class="{ active: item.name === store.folder.value }"
+          :class="{ active: item.name === store.folder }"
           :style="{ paddingLeft: `${12 + folderLabel(item).depth * 16}px` }"
           @click="store.selectFolder(item.name)"
         >

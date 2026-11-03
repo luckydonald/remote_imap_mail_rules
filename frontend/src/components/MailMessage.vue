@@ -15,7 +15,7 @@ function fit(): void {
 }
 
 watch(
-  () => props.store.detail.value?.uid,
+  () => props.store.detail?.uid,
   () => void nextTick(fit),
 )
 </script>
@@ -25,30 +25,27 @@ watch(
     <header class="pane-head">
       <button type="button" class="ghost back" @click="store.back()">‹ Messages</button>
     </header>
-    <p v-if="store.error.value" class="message error" role="alert">{{ store.error.value }}</p>
-    <p v-else-if="store.selectedUid.value === null" class="hint empty">No message selected.</p>
-    <MailSpinner v-else-if="!store.detail.value" />
+    <p v-if="store.error" class="message error" role="alert">{{ store.error }}</p>
+    <p v-else-if="store.selectedUid === null" class="hint empty">No message selected.</p>
+    <MailSpinner v-else-if="!store.detail" />
     <template v-else>
-      <h2 class="subject">{{ store.detail.value.subject || '(no subject)' }}</h2>
+      <h2 class="subject">{{ store.detail.subject || '(no subject)' }}</h2>
       <dl class="meta">
         <dt>From</dt>
-        <dd>{{ addressList([store.detail.value.sender]) }}</dd>
-        <template v-if="store.detail.value.to.length">
+        <dd>{{ addressList([store.detail.sender]) }}</dd>
+        <template v-if="store.detail.to.length">
           <dt>To</dt>
-          <dd>{{ addressList(store.detail.value.to) }}</dd>
+          <dd>{{ addressList(store.detail.to) }}</dd>
         </template>
-        <template v-if="store.detail.value.cc.length">
+        <template v-if="store.detail.cc.length">
           <dt>Cc</dt>
-          <dd>{{ addressList(store.detail.value.cc) }}</dd>
+          <dd>{{ addressList(store.detail.cc) }}</dd>
         </template>
         <dt>Date</dt>
-        <dd>{{ fullDate(store.detail.value.date) }}</dd>
+        <dd>{{ fullDate(store.detail.date) }}</dd>
       </dl>
-      <ul v-if="store.detail.value.attachments.some((item) => !item.inline)" class="attachments">
-        <li
-          v-for="item in store.detail.value.attachments.filter((a) => !a.inline)"
-          :key="item.part"
-        >
+      <ul v-if="store.detail.attachments.some((item) => !item.inline)" class="attachments">
+        <li v-for="item in store.detail.attachments.filter((a) => !a.inline)" :key="item.part">
           <a :href="item.url" :download="item.filename ?? undefined">
             📎 {{ item.filename ?? `part ${item.part}` }}
             <span class="muted">{{ fileSize(item.size) }}</span>
@@ -56,15 +53,15 @@ watch(
         </li>
       </ul>
       <iframe
-        v-if="store.detail.value.html"
+        v-if="store.detail.html"
         ref="frame"
         class="body-frame"
         title="Message body"
         sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-        :srcdoc="frameDocument(store.detail.value.html)"
+        :srcdoc="frameDocument(store.detail.html)"
         @load="fit"
       />
-      <pre v-else-if="store.detail.value.text" class="body-text">{{ store.detail.value.text }}</pre>
+      <pre v-else-if="store.detail.text" class="body-text">{{ store.detail.text }}</pre>
       <p v-else class="hint">This message has no text.</p>
     </template>
   </article>

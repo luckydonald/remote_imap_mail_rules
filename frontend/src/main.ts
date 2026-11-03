@@ -1,5 +1,6 @@
+import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import AppShell from './components/AppShell.vue'
 import './styles/main.scss'
 
-createApp(AppShell).mount('#app')
+createApp(AppShell).use(createPinia()).mount('#app')

@@ -3,25 +3,23 @@ import { onMounted } from 'vue'
 import MailFolders from './MailFolders.vue'
 import MailList from './MailList.vue'
 import MailMessage from './MailMessage.vue'
-import { createMailStore } from '@/model/mail-store'
+import { useMailStore } from '@/model/mail-store'
 
 const emit = defineEmits<{ unauthorized: [] }>()
 
-const store = createMailStore(() => emit('unauthorized'))
+const store = useMailStore()
 
+store.setUnauthorizedHandler(() => emit('unauthorized'))
 onMounted(() => void store.loadAccounts())
 </script>
 
 <template>
-  <div class="mail" :data-pane="store.pane.value">
-    <p
-      v-if="store.error.value && !store.detail.value && store.selectedUid.value === null"
-      class="message error"
-    >
-      {{ store.error.value }}
+  <div class="mail" :data-pane="store.pane">
+    <p v-if="store.error && !store.detail && store.selectedUid === null" class="message error">
+      {{ store.error }}
     </p>
     <p
-      v-if="store.accounts.value.length === 0 && !store.error.value && !store.foldersLoading.value"
+      v-if="store.accounts.length === 0 && !store.error && !store.foldersLoading"
       class="hint empty"
     >
       No accounts yet, add one on the Accounts screen.
