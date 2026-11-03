@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import AccountsView from './AccountsView.vue'
+import MailLogin from './MailLogin.vue'
+import MailView from './MailView.vue'
 import RuleEditor from './RuleEditor.vue'
 import RuleList from './RuleList.vue'
 import TemplatesView from './TemplatesView.vue'
 import YamlPanel from './YamlPanel.vue'
 import { fetchConfig, fetchRules, saveRules, SaveError } from '@/model/api'
 import { provideStore } from '@/model/context'
+import { logout } from '@/model/mail-api'
 import { createStore } from '@/model/store'
 
 const store = createStore()
@@ -17,12 +20,19 @@ const notice = ref('')
 const dragging = ref(false)
 const saving = ref(false)
 const online = ref(false)
-const screen = ref<'rules' | 'accounts'>('rules')
+const loginRequired = ref(false)
+const screen = ref<'rules' | 'accounts' | 'mail'>('rules')
 
 /** Loads the server's rules file when a server answers; without one the editor stays file based. */
 async function connect(): Promise<void> {
   const config = await fetchConfig()
+  if (config === 'login') {
+    loginRequired.value = true
+    online.value = false
+    return
+  }
   if (!config) return
+  loginRequired.value = false
   online.value = true
   const label = config.file_name ?? 'the database'
   try {
@@ -37,6 +47,18 @@ async function connect(): Promise<void> {
   } catch (error) {
     notice.value = `Could not load the rules from the server: ${error instanceof Error ? error.message : String(error)}`
   }
+}
+
+async function loggedIn(): Promise<void> {
+  notice.value = ''
+  await connect()
+}
+
+async function logOut(): Promise<void> {
+  await logout()
+  online.value = false
+  loginRequired.value = true
+  screen.value = 'rules'
 }
 
 async function save(): Promise<void> {
@@ -129,57 +151,66 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <h1>Mail rules</h1>
       <span class="file">{{ store.fileName.value }}</span>
       <span class="spacer" />
-      <button
-        v-if="online"
-        type="button"
-        class="ghost"
-        @click="screen = screen === 'rules' ? 'accounts' : 'rules'"
-      >
-        {{ screen === 'rules' ? 'Accounts' : 'Rules' }}
-      </button>
-      <button type="button" @click="fileInput?.click()">Open…</button>
-      <input ref="fileInput" type="file" accept=".yml,.yaml,text/yaml" hidden @change="onPick" />
-      <button type="button" class="ghost" @click="reset">New</button>
-      <button
-        type="button"
-        class="ghost"
-        :disabled="!store.canUndo.value"
-        title="Undo"
-        @click="store.undo()"
-      >
-        ↶
-      </button>
-      <button
-        type="button"
-        class="ghost"
-        :disabled="!store.canRedo.value"
-        title="Redo"
-        @click="store.redo()"
-      >
-        ↷
-      </button>
-      <button type="button" class="ghost" @click="copy">Copy YAML</button>
-      <button type="button" @click="download">Download</button>
-      <button
-        v-if="store.serverFile.value !== null"
-        type="button"
-        class="save"
-        :disabled="saving || !store.dirty.value || store.problems.value.length > 0"
-        :title="`Write ${store.serverFile.value} on the server`"
-        @click="save"
-      >
-        Save{{ store.dirty.value ? ' ●' : '' }}
-      </button>
-      <span
-        v-if="store.problems.value.length > 0"
-        class="badge error"
-        @click="store.view.value = { kind: 'yaml' }"
-        >{{ store.problems.value.length }} problems</span
-      >
-      <span v-else class="badge ok">valid</span>
+      <nav v-if="online" class="screens" aria-label="Screens">
+        <button
+          v-for="item in ['rules', 'accounts', 'mail'] as const"
+          :key="item"
+          type="button"
+          class="ghost"
+          :class="{ current: screen === item }"
+          @click="screen = item"
+        >
+          {{ item === 'rules' ? 'Rules' : item === 'accounts' ? 'Accounts' : 'Mail' }}
+        </button>
+        <button type="button" class="ghost" @click="logOut">Log out</button>
+      </nav>
+      <template v-if="screen !== 'mail'">
+        <button type="button" @click="fileInput?.click()">Open…</button>
+        <input ref="fileInput" type="file" accept=".yml,.yaml,text/yaml" hidden @change="onPick" />
+        <button type="button" class="ghost" @click="reset">New</button>
+        <button
+          type="button"
+          class="ghost"
+          :disabled="!store.canUndo.value"
+          title="Undo"
+          @click="store.undo()"
+        >
+          ↶
+        </button>
+        <button
+          type="button"
+          class="ghost"
+          :disabled="!store.canRedo.value"
+          title="Redo"
+          @click="store.redo()"
+        >
+          ↷
+        </button>
+        <button type="button" class="ghost" @click="copy">Copy YAML</button>
+        <button type="button" @click="download">Download</button>
+        <button
+          v-if="store.serverFile.value !== null"
+          type="button"
+          class="save"
+          :disabled="saving || !store.dirty.value || store.problems.value.length > 0"
+          :title="`Write ${store.serverFile.value} on the server`"
+          @click="save"
+        >
+          Save{{ store.dirty.value ? ' ●' : '' }}
+        </button>
+        <span
+          v-if="store.problems.value.length > 0"
+          class="badge error"
+          @click="store.view.value = { kind: 'yaml' }"
+          >{{ store.problems.value.length }} problems</span
+        >
+        <span v-else class="badge ok">valid</span>
+      </template>
     </header>
     <p v-if="notice" class="notice" @click="notice = ''">{{ notice }}</p>
-    <AccountsView v-if="screen === 'accounts'" />
+    <MailLogin v-if="loginRequired" @logged-in="loggedIn" />
+    <MailView v-else-if="screen === 'mail'" @unauthorized="logOut" />
+    <AccountsView v-else-if="screen === 'accounts'" />
     <div v-else class="body">
       <RuleList />
       <main>

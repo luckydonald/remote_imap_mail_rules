@@ -18,10 +18,11 @@ export class SaveError extends Error {
   }
 }
 
-/** The server's config, or `null` when no server answers. */
-export async function fetchConfig(): Promise<EditorConfig | null> {
+/** The server's config, `'login'` when a server answers but wants a login (or cannot offer one), `null` when no server answers. */
+export async function fetchConfig(): Promise<EditorConfig | 'login' | null> {
   try {
     const response = await fetch(`${BASE}/config`)
+    if (response.status === 401 || response.status === 503) return 'login'
     if (!response.ok) return null
     const data: unknown = await response.json()
     if (typeof data !== 'object' || data === null || (data as { mode?: unknown }).mode !== 'server')
