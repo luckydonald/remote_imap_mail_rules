@@ -9,6 +9,12 @@ IMAP_USERNAME=me@example.com
 IMAP_PASSWORD=secret
 IMAP_PAGE_SIZE=50
 IMAP_POLL_INTERVAL=60
+# Keep the rules in this file instead of the database. Leave it out to use the database.
 RULES_PATH=rules/example.yml
+# Any async SQLAlchemy URL, the default is shown.
+DATABASE_URL=sqlite+aiosqlite:///./db.sqlite3
+# Fernet key that encrypts account passwords in the database, generate one with:
+# uv run python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+SECRET_KEY=
 SERVER_HOST=127.0.0.1
 SERVER_PORT=8000
