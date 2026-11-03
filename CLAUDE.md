@@ -15,7 +15,7 @@ Planned later (not built yet): FastAPI server, Vue frontend, multi-account manag
 
 ## Layout
 
-- `src/remote_imap_mail_rules/rules/`: `models.py` (pydantic rule file), `fields.py` (field and operator enums), `values.py` (dates), `extract.py` (field to mail mapping), `operators.py`, `evaluate.py`, `loader.py`, `schema.py`.
+- `src/remote_imap_mail_rules/rules/`: `models.py` (pydantic rule file), `fields.py` (field and operator enums), `values.py` (dates), `extract.py` (field to mail mapping), `operators.py`, `evaluate.py`, `loader.py`, `schema.py`. Fields are `Templatable` (a value or a `Var`) and `Template` expressions are resolved by `.concrete()` in `loader.py`, see Templates below.
 - `src/remote_imap_mail_rules/imap/`: `client.py` (read-only `ImapClient`), `watcher.py` (IDLE or polling), `fetch.py` / `sexpr.py` / `bodystructure.py` (response parsing), `connection.py` (the slice of `aioimaplib` used, so tests can fake it).
 - `src/remote_imap_mail_rules/matching.py`: `matches()`, the core async generator yielding `RuleMatch` (`existing`, then `new` / `changed`). `demo.py` prints it (`--verbose` lists every inspected mail via `matches(on_inspect=...)`; `--streamer-mode` hashes titles and masks addresses, and agents must pass `--streamer-mode` or `--no-streamer-mode`).
 - `schemas/rules.schema.json` is generated from the pydantic model, never edited by hand: `uv run python -m remote_imap_mail_rules.rules.schema --write-schema` (`--check` fails when outdated, and a test does the same). The pattern is copied from `scripts/sync_todos.py`.
@@ -32,6 +32,7 @@ Planned later (not built yet): FastAPI server, Vue frontend, multi-account manag
 - Dates are a discriminated union on the bool `relative`: `AbsoluteTime` (datetime, naive means UTC) or `RelativeDuration` (`7d`, units `s m h d w`, measured back from now). `date_received lt 7d` means received more than a week ago. There is no `age` field, a relative duration replaces it.
 - IMAP has no last-modified date; `modseq` is only a change counter (CONDSTORE).
 - Folder names are used as the server sends them (modified UTF-7), not decoded.
+- Templates: root `templates` holds definitions (`type: template`, `defaults`, `content` with `{var: name}` / `!var name` markers). A use is `<<: *anchor` plus `variables`, valid wherever an expression is, checked by pydantic (every variable bound, none unknown). `parse_rules` returns `.concrete()` rules, so evaluator and matching never see a `Var` or `Template`. YAML anchors may not contain `.`.
 - `actions` are parsed and validated but nothing executes them yet.
 
 ## Rule expressions

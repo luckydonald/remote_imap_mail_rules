@@ -480,6 +480,41 @@ when:
     - {relative: false, value: '2026-02-01T00:00:00+00:00'}
 ```
 
+## Templates: the same rule for many senders
+
+Rules that differ only in a few values can share one definition.
+Put it under the root `templates`, mark the replaceable fields with `{var: name}` (or the shorthand `!var name`), and give the definition a YAML anchor.
+Use it anywhere an expression is allowed with the merge key `<<: *anchor` and fill in `variables`.
+`defaults` of the definition are used for variables the use does not set.
+
+```yaml
+templates:
+  anonaddy-forward: &anonaddy-forward
+    type: template
+    defaults:
+      sender_name: " 'notifications at github.com'"
+    content:
+      type: all
+      conditions:
+        - {type: address, field: from, part: address, operator: equals, value: {var: alias}}
+        - {type: address, field: from, part: name, operator: endswith, value: {var: sender_name}}
+
+rules:
+  - name: Mark GitHub mail as read
+    locations:
+      - account_id: 6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11
+    when:
+      <<: *anonaddy-forward
+      variables:
+        alias: github.com-example@anonaddy.io
+    actions:
+      - type: mark_read
+```
+
+- Every variable needs a value in `variables` or `defaults`, and `variables` must not name a variable the template does not use, both are errors.
+- Any field can be a variable, also numbers, operators or whole sub-expressions, and a template can use other templates.
+- Templates are resolved when the file is loaded, the result is the same as writing the rules out by hand.
+
 ## Actions
 
 What to do with a matching mail.

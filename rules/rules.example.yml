@@ -2,31 +2,32 @@
 $schema: "../schemas/rules.schema.json"
 
 templates:
-  anonaddy-forward: &template.anonaddy-forward
+  # A mail forwarded by anonaddy: the alias address, and the original sender in the display name.
+  anonaddy-forward: &template-anonaddy-forward
     type: template
+    defaults:
+      # Used when a rule does not set the variable.
+      forward_name: " 'notifications at github.com'"
     content:
       type: all
       conditions:
-        - field: from
-          type: address
+        - type: address
+          field: from
           part: address
           operator: equals
-          value: !!variable "anonaddy_forward_address"
-        - field: from
-          type: address
+          value: !var forward_address
+        - type: address
+          field: from
           part: name
           operator: endswith
-          value: !!variable "anonaddy_forward_name"
-    variables:
-      # basically default values for the template, but can be overridden in the rule using this template
-      anonaddy_forward_address: "some@default-email.tld"  # for the example on how to do templates, only
+          value: !var forward_name
 
 rules:
   - name: Move from INBOX to "Boxed In/Promotions"
     # [existing] 'Move to JUNK': INBOX #12345 from="That Service 'support at that-one-service.com'" <email-for-only-that-one-service@anonaddy.io> subject='👀 Your Early Black Friday Deals: Up to 12% OFF Extra!'
     locations:
-    - account_id: 6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11
-      recursive: false
+      - account_id: 6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11
+        recursive: false
     when:
       # Move only if already read. Also checks for specific senders matching the FROM after the anonaddy forward.
       type: all
@@ -36,18 +37,20 @@ rules:
           value: true
         - type: any
           conditions:
+            # The same thing as the template below, written out.
             - type: all
               conditions:
-              - field: from
-                type: address
-                part: address
-                operator: equals
-                value: "email-for-only-that-one-service@anonaddy.io"
-              - field: from
-                type: address
-                part: name
-                operator: endswith
-                value: " 'support at that-one-service.com'"
+                - field: from
+                  type: address
+                  part: address
+                  operator: equals
+                  value: "email-for-only-that-one-service@anonaddy.io"
+                - field: from
+                  type: address
+                  part: name
+                  operator: endswith
+                  value: " 'support at that-one-service.com'"
+
   - name: Move from INBOX to IN/UPDATES
     # [existing] 'Move to JUNK': INBOX #45678 from="pejeio 'notifications at github.com'" <github.com-example-for-remote_imap_mail_rules@luckydonald.de> subject='Re: [altstoreio/AltStore] [Bug] HTTP 503 after 2FA on AltStore 2.3.1 / AltServer 1.8.2, including Remote AltServer (Issue #1842)'
     locations:
@@ -61,22 +64,11 @@ rules:
           value: true
         - type: any
           conditions:
-            - type: all
-              conditions:
-              - field: from
-                type: address
-                part: address
-                operator: equals
-                value: "github.com-example-for-remote_imap_mail_rules@luckydonald.de"
-              - field: from
-                type: address
-                part: name
-                operator: endswith
-                value: " 'notifications at github.com'"
-          - *template.anonaddy-forward
-            variables:
-              anonaddy_forward_address: "github.com-example-for-remote_imap_mail_rules@luckydonald.de"
-              anonaddy_forward_name: " 'notifications at github.com'"
-
-
-
+            - <<: *template-anonaddy-forward
+              variables:
+                forward_address: "github.com-example-for-remote_imap_mail_rules@luckydonald.de"
+                # forward_name is left out, so the default applies
+            - <<: *template-anonaddy-forward
+              variables:
+                forward_address: "gitlab.com-example-for-remote_imap_mail_rules@luckydonald.de"
+                forward_name: " 'noreply at gitlab.com'"
