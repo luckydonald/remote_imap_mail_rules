@@ -28,6 +28,7 @@ Read from the environment and from `.env` in the working directory (see `.exampl
 | `RULES_PATH` | `rules/example.yml` for the demo, unset for the server | The YAML rules file. When set, the server edits this file; when unset, the rules live in the database. |
 | `DATABASE_URL` | `sqlite+aiosqlite:///./db.sqlite3` | Any async SQLAlchemy URL. The server runs the Alembic migrations at start-up. |
 | `SECRET_KEY` | none | Fernet key that encrypts the account passwords in the database. Without it no password can be stored. |
+| `WATCH_ENABLED` | `true` | Whether the server runs the rules in the background and writes the action log of each mail. |
 | `SERVER_HOST` | `127.0.0.1` | Interface of the server. It has no login yet, so only expose it on a trusted network. |
 | `SERVER_PORT` | `8000` | Port of the server. |
 | `FRONTEND_DIST` | `frontend/dist` | Built editor that the server serves at `/`. |
@@ -79,6 +80,10 @@ Generate a `SECRET_KEY` once with `uv run python -c "from cryptography.fernet im
   Without `SECRET_KEY` nobody can log in, the API then answers `503`.
 - The Mail screen is a read-only mail client for the registered accounts: folders, the message list (newest first, paged), and the message with its attachments.
   HTML mail is sanitized (no scripts, no remote images) and shown in a sandboxed frame.
+- The server watches every registered account in the background (`WATCH_ENABLED`) and keeps an action log per mail: when it was first seen and which rules matched it.
+  The message view shows that log.
+  Mails already in the folders when the server first runs are logged as first seen at that moment, and the watcher restarts after the accounts or the rules changed.
+  Rule actions are not executed yet, so the log has no action entries so far.
 - The rule editor can show a mail beside it ("Example mail") and fill conditions from it, e.g. the sender as name, email or domain.
   It works on a phone as well, where one pane shows at a time.
 

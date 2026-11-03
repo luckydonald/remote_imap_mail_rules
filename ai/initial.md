@@ -109,7 +109,7 @@ The action and log tables are not part of it, they come with stage 5.
 
 
 ## 5. Mail browser for the accounts registered in the server
-Status: viewer, login and fill from mail done; the action log is open.
+Status: done, see this checklist; additionally "Status so far" below.
 
 - [x] basic mail viewer for the accounts registered in the server
   - Basically implement a simple readonly mail client
@@ -122,7 +122,9 @@ Status: viewer, login and fill from mail done; the action log is open.
   - [x] basic mail viewer for the accounts registered in the server
   - [x] filling conditions from a mail, and the "fill from mail" button on conditions
     - Side panel beside the editor, a subpage on a phone; the open mail is kept in a Pinia store cached in localStorage.
-- [ ] the full action log per mail (first seen, rule matches, actions, user actions)
+- [x] the full action log per mail (first seen, rule matches, actions, user actions)
+  - First seen and rule matches are written by a background watcher in the server and shown in the message view.
+  - The `action` and `user_action` kinds exist in the table, but nothing writes them until actions are executed.
 
 # Status so far
 #### Done
@@ -154,9 +156,11 @@ Status: viewer, login and fill from mail done; the action log is open.
 - Rules from a mail: an "Example mail" panel beside the editor, a "From mail" button on conditions and mail-first filling (`+ Add condition`, "Add to the rule"), with the part of an address choosable.
   The mail detail API returns all headers and flags for it, and the mail state is a Pinia store cached in localStorage.
 
+- Action log per mail (`mail_events`): a background watcher (`WATCH_ENABLED`) runs the rules on every stored account and records first seen and rule matches, the message view shows them.
+
 #### Not built yet
 
 - Moving mails between accounts.
 - Executing rule actions (all IMAP access is read-only for now).
-- The full action log per mail (first seen, rule matches, actions, user actions).
+- Action and user action entries of the log, they come with executing actions.
 - Easy custom fields and headers beyond the `header` condition, e.g. a picker in the editor.
