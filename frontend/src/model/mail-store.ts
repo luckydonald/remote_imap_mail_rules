@@ -1,6 +1,7 @@
 /** State of the mail browser: accounts, folders, the paged message list and the open message. */
 
-import { computed, ref } from 'vue'
+import { defineStore } from 'pinia'
+import { computed, ref, watch } from 'vue'
 import { listAccounts, type Account } from './accounts-api'
 import { ApiError, describeError } from './http'
 import {
@@ -15,7 +16,37 @@ import {
 /** On a narrow screen only one of the panes shows. */
 export type Pane = 'folders' | 'list' | 'message'
 
-export function createMailStore(onUnauthorized: () => void = () => {}) {
+const STORAGE_KEY = 'mail-browser'
+
+/** What survives a reload: the place and the open mail, never credentials. */
+interface Saved {
+  accountId: string | null
+  folder: string | null
+  uid: number | null
+  detail: Detail | null
+}
+
+function readSaved(): Saved | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? (JSON.parse(raw) as Saved) : null
+  } catch {
+    return null
+  }
+}
+
+function writeSaved(saved: Saved): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
+  } catch {
+    // Storage can be blocked or full, the browser then just starts fresh next time.
+  }
+}
+
+export const useMailStore = defineStore('mail', () => {
+  let onUnauthorized: () => void = () => {}
+  // The place of the last session, used once by the first loadAccounts().
+  let restore = readSaved()
   const accounts = ref<Account[]>([])
   const accountId = ref<string | null>(null)
   const folders = ref<Folder[]>([])
@@ -23,8 +54,8 @@ export function createMailStore(onUnauthorized: () => void = () => {}) {
   const messages = ref<Summary[]>([])
   const total = ref(0)
   const nextBefore = ref<number | null>(null)
-  const detail = ref<Detail | null>(null)
-  const selectedUid = ref<number | null>(null)
+  const detail = ref<Detail | null>(restore?.detail ?? null)
+  const selectedUid = ref<number | null>(restore?.uid ?? null)
   const error = ref('')
   const loading = ref(false)
   // True from the start until the accounts and the folders of the first account are in.
@@ -37,6 +68,22 @@ export function createMailStore(onUnauthorized: () => void = () => {}) {
   const hasMore = computed(() => nextBefore.value !== null)
   const currentFolder = computed(() => folders.value.find((item) => item.name === folder.value))
 
+  watch([accountId, folder, selectedUid, detail], () => {
+    // While the restore is pending the refs are not the saved place yet, so nothing is overwritten.
+    if (restore === null) {
+      writeSaved({
+        accountId: accountId.value,
+        folder: folder.value,
+        uid: selectedUid.value,
+        detail: detail.value,
+      })
+    }
+  })
+
+  function setUnauthorizedHandler(handler: () => void): void {
+    onUnauthorized = handler
+  }
+
   function fail(prefix: string, caught: unknown): void {
     if (caught instanceof ApiError && caught.status === 401) {
       onUnauthorized()
@@ -48,7 +95,11 @@ export function createMailStore(onUnauthorized: () => void = () => {}) {
   async function loadAccounts(): Promise<void> {
     try {
       accounts.value = await listAccounts()
-      if (accountId.value === null && accounts.value[0]) await selectAccount(accounts.value[0].id)
+      const saved = restore
+      const wanted =
+        accounts.value.find((item) => item.id === saved?.accountId) ?? accounts.value[0]
+      if (accountId.value === null && wanted)
+        await selectAccount(wanted.id, wanted.id === saved?.accountId)
       else foldersLoading.value = false
     } catch (caught) {
       foldersLoading.value = false
@@ -56,13 +107,18 @@ export function createMailStore(onUnauthorized: () => void = () => {}) {
     }
   }
 
-  async function selectAccount(id: string): Promise<void> {
+  /** `keepPlace` brings back the folder and the open mail of the last session. */
+  async function selectAccount(id: string, keepPlace = false): Promise<void> {
+    const saved = keepPlace ? restore : null
+    restore = null
     accountId.value = id
     folders.value = []
     folder.value = null
     messages.value = []
-    detail.value = null
-    selectedUid.value = null
+    if (!saved) {
+      detail.value = null
+      selectedUid.value = null
+    }
     error.value = ''
     pane.value = 'folders'
     foldersLoading.value = true
@@ -72,7 +128,14 @@ export function createMailStore(onUnauthorized: () => void = () => {}) {
       folders.value = found.filter((item) => item.selectable)
       foldersLoading.value = false
       const inbox = folders.value.find((item) => item.special_use === 'inbox')
-      if (inbox) await selectFolder(inbox.name)
+      const back = folders.value.find((item) => item.name === saved?.folder)
+      if (back) {
+        await selectFolder(back.name, saved?.uid ?? null)
+      } else if (inbox) {
+        detail.value = null
+        selectedUid.value = null
+        await selectFolder(inbox.name)
+      }
     } catch (caught) {
       fail('Could not load the folders', caught)
     } finally {
@@ -80,7 +143,8 @@ export function createMailStore(onUnauthorized: () => void = () => {}) {
     }
   }
 
-  async function selectFolder(name: string): Promise<void> {
+  /** `uid` reopens that mail of the folder, e.g. after a reload. */
+  async function selectFolder(name: string, uid: number | null = null): Promise<void> {
     if (accountId.value === null) return
     folder.value = name
     messages.value = []
@@ -91,7 +155,7 @@ export function createMailStore(onUnauthorized: () => void = () => {}) {
     error.value = ''
     loading.value = false
     pane.value = 'list'
-    await loadMore()
+    await Promise.all([loadMore(), uid === null ? undefined : openMessage(uid)])
   }
 
   /** Loads the next page below the oldest mail shown; the first page when the list is empty. */
@@ -160,7 +224,8 @@ export function createMailStore(onUnauthorized: () => void = () => {}) {
     loadMore,
     openMessage,
     back,
+    setUnauthorizedHandler,
   }
-}
+})
 
-export type MailStore = ReturnType<typeof createMailStore>
+export type MailStore = ReturnType<typeof useMailStore>
