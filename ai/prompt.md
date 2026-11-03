@@ -223,3 +223,5 @@ And what's going on with typescript 7 vs 5.9?
 
 ❯ Yes, apply as many best practices from the vue template as possible.
 
+❯ Continue [@`ai/initial.md`](./initial.md) 's stage 2
+
