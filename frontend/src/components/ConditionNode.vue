@@ -1,51 +1,78 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import AddressEditor from "./condition/TextLikeEditor.vue";
-import BoolEditor from "./condition/BoolEditor.vue";
-import DateEditor from "./condition/DateEditor.vue";
-import GroupEditor from "./condition/GroupEditor.vue";
-import NumberEditor from "./condition/NumberEditor.vue";
-import PresenceEditor from "./condition/PresenceEditor.vue";
-import TemplateUseEditor from "./condition/TemplateUseEditor.vue";
-import { expressionTypes, newExpression, typeLabels, type ExpressionType } from "@/model/catalog";
-import { useStore } from "@/model/context";
-import type { Expression } from "@/model/types";
+import { computed } from 'vue'
+import AddressEditor from './condition/TextLikeEditor.vue'
+import BoolEditor from './condition/BoolEditor.vue'
+import DateEditor from './condition/DateEditor.vue'
+import GroupEditor from './condition/GroupEditor.vue'
+import NumberEditor from './condition/NumberEditor.vue'
+import PresenceEditor from './condition/PresenceEditor.vue'
+import TemplateUseEditor from './condition/TemplateUseEditor.vue'
+import { expressionTypes, newExpression, typeLabels, type ExpressionType } from '@/model/catalog'
+import { useStore } from '@/model/context'
+import type { Expression } from '@/model/types'
 
-const props = defineProps<{ modelValue: Expression; removable?: boolean }>();
-const emit = defineEmits<{ "update:modelValue": [value: Expression]; remove: [] }>();
-const store = useStore();
+const props = defineProps<{ modelValue: Expression; removable?: boolean }>()
+const emit = defineEmits<{ 'update:modelValue': [value: Expression]; remove: [] }>()
+const store = useStore()
 
-const node = computed(() => props.modelValue);
-const isGroup = computed(() => ["all", "any", "not"].includes(node.value.type));
+const node = computed(() => props.modelValue)
+const isGroup = computed(() => ['all', 'any', 'not'].includes(node.value.type))
 
 function changeType(type: ExpressionType): void {
-  const current = node.value;
-  if ((type === "all" || type === "any") && (current.type === "all" || current.type === "any")) {
-    emit("update:modelValue", { ...current, type });
-    return;
+  const current = node.value
+  if ((type === 'all' || type === 'any') && (current.type === 'all' || current.type === 'any')) {
+    emit('update:modelValue', { ...current, type })
+    return
   }
-  emit("update:modelValue", newExpression(type, Object.keys(store.file.templates)));
+  emit('update:modelValue', newExpression(type, Object.keys(store.file.templates)))
 }
 
-function wrap(type: "all" | "any" | "not"): void {
-  emit("update:modelValue", type === "not" ? { type, condition: node.value } : { type, conditions: [node.value] });
+function wrap(type: 'all' | 'any' | 'not'): void {
+  emit(
+    'update:modelValue',
+    type === 'not' ? { type, condition: node.value } : { type, conditions: [node.value] },
+  )
 }
 </script>
 
 <template>
   <div class="node" :class="[`node-${node.type}`, { group: isGroup }]">
     <div class="node-bar">
-      <select :value="node.type" aria-label="Condition type" @change="changeType(($event.target as HTMLSelectElement).value as ExpressionType)">
-        <option v-for="type in expressionTypes" :key="type" :value="type">{{ typeLabels[type] }}</option>
+      <select
+        :value="node.type"
+        aria-label="Condition type"
+        @change="changeType(($event.target as HTMLSelectElement).value as ExpressionType)"
+      >
+        <option v-for="type in expressionTypes" :key="type" :value="type">
+          {{ typeLabels[type] }}
+        </option>
       </select>
       <span class="spacer" />
       <button type="button" class="ghost" title="Wrap in NOT" @click="wrap('not')">not(…)</button>
-      <button type="button" class="ghost" title="Wrap in ALL (AND)" @click="wrap('all')">all(…)</button>
-      <button type="button" class="ghost" title="Wrap in ANY (OR)" @click="wrap('any')">any(…)</button>
-      <button v-if="removable" type="button" class="ghost danger" title="Remove" @click="emit('remove')">✕</button>
+      <button type="button" class="ghost" title="Wrap in ALL (AND)" @click="wrap('all')">
+        all(…)
+      </button>
+      <button type="button" class="ghost" title="Wrap in ANY (OR)" @click="wrap('any')">
+        any(…)
+      </button>
+      <button
+        v-if="removable"
+        type="button"
+        class="ghost danger"
+        title="Remove"
+        @click="emit('remove')"
+      >
+        ✕
+      </button>
     </div>
-    <GroupEditor v-if="node.type === 'all' || node.type === 'any' || node.type === 'not'" :node="node" />
-    <AddressEditor v-else-if="node.type === 'text' || node.type === 'address' || node.type === 'header'" :node="node" />
+    <GroupEditor
+      v-if="node.type === 'all' || node.type === 'any' || node.type === 'not'"
+      :node="node"
+    />
+    <AddressEditor
+      v-else-if="node.type === 'text' || node.type === 'address' || node.type === 'header'"
+      :node="node"
+    />
     <NumberEditor v-else-if="node.type === 'number'" :node="node" />
     <DateEditor v-else-if="node.type === 'date'" :node="node" />
     <BoolEditor v-else-if="node.type === 'bool'" :node="node" />
