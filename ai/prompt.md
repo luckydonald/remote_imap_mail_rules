@@ -177,3 +177,8 @@ Of cause this can use improvements, but that's my initial idea here.
 
 ❯ Plan accepted, auto mode.
 
+❯ Regarding
+> The fields are now typed wider, but I didn't add any narrowing in ˋevaluate.pyˋ or ˋextract.pyˋ. They run correctly, because they only see resolved rules. If you use a type checker, it will probably complain there. Nothing is committed.
+
+The return type of ˋ.concrete()ˋ should be typed correctly to narrow those types down without templates and variables.
+

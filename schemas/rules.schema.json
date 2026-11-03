@@ -24,9 +24,37 @@
       "title": "AbsoluteTime",
       "type": "object"
     },
-    "AddressCondition": {
+    "Action_TypeVar_": {
+      "discriminator": {
+        "mapping": {
+          "flag": "#/$defs/FlagAction_TypeVar_",
+          "keyword": "#/$defs/KeywordAction_TypeVar_",
+          "mark_read": "#/$defs/MarkReadAction",
+          "mark_unread": "#/$defs/MarkUnreadAction",
+          "move": "#/$defs/MoveAction_TypeVar_"
+        },
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/MoveAction_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/MarkReadAction"
+        },
+        {
+          "$ref": "#/$defs/MarkUnreadAction"
+        },
+        {
+          "$ref": "#/$defs/FlagAction_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/KeywordAction_TypeVar_"
+        }
+      ]
+    },
+    "AddressCondition_TypeVar_": {
       "additionalProperties": false,
-      "description": "Compares an address field, at the granularity given by `part`.",
       "properties": {
         "type": {
           "const": "address",
@@ -35,24 +63,24 @@
           "type": "string"
         },
         "field": {
-          "$ref": "#/$defs/Templatable_AddressField_"
+          "$ref": "#/$defs/Templatable_AddressField_TypeVar_"
         },
         "part": {
-          "$ref": "#/$defs/Templatable_AddressPart_",
+          "$ref": "#/$defs/Templatable_AddressPart_TypeVar_",
           "default": "address"
         },
         "operator": {
-          "$ref": "#/$defs/Templatable_TextOperator_"
+          "$ref": "#/$defs/Templatable_TextOperator_TypeVar_"
         },
         "value": {
-          "$ref": "#/$defs/Templatable_Union_str__list_str___"
+          "$ref": "#/$defs/Templatable_Union_str__list_str___TypeVar_"
         },
         "case_sensitive": {
-          "$ref": "#/$defs/Templatable_bool_",
+          "$ref": "#/$defs/Templatable_bool_TypeVar_",
           "default": false
         },
         "quantifier": {
-          "$ref": "#/$defs/Templatable_Quantifier_",
+          "$ref": "#/$defs/Templatable_Quantifier_TypeVar_",
           "default": "any"
         }
       },
@@ -61,7 +89,7 @@
         "operator",
         "value"
       ],
-      "title": "AddressCondition",
+      "title": "AddressCondition[TypeVar]",
       "type": "object"
     },
     "AddressField": {
@@ -92,157 +120,7 @@
       "title": "AddressPart",
       "type": "string"
     },
-    "AllExpression": {
-      "additionalProperties": false,
-      "description": "AND: true if every nested expression is true.",
-      "properties": {
-        "type": {
-          "const": "all",
-          "default": "all",
-          "title": "Type",
-          "type": "string"
-        },
-        "conditions": {
-          "items": {
-            "discriminator": {
-              "mapping": {
-                "address": "#/$defs/AddressCondition",
-                "all": "#/$defs/AllExpression",
-                "any": "#/$defs/AnyExpression",
-                "bool": "#/$defs/BoolCondition",
-                "date": "#/$defs/DateCondition",
-                "header": "#/$defs/HeaderCondition",
-                "not": "#/$defs/NotExpression",
-                "number": "#/$defs/NumberCondition",
-                "presence": "#/$defs/PresenceCondition",
-                "template": "#/$defs/Template_Expression_",
-                "text": "#/$defs/TextCondition"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/AllExpression"
-              },
-              {
-                "$ref": "#/$defs/AnyExpression"
-              },
-              {
-                "$ref": "#/$defs/NotExpression"
-              },
-              {
-                "$ref": "#/$defs/TextCondition"
-              },
-              {
-                "$ref": "#/$defs/HeaderCondition"
-              },
-              {
-                "$ref": "#/$defs/AddressCondition"
-              },
-              {
-                "$ref": "#/$defs/NumberCondition"
-              },
-              {
-                "$ref": "#/$defs/DateCondition"
-              },
-              {
-                "$ref": "#/$defs/BoolCondition"
-              },
-              {
-                "$ref": "#/$defs/PresenceCondition"
-              },
-              {
-                "$ref": "#/$defs/Template_Expression_"
-              }
-            ]
-          },
-          "minItems": 1,
-          "title": "Conditions",
-          "type": "array"
-        }
-      },
-      "required": [
-        "conditions"
-      ],
-      "title": "AllExpression",
-      "type": "object"
-    },
-    "AnyExpression": {
-      "additionalProperties": false,
-      "description": "OR: true if at least one nested expression is true.",
-      "properties": {
-        "type": {
-          "const": "any",
-          "default": "any",
-          "title": "Type",
-          "type": "string"
-        },
-        "conditions": {
-          "items": {
-            "discriminator": {
-              "mapping": {
-                "address": "#/$defs/AddressCondition",
-                "all": "#/$defs/AllExpression",
-                "any": "#/$defs/AnyExpression",
-                "bool": "#/$defs/BoolCondition",
-                "date": "#/$defs/DateCondition",
-                "header": "#/$defs/HeaderCondition",
-                "not": "#/$defs/NotExpression",
-                "number": "#/$defs/NumberCondition",
-                "presence": "#/$defs/PresenceCondition",
-                "template": "#/$defs/Template_Expression_",
-                "text": "#/$defs/TextCondition"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/AllExpression"
-              },
-              {
-                "$ref": "#/$defs/AnyExpression"
-              },
-              {
-                "$ref": "#/$defs/NotExpression"
-              },
-              {
-                "$ref": "#/$defs/TextCondition"
-              },
-              {
-                "$ref": "#/$defs/HeaderCondition"
-              },
-              {
-                "$ref": "#/$defs/AddressCondition"
-              },
-              {
-                "$ref": "#/$defs/NumberCondition"
-              },
-              {
-                "$ref": "#/$defs/DateCondition"
-              },
-              {
-                "$ref": "#/$defs/BoolCondition"
-              },
-              {
-                "$ref": "#/$defs/PresenceCondition"
-              },
-              {
-                "$ref": "#/$defs/Template_Expression_"
-              }
-            ]
-          },
-          "minItems": 1,
-          "title": "Conditions",
-          "type": "array"
-        }
-      },
-      "required": [
-        "conditions"
-      ],
-      "title": "AnyExpression",
-      "type": "object"
-    },
-    "BoolCondition": {
+    "BoolCondition_TypeVar_": {
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -252,21 +130,21 @@
           "type": "string"
         },
         "field": {
-          "$ref": "#/$defs/Templatable_BoolField_"
+          "$ref": "#/$defs/Templatable_BoolField_TypeVar_"
         },
         "value": {
-          "$ref": "#/$defs/Templatable_bool_",
+          "$ref": "#/$defs/Templatable_bool_TypeVar_",
           "default": true
         },
         "quantifier": {
-          "$ref": "#/$defs/Templatable_Quantifier_",
+          "$ref": "#/$defs/Templatable_Quantifier_TypeVar_",
           "default": "any"
         }
       },
       "required": [
         "field"
       ],
-      "title": "BoolCondition",
+      "title": "BoolCondition[TypeVar]",
       "type": "object"
     },
     "BoolField": {
@@ -298,9 +176,8 @@
       "title": "CompareOperator",
       "type": "string"
     },
-    "DateCondition": {
+    "DateCondition_TypeVar_": {
       "additionalProperties": false,
-      "description": "Compares a date. A relative value `7d` is the moment 7 days before now.",
       "properties": {
         "type": {
           "const": "date",
@@ -309,13 +186,13 @@
           "type": "string"
         },
         "field": {
-          "$ref": "#/$defs/Templatable_DateField_"
+          "$ref": "#/$defs/Templatable_DateField_TypeVar_"
         },
         "operator": {
-          "$ref": "#/$defs/Templatable_CompareOperator_"
+          "$ref": "#/$defs/Templatable_CompareOperator_TypeVar_"
         },
         "value": {
-          "$ref": "#/$defs/Templatable_Union_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____tuple_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative______"
+          "$ref": "#/$defs/Templatable_Union_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____tuple_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative______TypeVar_"
         }
       },
       "required": [
@@ -323,7 +200,7 @@
         "operator",
         "value"
       ],
-      "title": "DateCondition",
+      "title": "DateCondition[TypeVar]",
       "type": "object"
     },
     "DateField": {
@@ -335,7 +212,60 @@
       "title": "DateField",
       "type": "string"
     },
-    "FlagAction": {
+    "Expression": {
+      "discriminator": {
+        "mapping": {
+          "address": "#/$defs/AddressCondition_TypeVar_",
+          "all": "#/$defs/remote_imap_mail_rules__rules__models__AllExpression_TypeVar___1",
+          "any": "#/$defs/remote_imap_mail_rules__rules__models__AnyExpression_TypeVar___1",
+          "bool": "#/$defs/BoolCondition_TypeVar_",
+          "date": "#/$defs/DateCondition_TypeVar_",
+          "header": "#/$defs/HeaderCondition_TypeVar_",
+          "not": "#/$defs/remote_imap_mail_rules__rules__models__NotExpression_TypeVar___1",
+          "number": "#/$defs/NumberCondition_TypeVar_",
+          "presence": "#/$defs/PresenceCondition_TypeVar_",
+          "template": "#/$defs/remote_imap_mail_rules__rules__models__Template_TypeVar___1",
+          "text": "#/$defs/TextCondition_TypeVar_"
+        },
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__AllExpression_TypeVar___1"
+        },
+        {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__AnyExpression_TypeVar___1"
+        },
+        {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__NotExpression_TypeVar___1"
+        },
+        {
+          "$ref": "#/$defs/TextCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/HeaderCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/AddressCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/NumberCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/DateCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/BoolCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/PresenceCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__Template_TypeVar___1"
+        }
+      ]
+    },
+    "FlagAction_TypeVar_": {
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -345,16 +275,15 @@
           "type": "string"
         },
         "value": {
-          "$ref": "#/$defs/Templatable_bool_",
+          "$ref": "#/$defs/Templatable_bool_TypeVar_",
           "default": true
         }
       },
-      "title": "FlagAction",
+      "title": "FlagAction[TypeVar]",
       "type": "object"
     },
-    "HeaderCondition": {
+    "HeaderCondition_TypeVar_": {
       "additionalProperties": false,
-      "description": "Compares any header by name, for fields without a dedicated entry. Multiple headers of that name are quantified.",
       "properties": {
         "type": {
           "const": "header",
@@ -363,20 +292,20 @@
           "type": "string"
         },
         "name": {
-          "$ref": "#/$defs/Templatable_Annotated_str__FieldInfo_annotation_NoneType__required_True__metadata__MinLen_min_length_1_____"
+          "$ref": "#/$defs/Templatable_Annotated_str__FieldInfo_annotation_NoneType__required_True__metadata__MinLen_min_length_1_____TypeVar_"
         },
         "operator": {
-          "$ref": "#/$defs/Templatable_TextOperator_"
+          "$ref": "#/$defs/Templatable_TextOperator_TypeVar_"
         },
         "value": {
-          "$ref": "#/$defs/Templatable_Union_str__list_str___"
+          "$ref": "#/$defs/Templatable_Union_str__list_str___TypeVar_"
         },
         "case_sensitive": {
-          "$ref": "#/$defs/Templatable_bool_",
+          "$ref": "#/$defs/Templatable_bool_TypeVar_",
           "default": false
         },
         "quantifier": {
-          "$ref": "#/$defs/Templatable_Quantifier_",
+          "$ref": "#/$defs/Templatable_Quantifier_TypeVar_",
           "default": "any"
         }
       },
@@ -385,10 +314,10 @@
         "operator",
         "value"
       ],
-      "title": "HeaderCondition",
+      "title": "HeaderCondition[TypeVar]",
       "type": "object"
     },
-    "KeywordAction": {
+    "KeywordAction_TypeVar_": {
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -398,39 +327,38 @@
           "type": "string"
         },
         "keyword": {
-          "$ref": "#/$defs/Templatable_Annotated_str__FieldInfo_annotation_NoneType__required_True__metadata__MinLen_min_length_1_____"
+          "$ref": "#/$defs/Templatable_Annotated_str__FieldInfo_annotation_NoneType__required_True__metadata__MinLen_min_length_1_____TypeVar_"
         },
         "value": {
-          "$ref": "#/$defs/Templatable_bool_",
+          "$ref": "#/$defs/Templatable_bool_TypeVar_",
           "default": true
         }
       },
       "required": [
         "keyword"
       ],
-      "title": "KeywordAction",
+      "title": "KeywordAction[TypeVar]",
       "type": "object"
     },
-    "Location": {
+    "Location_TypeVar_": {
       "additionalProperties": false,
-      "description": "Where a rule applies. The account is referenced by its immutable id, never by its changeable name.",
       "properties": {
         "account_id": {
-          "$ref": "#/$defs/Templatable_UUID_"
+          "$ref": "#/$defs/Templatable_UUID_TypeVar_"
         },
         "folder": {
-          "$ref": "#/$defs/Templatable_str_",
+          "$ref": "#/$defs/Templatable_str_TypeVar_",
           "default": "INBOX"
         },
         "recursive": {
-          "$ref": "#/$defs/Templatable_bool_",
+          "$ref": "#/$defs/Templatable_bool_TypeVar_",
           "default": false
         }
       },
       "required": [
         "account_id"
       ],
-      "title": "Location",
+      "title": "Location[TypeVar]",
       "type": "object"
     },
     "MarkReadAction": {
@@ -459,7 +387,7 @@
       "title": "MarkUnreadAction",
       "type": "object"
     },
-    "MoveAction": {
+    "MoveAction_TypeVar_": {
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -469,12 +397,12 @@
           "type": "string"
         },
         "folder": {
-          "$ref": "#/$defs/Templatable_str_"
+          "$ref": "#/$defs/Templatable_str_TypeVar_"
         },
         "account_id": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Templatable_UUID_"
+              "$ref": "#/$defs/Templatable_UUID_TypeVar_"
             },
             {
               "type": "null"
@@ -487,80 +415,10 @@
       "required": [
         "folder"
       ],
-      "title": "MoveAction",
+      "title": "MoveAction[TypeVar]",
       "type": "object"
     },
-    "NotExpression": {
-      "additionalProperties": false,
-      "properties": {
-        "type": {
-          "const": "not",
-          "default": "not",
-          "title": "Type",
-          "type": "string"
-        },
-        "condition": {
-          "discriminator": {
-            "mapping": {
-              "address": "#/$defs/AddressCondition",
-              "all": "#/$defs/AllExpression",
-              "any": "#/$defs/AnyExpression",
-              "bool": "#/$defs/BoolCondition",
-              "date": "#/$defs/DateCondition",
-              "header": "#/$defs/HeaderCondition",
-              "not": "#/$defs/NotExpression",
-              "number": "#/$defs/NumberCondition",
-              "presence": "#/$defs/PresenceCondition",
-              "template": "#/$defs/Template_Expression_",
-              "text": "#/$defs/TextCondition"
-            },
-            "propertyName": "type"
-          },
-          "oneOf": [
-            {
-              "$ref": "#/$defs/AllExpression"
-            },
-            {
-              "$ref": "#/$defs/AnyExpression"
-            },
-            {
-              "$ref": "#/$defs/NotExpression"
-            },
-            {
-              "$ref": "#/$defs/TextCondition"
-            },
-            {
-              "$ref": "#/$defs/HeaderCondition"
-            },
-            {
-              "$ref": "#/$defs/AddressCondition"
-            },
-            {
-              "$ref": "#/$defs/NumberCondition"
-            },
-            {
-              "$ref": "#/$defs/DateCondition"
-            },
-            {
-              "$ref": "#/$defs/BoolCondition"
-            },
-            {
-              "$ref": "#/$defs/PresenceCondition"
-            },
-            {
-              "$ref": "#/$defs/Template_Expression_"
-            }
-          ],
-          "title": "Condition"
-        }
-      },
-      "required": [
-        "condition"
-      ],
-      "title": "NotExpression",
-      "type": "object"
-    },
-    "NumberCondition": {
+    "NumberCondition_TypeVar_": {
       "additionalProperties": false,
       "properties": {
         "type": {
@@ -570,16 +428,16 @@
           "type": "string"
         },
         "field": {
-          "$ref": "#/$defs/Templatable_NumberField_"
+          "$ref": "#/$defs/Templatable_NumberField_TypeVar_"
         },
         "operator": {
-          "$ref": "#/$defs/Templatable_CompareOperator_"
+          "$ref": "#/$defs/Templatable_CompareOperator_TypeVar_"
         },
         "value": {
-          "$ref": "#/$defs/Templatable_Union_float__tuple_float__float___"
+          "$ref": "#/$defs/Templatable_Union_float__tuple_float__float___TypeVar_"
         },
         "quantifier": {
-          "$ref": "#/$defs/Templatable_Quantifier_",
+          "$ref": "#/$defs/Templatable_Quantifier_TypeVar_",
           "default": "any"
         }
       },
@@ -588,7 +446,7 @@
         "operator",
         "value"
       ],
-      "title": "NumberCondition",
+      "title": "NumberCondition[TypeVar]",
       "type": "object"
     },
     "NumberField": {
@@ -604,9 +462,8 @@
       "title": "NumberField",
       "type": "string"
     },
-    "PresenceCondition": {
+    "PresenceCondition_TypeVar_": {
       "additionalProperties": false,
-      "description": "Tests whether a field or header is there (`exists`) or there but without content (`empty`).",
       "properties": {
         "type": {
           "const": "presence",
@@ -617,7 +474,7 @@
         "field": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Templatable_Union_TextField__AddressField__NumberField__DateField__BoolField__"
+              "$ref": "#/$defs/Templatable_Union_TextField__AddressField__NumberField__DateField__BoolField__TypeVar_"
             },
             {
               "type": "null"
@@ -628,7 +485,7 @@
         "header": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Templatable_Annotated_str__FieldInfo_annotation_NoneType__required_True__metadata__MinLen_min_length_1_____"
+              "$ref": "#/$defs/Templatable_Annotated_str__FieldInfo_annotation_NoneType__required_True__metadata__MinLen_min_length_1_____TypeVar_"
             },
             {
               "type": "null"
@@ -637,15 +494,15 @@
           "default": null
         },
         "operator": {
-          "$ref": "#/$defs/Templatable_PresenceOperator_",
+          "$ref": "#/$defs/Templatable_PresenceOperator_TypeVar_",
           "default": "exists"
         },
         "value": {
-          "$ref": "#/$defs/Templatable_bool_",
+          "$ref": "#/$defs/Templatable_bool_TypeVar_",
           "default": true
         }
       },
-      "title": "PresenceCondition",
+      "title": "PresenceCondition[TypeVar]",
       "type": "object"
     },
     "PresenceOperator": {
@@ -688,7 +545,7 @@
       "title": "RelativeDuration",
       "type": "object"
     },
-    "Rule": {
+    "Rule_TypeVar_": {
       "additionalProperties": false,
       "properties": {
         "name": {
@@ -697,101 +554,24 @@
           "type": "string"
         },
         "enabled": {
-          "$ref": "#/$defs/Templatable_bool_",
+          "$ref": "#/$defs/Templatable_bool_TypeVar_",
           "default": true
         },
         "locations": {
           "items": {
-            "$ref": "#/$defs/Location"
+            "$ref": "#/$defs/Location_TypeVar_"
           },
           "minItems": 1,
           "title": "Locations",
           "type": "array"
         },
         "when": {
-          "discriminator": {
-            "mapping": {
-              "address": "#/$defs/AddressCondition",
-              "all": "#/$defs/AllExpression",
-              "any": "#/$defs/AnyExpression",
-              "bool": "#/$defs/BoolCondition",
-              "date": "#/$defs/DateCondition",
-              "header": "#/$defs/HeaderCondition",
-              "not": "#/$defs/NotExpression",
-              "number": "#/$defs/NumberCondition",
-              "presence": "#/$defs/PresenceCondition",
-              "template": "#/$defs/Template_Expression_",
-              "text": "#/$defs/TextCondition"
-            },
-            "propertyName": "type"
-          },
-          "oneOf": [
-            {
-              "$ref": "#/$defs/AllExpression"
-            },
-            {
-              "$ref": "#/$defs/AnyExpression"
-            },
-            {
-              "$ref": "#/$defs/NotExpression"
-            },
-            {
-              "$ref": "#/$defs/TextCondition"
-            },
-            {
-              "$ref": "#/$defs/HeaderCondition"
-            },
-            {
-              "$ref": "#/$defs/AddressCondition"
-            },
-            {
-              "$ref": "#/$defs/NumberCondition"
-            },
-            {
-              "$ref": "#/$defs/DateCondition"
-            },
-            {
-              "$ref": "#/$defs/BoolCondition"
-            },
-            {
-              "$ref": "#/$defs/PresenceCondition"
-            },
-            {
-              "$ref": "#/$defs/Template_Expression_"
-            }
-          ],
-          "title": "When"
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__Expression_TypeVar___2"
         },
         "actions": {
           "description": "Parsed only; nothing executes them yet.",
           "items": {
-            "discriminator": {
-              "mapping": {
-                "flag": "#/$defs/FlagAction",
-                "keyword": "#/$defs/KeywordAction",
-                "mark_read": "#/$defs/MarkReadAction",
-                "mark_unread": "#/$defs/MarkUnreadAction",
-                "move": "#/$defs/MoveAction"
-              },
-              "propertyName": "type"
-            },
-            "oneOf": [
-              {
-                "$ref": "#/$defs/MoveAction"
-              },
-              {
-                "$ref": "#/$defs/MarkReadAction"
-              },
-              {
-                "$ref": "#/$defs/MarkUnreadAction"
-              },
-              {
-                "$ref": "#/$defs/FlagAction"
-              },
-              {
-                "$ref": "#/$defs/KeywordAction"
-              }
-            ]
+            "$ref": "#/$defs/Action_TypeVar_"
           },
           "title": "Actions",
           "type": "array"
@@ -802,10 +582,10 @@
         "locations",
         "when"
       ],
-      "title": "Rule",
+      "title": "Rule[TypeVar]",
       "type": "object"
     },
-    "Templatable_AddressField_": {
+    "Templatable_AddressField_TypeVar_": {
       "anyOf": [
         {
           "$ref": "#/$defs/AddressField"
@@ -815,7 +595,7 @@
         }
       ]
     },
-    "Templatable_AddressPart_": {
+    "Templatable_AddressPart_TypeVar_": {
       "anyOf": [
         {
           "$ref": "#/$defs/AddressPart"
@@ -825,7 +605,7 @@
         }
       ]
     },
-    "Templatable_Annotated_str__FieldInfo_annotation_NoneType__required_True__metadata__MinLen_min_length_1_____": {
+    "Templatable_Annotated_str__FieldInfo_annotation_NoneType__required_True__metadata__MinLen_min_length_1_____TypeVar_": {
       "anyOf": [
         {
           "minLength": 1,
@@ -836,7 +616,7 @@
         }
       ]
     },
-    "Templatable_BoolField_": {
+    "Templatable_BoolField_TypeVar_": {
       "anyOf": [
         {
           "$ref": "#/$defs/BoolField"
@@ -846,7 +626,7 @@
         }
       ]
     },
-    "Templatable_CompareOperator_": {
+    "Templatable_CompareOperator_TypeVar_": {
       "anyOf": [
         {
           "$ref": "#/$defs/CompareOperator"
@@ -856,7 +636,7 @@
         }
       ]
     },
-    "Templatable_DateField_": {
+    "Templatable_DateField_TypeVar_": {
       "anyOf": [
         {
           "$ref": "#/$defs/DateField"
@@ -866,7 +646,7 @@
         }
       ]
     },
-    "Templatable_NumberField_": {
+    "Templatable_NumberField_TypeVar_": {
       "anyOf": [
         {
           "$ref": "#/$defs/NumberField"
@@ -876,7 +656,7 @@
         }
       ]
     },
-    "Templatable_PresenceOperator_": {
+    "Templatable_PresenceOperator_TypeVar_": {
       "anyOf": [
         {
           "$ref": "#/$defs/PresenceOperator"
@@ -886,7 +666,7 @@
         }
       ]
     },
-    "Templatable_Quantifier_": {
+    "Templatable_Quantifier_TypeVar_": {
       "anyOf": [
         {
           "$ref": "#/$defs/Quantifier"
@@ -896,7 +676,7 @@
         }
       ]
     },
-    "Templatable_TextField_": {
+    "Templatable_TextField_TypeVar_": {
       "anyOf": [
         {
           "$ref": "#/$defs/TextField"
@@ -906,7 +686,7 @@
         }
       ]
     },
-    "Templatable_TextOperator_": {
+    "Templatable_TextOperator_TypeVar_": {
       "anyOf": [
         {
           "$ref": "#/$defs/TextOperator"
@@ -916,7 +696,7 @@
         }
       ]
     },
-    "Templatable_UUID_": {
+    "Templatable_UUID_TypeVar_": {
       "anyOf": [
         {
           "format": "uuid",
@@ -927,7 +707,7 @@
         }
       ]
     },
-    "Templatable_Union_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____tuple_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative______": {
+    "Templatable_Union_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____tuple_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative______TypeVar_": {
       "anyOf": [
         {
           "discriminator": {
@@ -992,7 +772,7 @@
         }
       ]
     },
-    "Templatable_Union_TextField__AddressField__NumberField__DateField__BoolField__": {
+    "Templatable_Union_TextField__AddressField__NumberField__DateField__BoolField__TypeVar_": {
       "anyOf": [
         {
           "$ref": "#/$defs/TextField"
@@ -1014,7 +794,7 @@
         }
       ]
     },
-    "Templatable_Union_float__tuple_float__float___": {
+    "Templatable_Union_float__tuple_float__float___TypeVar_": {
       "anyOf": [
         {
           "type": "number"
@@ -1037,7 +817,7 @@
         }
       ]
     },
-    "Templatable_Union_str__list_str___": {
+    "Templatable_Union_str__list_str___TypeVar_": {
       "anyOf": [
         {
           "type": "string"
@@ -1053,7 +833,7 @@
         }
       ]
     },
-    "Templatable_bool_": {
+    "Templatable_bool_TypeVar_": {
       "anyOf": [
         {
           "type": "boolean"
@@ -1063,7 +843,7 @@
         }
       ]
     },
-    "Templatable_str_": {
+    "Templatable_str_TypeVar_": {
       "anyOf": [
         {
           "type": "string"
@@ -1090,58 +870,7 @@
           "type": "object"
         },
         "content": {
-          "discriminator": {
-            "mapping": {
-              "address": "#/$defs/AddressCondition",
-              "all": "#/$defs/AllExpression",
-              "any": "#/$defs/AnyExpression",
-              "bool": "#/$defs/BoolCondition",
-              "date": "#/$defs/DateCondition",
-              "header": "#/$defs/HeaderCondition",
-              "not": "#/$defs/NotExpression",
-              "number": "#/$defs/NumberCondition",
-              "presence": "#/$defs/PresenceCondition",
-              "template": "#/$defs/Template_Expression_",
-              "text": "#/$defs/TextCondition"
-            },
-            "propertyName": "type"
-          },
-          "oneOf": [
-            {
-              "$ref": "#/$defs/AllExpression"
-            },
-            {
-              "$ref": "#/$defs/AnyExpression"
-            },
-            {
-              "$ref": "#/$defs/NotExpression"
-            },
-            {
-              "$ref": "#/$defs/TextCondition"
-            },
-            {
-              "$ref": "#/$defs/HeaderCondition"
-            },
-            {
-              "$ref": "#/$defs/AddressCondition"
-            },
-            {
-              "$ref": "#/$defs/NumberCondition"
-            },
-            {
-              "$ref": "#/$defs/DateCondition"
-            },
-            {
-              "$ref": "#/$defs/BoolCondition"
-            },
-            {
-              "$ref": "#/$defs/PresenceCondition"
-            },
-            {
-              "$ref": "#/$defs/Template_Expression_"
-            }
-          ],
-          "title": "Content"
+          "$ref": "#/$defs/Expression"
         }
       },
       "required": [
@@ -1150,91 +879,8 @@
       "title": "TemplateDefinition",
       "type": "object"
     },
-    "Template_Expression_": {
+    "TextCondition_TypeVar_": {
       "additionalProperties": false,
-      "properties": {
-        "type": {
-          "const": "template",
-          "default": "template",
-          "title": "Type",
-          "type": "string"
-        },
-        "defaults": {
-          "additionalProperties": true,
-          "description": "Values for variables `variables` does not set.",
-          "title": "Defaults",
-          "type": "object"
-        },
-        "variables": {
-          "additionalProperties": true,
-          "description": "Values of the template's variables, by name.",
-          "title": "Variables",
-          "type": "object"
-        },
-        "content": {
-          "discriminator": {
-            "mapping": {
-              "address": "#/$defs/AddressCondition",
-              "all": "#/$defs/AllExpression",
-              "any": "#/$defs/AnyExpression",
-              "bool": "#/$defs/BoolCondition",
-              "date": "#/$defs/DateCondition",
-              "header": "#/$defs/HeaderCondition",
-              "not": "#/$defs/NotExpression",
-              "number": "#/$defs/NumberCondition",
-              "presence": "#/$defs/PresenceCondition",
-              "template": "#/$defs/Template_Expression_",
-              "text": "#/$defs/TextCondition"
-            },
-            "propertyName": "type"
-          },
-          "oneOf": [
-            {
-              "$ref": "#/$defs/AllExpression"
-            },
-            {
-              "$ref": "#/$defs/AnyExpression"
-            },
-            {
-              "$ref": "#/$defs/NotExpression"
-            },
-            {
-              "$ref": "#/$defs/TextCondition"
-            },
-            {
-              "$ref": "#/$defs/HeaderCondition"
-            },
-            {
-              "$ref": "#/$defs/AddressCondition"
-            },
-            {
-              "$ref": "#/$defs/NumberCondition"
-            },
-            {
-              "$ref": "#/$defs/DateCondition"
-            },
-            {
-              "$ref": "#/$defs/BoolCondition"
-            },
-            {
-              "$ref": "#/$defs/PresenceCondition"
-            },
-            {
-              "$ref": "#/$defs/Template_Expression_"
-            }
-          ],
-          "title": "Content"
-        }
-      },
-      "required": [
-        "content"
-      ],
-      "title": "Template[Expression]",
-      "type": "object"
-    },
-    "TextCondition": {
-      "additionalProperties": false,
-      "description": "Compares a text field. `case_sensitive` is available for every operator.",
       "properties": {
         "type": {
           "const": "text",
@@ -1243,20 +889,20 @@
           "type": "string"
         },
         "field": {
-          "$ref": "#/$defs/Templatable_TextField_"
+          "$ref": "#/$defs/Templatable_TextField_TypeVar_"
         },
         "operator": {
-          "$ref": "#/$defs/Templatable_TextOperator_"
+          "$ref": "#/$defs/Templatable_TextOperator_TypeVar_"
         },
         "value": {
-          "$ref": "#/$defs/Templatable_Union_str__list_str___"
+          "$ref": "#/$defs/Templatable_Union_str__list_str___TypeVar_"
         },
         "case_sensitive": {
-          "$ref": "#/$defs/Templatable_bool_",
+          "$ref": "#/$defs/Templatable_bool_TypeVar_",
           "default": false
         },
         "quantifier": {
-          "$ref": "#/$defs/Templatable_Quantifier_",
+          "$ref": "#/$defs/Templatable_Quantifier_TypeVar_",
           "default": "any"
         }
       },
@@ -1265,7 +911,7 @@
         "operator",
         "value"
       ],
-      "title": "TextCondition",
+      "title": "TextCondition[TypeVar]",
       "type": "object"
     },
     "TextField": {
@@ -1323,6 +969,308 @@
       ],
       "title": "Var",
       "type": "object"
+    },
+    "remote_imap_mail_rules__rules__models__AllExpression_TypeVar___1": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "all",
+          "default": "all",
+          "title": "Type",
+          "type": "string"
+        },
+        "conditions": {
+          "items": {
+            "$ref": "#/$defs/remote_imap_mail_rules__rules__models__Expression_TypeVar___1"
+          },
+          "minItems": 1,
+          "title": "Conditions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "conditions"
+      ],
+      "title": "AllExpression[TypeVar]",
+      "type": "object"
+    },
+    "remote_imap_mail_rules__rules__models__AllExpression_TypeVar___2": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "all",
+          "default": "all",
+          "title": "Type",
+          "type": "string"
+        },
+        "conditions": {
+          "items": {
+            "$ref": "#/$defs/remote_imap_mail_rules__rules__models__Expression_TypeVar___2"
+          },
+          "minItems": 1,
+          "title": "Conditions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "conditions"
+      ],
+      "title": "AllExpression[TypeVar]",
+      "type": "object"
+    },
+    "remote_imap_mail_rules__rules__models__AnyExpression_TypeVar___1": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "any",
+          "default": "any",
+          "title": "Type",
+          "type": "string"
+        },
+        "conditions": {
+          "items": {
+            "$ref": "#/$defs/remote_imap_mail_rules__rules__models__Expression_TypeVar___1"
+          },
+          "minItems": 1,
+          "title": "Conditions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "conditions"
+      ],
+      "title": "AnyExpression[TypeVar]",
+      "type": "object"
+    },
+    "remote_imap_mail_rules__rules__models__AnyExpression_TypeVar___2": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "any",
+          "default": "any",
+          "title": "Type",
+          "type": "string"
+        },
+        "conditions": {
+          "items": {
+            "$ref": "#/$defs/remote_imap_mail_rules__rules__models__Expression_TypeVar___2"
+          },
+          "minItems": 1,
+          "title": "Conditions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "conditions"
+      ],
+      "title": "AnyExpression[TypeVar]",
+      "type": "object"
+    },
+    "remote_imap_mail_rules__rules__models__Expression_TypeVar___1": {
+      "discriminator": {
+        "mapping": {
+          "address": "#/$defs/AddressCondition_TypeVar_",
+          "all": "#/$defs/remote_imap_mail_rules__rules__models__AllExpression_TypeVar___1",
+          "any": "#/$defs/remote_imap_mail_rules__rules__models__AnyExpression_TypeVar___1",
+          "bool": "#/$defs/BoolCondition_TypeVar_",
+          "date": "#/$defs/DateCondition_TypeVar_",
+          "header": "#/$defs/HeaderCondition_TypeVar_",
+          "not": "#/$defs/remote_imap_mail_rules__rules__models__NotExpression_TypeVar___1",
+          "number": "#/$defs/NumberCondition_TypeVar_",
+          "presence": "#/$defs/PresenceCondition_TypeVar_",
+          "template": "#/$defs/remote_imap_mail_rules__rules__models__Template_TypeVar___1",
+          "text": "#/$defs/TextCondition_TypeVar_"
+        },
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__AllExpression_TypeVar___1"
+        },
+        {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__AnyExpression_TypeVar___1"
+        },
+        {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__NotExpression_TypeVar___1"
+        },
+        {
+          "$ref": "#/$defs/TextCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/HeaderCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/AddressCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/NumberCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/DateCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/BoolCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/PresenceCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__Template_TypeVar___1"
+        }
+      ]
+    },
+    "remote_imap_mail_rules__rules__models__Expression_TypeVar___2": {
+      "discriminator": {
+        "mapping": {
+          "address": "#/$defs/AddressCondition_TypeVar_",
+          "all": "#/$defs/remote_imap_mail_rules__rules__models__AllExpression_TypeVar___2",
+          "any": "#/$defs/remote_imap_mail_rules__rules__models__AnyExpression_TypeVar___2",
+          "bool": "#/$defs/BoolCondition_TypeVar_",
+          "date": "#/$defs/DateCondition_TypeVar_",
+          "header": "#/$defs/HeaderCondition_TypeVar_",
+          "not": "#/$defs/remote_imap_mail_rules__rules__models__NotExpression_TypeVar___2",
+          "number": "#/$defs/NumberCondition_TypeVar_",
+          "presence": "#/$defs/PresenceCondition_TypeVar_",
+          "template": "#/$defs/remote_imap_mail_rules__rules__models__Template_TypeVar___2",
+          "text": "#/$defs/TextCondition_TypeVar_"
+        },
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__AllExpression_TypeVar___2"
+        },
+        {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__AnyExpression_TypeVar___2"
+        },
+        {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__NotExpression_TypeVar___2"
+        },
+        {
+          "$ref": "#/$defs/TextCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/HeaderCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/AddressCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/NumberCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/DateCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/BoolCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/PresenceCondition_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__Template_TypeVar___2"
+        }
+      ]
+    },
+    "remote_imap_mail_rules__rules__models__NotExpression_TypeVar___1": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "not",
+          "default": "not",
+          "title": "Type",
+          "type": "string"
+        },
+        "condition": {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__Expression_TypeVar___1"
+        }
+      },
+      "required": [
+        "condition"
+      ],
+      "title": "NotExpression[TypeVar]",
+      "type": "object"
+    },
+    "remote_imap_mail_rules__rules__models__NotExpression_TypeVar___2": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "not",
+          "default": "not",
+          "title": "Type",
+          "type": "string"
+        },
+        "condition": {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__Expression_TypeVar___2"
+        }
+      },
+      "required": [
+        "condition"
+      ],
+      "title": "NotExpression[TypeVar]",
+      "type": "object"
+    },
+    "remote_imap_mail_rules__rules__models__Template_TypeVar___1": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "template",
+          "default": "template",
+          "title": "Type",
+          "type": "string"
+        },
+        "defaults": {
+          "additionalProperties": true,
+          "description": "Values for variables `variables` does not set.",
+          "title": "Defaults",
+          "type": "object"
+        },
+        "variables": {
+          "additionalProperties": true,
+          "description": "Values of the template's variables, by name.",
+          "title": "Variables",
+          "type": "object"
+        },
+        "content": {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__Expression_TypeVar___1"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "title": "Template[TypeVar]",
+      "type": "object"
+    },
+    "remote_imap_mail_rules__rules__models__Template_TypeVar___2": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "template",
+          "default": "template",
+          "title": "Type",
+          "type": "string"
+        },
+        "defaults": {
+          "additionalProperties": true,
+          "description": "Values for variables `variables` does not set.",
+          "title": "Defaults",
+          "type": "object"
+        },
+        "variables": {
+          "additionalProperties": true,
+          "description": "Values of the template's variables, by name.",
+          "title": "Variables",
+          "type": "object"
+        },
+        "content": {
+          "$ref": "#/$defs/remote_imap_mail_rules__rules__models__Expression_TypeVar___2"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "title": "Template[TypeVar]",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -1349,7 +1297,7 @@
     },
     "rules": {
       "items": {
-        "$ref": "#/$defs/Rule"
+        "$ref": "#/$defs/Rule_TypeVar_"
       },
       "title": "Rules",
       "type": "array"
