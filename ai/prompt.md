@@ -459,3 +459,8 @@ Hoist mail into a shared pinia store, persisted/cached by localstorage.
 
 ❯ The frontend shall use proper router for its navigation.
 
+❯ Separately committed:
+- Proper URLs please, not hashes.
+- mail shall have sub routes/paths for account, folder, and displayed message.
+- fix existing tests
+
