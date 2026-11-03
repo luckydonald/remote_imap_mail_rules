@@ -11,7 +11,7 @@ from ..db import accounts as account_repository
 from ..db.engine import create_engine, create_session_factory
 from ..db.migrate import upgrade
 from ..imap.client import ConnectionFactory, connect_aioimaplib
-from .api import accounts, auth, editor, mail
+from .api import accounts, auth, editor, events, mail
 from .auth import require_login
 from .rules_store import DatabaseRulesStore, FileRulesStore, RulesStore
 from .settings import ServerSettings
@@ -56,6 +56,7 @@ def create_app(
     app.include_router(editor.router, prefix="/api/editor", tags=["editor"], dependencies=protected)
     app.include_router(accounts.router, prefix="/api/accounts", tags=["accounts"], dependencies=protected)
     app.include_router(mail.router, prefix="/api/mail", tags=["mail"], dependencies=protected)
+    app.include_router(events.router, prefix="/api/mail", tags=["mail"], dependencies=protected)
     if settings.frontend_dist.is_dir():
         # Mounted last, so `/api` wins; `html=True` serves `index.html` for `/`.
         app.mount("/", StaticFiles(directory=settings.frontend_dist, html=True), name="frontend")
