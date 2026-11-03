@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import AccountsView from './AccountsView.vue'
 import RuleEditor from './RuleEditor.vue'
 import RuleList from './RuleList.vue'
 import TemplatesView from './TemplatesView.vue'
@@ -15,20 +16,24 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const notice = ref('')
 const dragging = ref(false)
 const saving = ref(false)
+const online = ref(false)
+const screen = ref<'rules' | 'accounts'>('rules')
 
 /** Loads the server's rules file when a server answers; without one the editor stays file based. */
 async function connect(): Promise<void> {
   const config = await fetchConfig()
   if (!config) return
+  online.value = true
+  const label = config.file_name ?? 'the database'
   try {
     const text = await fetchRules()
-    if (text !== null) store.load(text, config.file_name)
-    else store.fileName.value = config.file_name
-    store.markSaved(config.file_name)
+    if (text !== null) store.load(text, label)
+    else store.fileName.value = label
+    store.markSaved(label)
     notice.value =
       text !== null
-        ? `Loaded ${config.file_name} from the server.`
-        : `${config.file_name} does not exist yet, saving creates it.`
+        ? `Loaded ${label} from the server.`
+        : `${label} has no rules yet, saving creates them.`
   } catch (error) {
     notice.value = `Could not load the rules from the server: ${error instanceof Error ? error.message : String(error)}`
   }
@@ -124,6 +129,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <h1>Mail rules</h1>
       <span class="file">{{ store.fileName.value }}</span>
       <span class="spacer" />
+      <button
+        v-if="online"
+        type="button"
+        class="ghost"
+        @click="screen = screen === 'rules' ? 'accounts' : 'rules'"
+      >
+        {{ screen === 'rules' ? 'Accounts' : 'Rules' }}
+      </button>
       <button type="button" @click="fileInput?.click()">Open…</button>
       <input ref="fileInput" type="file" accept=".yml,.yaml,text/yaml" hidden @change="onPick" />
       <button type="button" class="ghost" @click="reset">New</button>
@@ -166,7 +179,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <span v-else class="badge ok">valid</span>
     </header>
     <p v-if="notice" class="notice" @click="notice = ''">{{ notice }}</p>
-    <div class="body">
+    <AccountsView v-if="screen === 'accounts'" />
+    <div v-else class="body">
       <RuleList />
       <main>
         <RuleEditor
