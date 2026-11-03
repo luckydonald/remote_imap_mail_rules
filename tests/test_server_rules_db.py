@@ -67,7 +67,7 @@ def client(tmp_path: Path) -> Iterator[TestClient]:
 
 
 def test_empty_database(client: TestClient) -> None:
-    assert client.get("/api/editor/config").json() == {"mode": "server", "source": "database", "file_name": None, "exists": False}
+    assert client.get("/api/editor/config").json() == {"mode": "server", "source": "database", "file_name": None, "exists": False, "actions_enabled": False}
     assert client.get("/api/editor/rules").status_code == 404
 # end def
 

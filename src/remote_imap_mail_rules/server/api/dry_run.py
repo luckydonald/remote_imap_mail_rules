@@ -1,0 +1,220 @@
+"""Dry run of a rule and "Run now", mounted at `/api/dry-run`.
+
+A dry run never writes to a mailbox or to the log. It works for the rule file in the request (the editor's unsaved text) or, without one,
+for the stored file. "Run now" only works on the stored file and only when the server applies rules (`ACTIONS_ENABLED`).
+"""
+
+from typing import Any, Never
+from uuid import UUID
+
+import aioimaplib
+import yaml
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field, ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ...actions import ActionRunner, ChainResult, Round
+from ...config import ImapSettings
+from ...db import accounts as account_repository
+from ...db.crypto import CryptoError
+from ...dry_run import DryRunEntry, DryRunResult, dry_run_account, own_rounds, summarize
+from ...imap.client import ConnectionFactory, ImapError
+from ...rules.loader import parse_rules
+from ...rules.models import RuleFile
+from ..mail_view import SummaryOut, summary_out
+from ..rules_store import RulesStore
+from ..settings import ServerSettings
+from .accounts import get_session
+
+router = APIRouter()
+
+MAX_LISTED = 500
+"""Affected mails sent to the browser; the summary counts all of them."""
+FAILURES = (ImapError, aioimaplib.AioImapException, OSError, TimeoutError)
+
+
+class DryRunIn(BaseModel):
+    rule: str = Field(min_length=1, description="Name of the rule.")
+    yaml: str | None = Field(default=None, description="The rule file to simulate, e.g. the editor's unsaved text; the stored file if unset.")
+
+
+class RunIn(BaseModel):
+    rule: str = Field(min_length=1)
+
+
+class StepOut(BaseModel):
+    type: str
+    status: str
+    reason: str | None
+    args: dict[str, Any]
+
+
+class RoundOut(BaseModel):
+    rule: str
+    steps: list[StepOut]
+
+
+class SummaryRowOut(BaseModel):
+    type: str
+    status: str
+    count: int
+    folder: str | None
+    keyword: str | None
+    reason: str | None
+
+
+class AffectedMail(SummaryOut):
+    account_id: UUID
+    folder: str
+    rounds: list[RoundOut]
+    moved_to: str | None
+
+
+class DryRunOut(BaseModel):
+    rule: str
+    actions_enabled: bool
+    inspected: int
+    truncated: bool
+    affected: int
+    listed: int
+    summary: list[SummaryRowOut]
+    mails: list[AffectedMail]
+    errors: list[str]
+
+
+class RunOut(BaseModel):
+    applied: int
+    steps: dict[str, int]
+    errors: list[str]
+
+
+def round_out(round_: Round) -> RoundOut:
+    return RoundOut(
+        rule=round_.rule.name,
+        steps=[StepOut(type=step.type, status=step.status.value, reason=step.reason, args=step.args) for step in round_.steps],
+    )
+# end def
+
+
+def affected_mail(entry: DryRunEntry) -> AffectedMail:
+    mail = entry.mail
+    return AffectedMail(
+        **summary_out(mail).model_dump(),
+        account_id=mail.account_id,
+        folder=mail.folder,
+        rounds=[round_out(round_) for round_ in entry.chain.rounds],
+        moved_to=entry.chain.moved_to,
+    )
+# end def
+
+
+async def load_rule_file(request: Request, text: str | None) -> RuleFile[Never]:
+    if text is None:
+        store: RulesStore = request.app.state.rules_store
+        text = await store.read_text()
+        if text is None:
+            raise HTTPException(status_code=404, detail="There are no rules yet.")
+        # end if
+    # end if
+    try:
+        return parse_rules(text)
+    except yaml.YAMLError as e:
+        raise HTTPException(status_code=422, detail=[f"YAML: {e}"]) from e
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=[f"{'.'.join(str(part) for part in err['loc'])}: {err['msg']}" for err in e.errors()]) from e
+    # end try
+# end def
+
+
+async def simulate(request: Request, session: AsyncSession, rule_file: RuleFile[Never], rule_name: str) -> tuple[DryRunResult, list[ImapSettings]]:
+    """Dry runs the rule on every stored account it has a location for. Accounts that fail are reported, not raised."""
+    rule = next((rule for rule in rule_file.rules if rule.name == rule_name), None)
+    if rule is None:
+        raise HTTPException(status_code=404, detail=f"There is no rule named {rule_name!r}.")
+    # end if
+    settings: ServerSettings = request.app.state.settings
+    factory: ConnectionFactory = request.app.state.imap_factory
+    total = DryRunResult(rule=rule_name)
+    used: list[ImapSettings] = []
+    for account_id in dict.fromkeys(location.account_id for location in rule.locations):
+        account = await account_repository.get_account(session, account_id)
+        if account is None:
+            total.errors.append(f"Account {account_id} is not registered in the server.")
+            continue
+        # end if
+        try:
+            imap_settings = account_repository.imap_settings(account, settings.secret_key)
+        except CryptoError as e:
+            total.errors.append(f"Account {account.name}: {e}")
+            continue
+        # end try
+        try:
+            total.merge(await dry_run_account(imap_settings, rule_file, rule_name, factory))
+            used.append(imap_settings)
+        except FAILURES as e:
+            total.errors.append(f"Account {account.name}: the mail server failed: {e}")
+        # end try
+    # end for
+    return total, used
+# end def
+
+
+@router.post("")
+async def post_dry_run(request: Request, body: DryRunIn, session: AsyncSession = Depends(get_session)) -> DryRunOut:
+    rule_file = await load_rule_file(request, body.yaml)
+    result, _ = await simulate(request, session, rule_file, body.rule)
+    shown = result.entries[:MAX_LISTED]
+    return DryRunOut(
+        rule=body.rule,
+        actions_enabled=request.app.state.settings.actions_enabled,
+        inspected=result.inspected,
+        truncated=result.truncated,
+        affected=len(result.entries),
+        listed=len(shown),
+        summary=[SummaryRowOut(**row.__dict__) for row in summarize(result)],
+        mails=[affected_mail(entry) for entry in shown],
+        errors=result.errors,
+    )
+# end def
+
+
+@router.post("/run")
+async def post_run(request: Request, body: RunIn, session: AsyncSession = Depends(get_session)) -> RunOut:
+    """Applies the rule to the mails the dry run finds, like the watcher does, and writes the `action` entries."""
+    settings: ServerSettings = request.app.state.settings
+    if not settings.actions_enabled:
+        raise HTTPException(status_code=409, detail="actions_disabled")
+    # end if
+    rule_file = await load_rule_file(request, None)
+    result, used = await simulate(request, session, rule_file, body.rule)
+    factory: ConnectionFactory = request.app.state.imap_factory
+    watcher = request.app.state.watcher
+    errors = list(result.errors)
+    steps: dict[str, int] = {}
+    applied = 0
+    for imap_settings in used:
+        entries = [entry for entry in result.entries if entry.mail.account_id == imap_settings.imap_account_id and own_rounds(entry, body.rule)]
+        async with ActionRunner(imap_settings, rule_file, factory) as runner:
+            for entry in entries:
+                try:
+                    chain: ChainResult | None = await runner.run(entry.mail)
+                except FAILURES as e:
+                    errors.append(f"{entry.mail.folder} #{entry.mail.uid}: {e}")
+                    continue
+                # end try
+                if chain is None:
+                    continue
+                # end if
+                await watcher.write_actions(session, chain)
+                await session.commit()
+                applied += 1
+                for round_ in chain.rounds:
+                    for step in round_.steps:
+                        steps[step.status.value] = steps.get(step.status.value, 0) + 1
+                    # end for
+                # end for
+            # end for
+        # end async with
+    # end for
+    return RunOut(applied=applied, steps=steps, errors=errors)
+# end def

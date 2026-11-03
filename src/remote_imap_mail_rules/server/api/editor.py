@@ -16,6 +16,7 @@ class EditorConfig(BaseModel):
     source: Literal["file", "database"]
     file_name: str | None
     exists: bool
+    actions_enabled: bool = False
 
 
 def get_store(request: Request) -> RulesStore:
@@ -27,7 +28,7 @@ def get_store(request: Request) -> RulesStore:
 @router.get("/config")
 async def get_config(request: Request) -> EditorConfig:
     store = get_store(request)
-    return EditorConfig(source=store.source, file_name=store.file_name, exists=await store.exists())
+    return EditorConfig(source=store.source, file_name=store.file_name, exists=await store.exists(), actions_enabled=request.app.state.settings.actions_enabled)
 # end def
 
 
