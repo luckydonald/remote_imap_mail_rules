@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { folderIcon, folderLabel } from '@/model/mail-format'
 import type { MailStore } from '@/model/mail-store'
+import MailSpinner from './MailSpinner.vue'
 
 defineProps<{ store: MailStore }>()
 </script>
@@ -18,6 +19,7 @@ defineProps<{ store: MailStore }>()
         </option>
       </select>
     </label>
+    <MailSpinner v-if="store.foldersLoading.value" />
     <ul>
       <li v-for="item in store.folders.value" :key="item.name">
         <button
