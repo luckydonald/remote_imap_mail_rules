@@ -9,6 +9,8 @@ from pydantic import BaseModel
 from ..imap.models import FolderCounts, FolderInfo
 from ..imap.utf7 import decode_folder_name
 from ..mail import Attachment, Mail
+from ..rules.extract import SYSTEM_FLAGS, date_value
+from ..rules.fields import DateField
 
 
 class FolderOut(BaseModel):
@@ -45,13 +47,29 @@ class AttachmentOut(BaseModel):
     size: int | None
     inline: bool
     content_id: str | None
+    extension: str | None
     url: str
+
+
+class HeaderOut(BaseModel):
+    name: str
+    value: str
 
 
 class DetailOut(SummaryOut):
     to: list[AddressOut]
     cc: list[AddressOut]
+    bcc: list[AddressOut]
     reply_to: list[AddressOut]
+    sender_header: list[AddressOut]
+    return_path: list[AddressOut]
+    delivered_to: list[AddressOut]
+    headers: list[HeaderOut]
+    flags: list[str]
+    keywords: list[str]
+    date_sent: datetime | None
+    mime_type: str | None
+    modseq: int | None
     message_id: str | None
     text: str | None
     html: str | None
@@ -80,6 +98,23 @@ def folder_out(info: FolderInfo, counts: FolderCounts | None) -> FolderOut:
 def addresses(mail: Mail, header: str) -> list[AddressOut]:
     values = [str(value) for value in mail.headers.get_all(header, [])]
     return [AddressOut(name=name, address=address) for name, address in getaddresses(values) if address or name]
+# end def
+
+
+def detail_fields(mail: Mail) -> dict[str, object]:
+    """What the rule editor needs to fill conditions: every header and the flags, besides the addresses."""
+    return dict(
+        bcc=addresses(mail, "Bcc"),
+        sender_header=addresses(mail, "Sender"),
+        return_path=addresses(mail, "Return-Path"),
+        delivered_to=addresses(mail, "Delivered-To"),
+        headers=[HeaderOut(name=name, value=str(value)) for name, value in mail.headers.items()],
+        flags=sorted(mail.flags),
+        keywords=sorted(flag for flag in mail.flags if flag.lower() not in SYSTEM_FLAGS),
+        date_sent=date_value(mail, DateField.date_sent),
+        mime_type=mail.mime_type,
+        modseq=mail.modseq,
+    )
 # end def
 
 
@@ -118,6 +153,7 @@ def attachment_out(account_id: object, mail: Mail, attachment: Attachment) -> At
         size=attachment.size,
         inline=attachment.inline,
         content_id=attachment.content_id,
+        extension=attachment.extension,
         url=part_url(account_id, mail.folder, mail.uid, attachment.part),
     )
 # end def
