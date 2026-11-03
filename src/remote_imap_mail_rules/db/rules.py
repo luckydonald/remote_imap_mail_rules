@@ -7,6 +7,7 @@ import yaml
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..rules.comments import literal_str_representer
 from ..rules.models import Rule as RuleModel
 from ..rules.models import RuleFile, TemplateDefinition, Var
 from .models import Rule, Template
@@ -28,7 +29,7 @@ async def load_rule_file(session: AsyncSession) -> RuleFile[Var] | None:
     return RuleFile[Var].model_validate(
         {
             "templates": {template.name: template.definition for template in templates},
-            "rules": [{"name": r.name, "enabled": r.enabled, "locations": r.locations, "when": r.when, "actions": r.actions} for r in rows],
+            "rules": [{"name": r.name, "description": r.description, "enabled": r.enabled, "locations": r.locations, "when": r.when, "actions": r.actions} for r in rows],
         }
     )
 # end def
@@ -69,6 +70,7 @@ def fill_rule(row: Rule, position: int, rule: RuleModel[Var]) -> None:
     data = dump(rule)
     row.position = position
     row.name = data["name"]
+    row.description = data.get("description")
     row.enabled = data["enabled"]
     row.locations = data["locations"]
     row.when = data["when"]
@@ -82,6 +84,14 @@ def dump_template(definition: TemplateDefinition) -> dict[str, Any]:
 # end def
 
 
+class RulesDumper(yaml.SafeDumper):
+    """`SafeDumper` that writes multi-line strings (descriptions) as `|` blocks."""
+# end class
+
+
+RulesDumper.add_representer(str, literal_str_representer)
+
+
 def to_yaml(rule_file: RuleFile[Var]) -> str:
-    return yaml.safe_dump(dump(rule_file), sort_keys=False, allow_unicode=True)
+    return yaml.dump(dump(rule_file), Dumper=RulesDumper, sort_keys=False, allow_unicode=True)
 # end def

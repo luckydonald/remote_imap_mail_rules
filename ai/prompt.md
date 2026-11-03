@@ -289,3 +289,27 @@ And what's going on with typescript 7 vs 5.9?
 
 ❯ Plan accepted, auto mode.
 
+❯ Add ˋdescriptionˋ to a rule, appending comments into that with line-leading ˋ#ˋ.
+
+❯ Question answered.
+> <details><summary>
+>
+>> 1. How should the YAML comments of a rule end up in its new `description` field?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Comments** (1/1) <kbd>Single Select</kbd><br>
+>> How should the YAML comments of a rule end up in its new `description` field?
+> - [x] 1\. Database mode only (Recommended)
+>   - _`description` is a normal optional text field on every rule. When a save in database mode would drop the comments of a rule, the server appends them to that rule's description, one `# ` line per comment line, so nothing is lost. File mode keeps its real comments untouched. Needs `ruamel.yaml` on the server to read comments._
+> - [ ] 2\. In the editor, always
+>   - _The editor moves a rule's comments into `description` as `# ` lines on load or save, in both modes, and no longer writes them as YAML comments. Comments elsewhere in the file (header, templates) stay as they are._
+> - [ ] 3\. Plain field only
+>   - _Just add the optional `description` (model, schema, DB column, editor textarea). Nothing is converted automatically, any `# ` lines in it are written by hand._
+> - [ ] 4\. _Type something._
+>
+> </details>
+>
+
