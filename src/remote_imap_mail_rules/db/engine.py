@@ -2,13 +2,23 @@
 
 from collections.abc import AsyncIterator
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 DEFAULT_DATABASE_URL = "sqlite+aiosqlite:///./db.sqlite3"
 
 
 def create_engine(database_url: str) -> AsyncEngine:
-    return create_async_engine(database_url)
+    engine = create_async_engine(database_url)
+    if engine.dialect.name == "sqlite":
+
+        @event.listens_for(engine.sync_engine, "connect")
+        def enforce_foreign_keys(connection, _record) -> None:  # noqa: ANN001
+            """SQLite ignores foreign keys, and with it `ON DELETE CASCADE`, unless asked per connection."""
+            connection.execute("PRAGMA foreign_keys=ON")
+        # end def
+    # end if
+    return engine
 # end def
 
 
