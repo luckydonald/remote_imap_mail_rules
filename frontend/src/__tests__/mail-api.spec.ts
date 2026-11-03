@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fetchConfig } from '@/model/api'
 import { ApiError } from '@/model/http'
-import { getMessage, listFolders, listMessages, login } from '@/model/mail-api'
+import { getMessage, listEvents, listFolders, listMessages, login } from '@/model/mail-api'
 
 const reply = (body: unknown, status = 200): Response =>
   new Response(status === 204 ? null : JSON.stringify(body), { status })
@@ -19,6 +19,18 @@ describe('mail api', () => {
         method: 'POST',
         body: JSON.stringify({ username: 'me', password: 'secret' }),
       }),
+    )
+  })
+
+  it('lists the action log of a mail with an encoded folder', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(reply([{ id: 'e', kind: 'first_seen', rule_name: null }]))
+    vi.stubGlobal('fetch', fetchMock)
+    const events = await listEvents('acc', 'Lists/a b', 7)
+    expect(events).toHaveLength(1)
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      '/api/mail/accounts/acc/messages/7/events?folder=Lists%2Fa+b',
     )
   })
 
