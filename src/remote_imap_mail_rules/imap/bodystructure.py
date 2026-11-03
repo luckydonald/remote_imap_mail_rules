@@ -14,6 +14,7 @@ class Part:
     size: int | None = None
     disposition: str | None = None
     filename: str | None = None
+    content_id: str | None = None
 
     @property
     def is_attachment(self) -> bool:
@@ -78,6 +79,7 @@ def basic_part(node: list[Node], number: str) -> Part | None:
         size=as_int(node[6]),
         disposition=disposition,
         filename=disposition_params.get("filename") or params.get("name"),
+        content_id=node[3].strip("<>") if isinstance(node[3], str) and node[3] else None,
     )
 # end def
 

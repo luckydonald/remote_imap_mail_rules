@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 from email.utils import parsedate_to_datetime
 
-from .models import FetchedMessage, FolderInfo, FolderState
+from .models import FetchedMessage, FolderCounts, FolderInfo, FolderState
 from .sexpr import Chunk, Node, parse
 
 FETCH_START_RE = re.compile(rb"^\d+ FETCH \(", re.IGNORECASE)
@@ -124,6 +124,15 @@ def parse_folder_state(lines: list[Chunk]) -> FolderState | None:
         return None
     # end if
     return FolderState(uidvalidity=uidvalidity, uidnext=uidnext, highestmodseq=find_number(lines, "HIGHESTMODSEQ"))
+# end def
+
+
+def parse_folder_counts(lines: list[Chunk]) -> FolderCounts | None:
+    messages = find_number(lines, "MESSAGES")
+    if messages is None:
+        return None
+    # end if
+    return FolderCounts(messages=messages, unseen=find_number(lines, "UNSEEN") or 0)
 # end def
 
 

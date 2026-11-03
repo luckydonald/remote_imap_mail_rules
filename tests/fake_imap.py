@@ -18,6 +18,8 @@ class FakeMessage:
     modseq: int = 1
     body: bytes = b"hello"
     internaldate: str = "26-Oct-2026 08:01:00 +0000"
+    structure: str | None = None
+    parts: dict[str, bytes] = field(default_factory=dict)
 # end class
 
 
@@ -42,6 +44,7 @@ class FakeServer:
     def __init__(self, capabilities: set[str] | None = None) -> None:
         self.capabilities = capabilities if capabilities is not None else {"IMAP4REV1", "IDLE", "CONDSTORE"}
         self.folders: dict[str, FakeFolder] = {}
+        self.attributes: dict[str, str] = {}
         self.commands: list[str] = []
         self.push_queues: list[asyncio.Queue[Response]] = []
     # end def
@@ -85,12 +88,13 @@ def fetch_lines(message: FakeMessage, fields: str) -> list[bytes | bytearray]:
     # end if
     lines: list[bytes | bytearray] = []
     if "BODYSTRUCTURE" in fields:
-        head += f' BODYSTRUCTURE ("text" "plain" ("charset" "utf-8") NIL NIL "7bit" {len(message.body)} 1 NIL NIL NIL)'
+        head += f" BODYSTRUCTURE {message.structure}" if message.structure else f' BODYSTRUCTURE ("text" "plain" ("charset" "utf-8") NIL NIL "7bit" {len(message.body)} 1 NIL NIL NIL)'
     # end if
     if "BODY.PEEK[HEADER]" in fields:
         lines += [f"{head} BODY[HEADER] {{{len(message.raw)}}}".encode(), bytearray(message.raw), b")"]
-    elif match := re.search(r"BODY\.PEEK\[(\d+)\]", fields):
-        lines += [f"{head} BODY[{match.group(1)}] {{{len(message.body)}}}".encode(), bytearray(message.body), b")"]
+    elif match := re.search(r"BODY\.PEEK\[([\d.]+)\]", fields):
+        data = message.parts.get(match.group(1), message.body)
+        lines += [f"{head} BODY[{match.group(1)}] {{{len(data)}}}".encode(), bytearray(data), b")"]
     else:
         lines += [f"{head})".encode()]
     # end if
@@ -156,13 +160,16 @@ class FakeConnection:
 
     async def status(self, mailbox: str, names: str) -> Response:
         self.log(f"STATUS {mailbox}")
-        return Response("OK", self.state_lines(self.folder(mailbox)))
+        folder = self.folder(mailbox)
+        unseen = sum(1 for message in folder.messages if "\\Seen" not in message.flags)
+        counts = f"{mailbox} (MESSAGES {len(folder.messages)} UNSEEN {unseen})".encode()
+        return Response("OK", [*self.state_lines(folder), counts])
     # end def
 
     async def list(self, reference_name: str, mailbox_pattern: str) -> Response:
         self.log(f"LIST {mailbox_pattern}")
         prefix = mailbox_pattern.strip('"').rstrip("*")
-        return Response("OK", [f'() "/" "{name}"'.encode() for name in self.server.folders if name.startswith(prefix)])
+        return Response("OK", [f'({self.server.attributes.get(name, "")}) "/" "{name}"'.encode() for name in self.server.folders if name.startswith(prefix)])
     # end def
 
     async def uid_search(self, *criteria: str, charset: str | None = "utf-8") -> Response:
