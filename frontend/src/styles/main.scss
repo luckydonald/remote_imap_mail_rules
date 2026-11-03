@@ -405,3 +405,41 @@ button {
   border: 4px dashed var(--accent);
   pointer-events: none;
 }
+
+.accounts {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.account {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  margin: 12px 0;
+  background: var(--panel);
+
+  .row {
+    flex-wrap: wrap;
+  }
+}
+
+.account-form {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--panel);
+
+  label {
+    display: grid;
+    gap: 4px;
+  }
+
+  label.check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
