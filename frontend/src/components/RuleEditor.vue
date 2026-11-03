@@ -19,6 +19,11 @@ function actions() {
   model.value.actions ??= []
   return model.value.actions
 }
+
+function setDescription(text: string): void {
+  if (text === '') delete model.value.description
+  else model.value.description = text
+}
 </script>
 
 <template>
@@ -34,6 +39,14 @@ function actions() {
         <label class="check"><input v-model="model.enabled" type="checkbox" /> enabled</label>
       </FieldValue>
     </div>
+    <textarea
+      :value="model.description ?? ''"
+      class="description wide"
+      rows="2"
+      placeholder="Description"
+      aria-label="Rule description"
+      @input="setDescription(($event.target as HTMLTextAreaElement).value)"
+    />
     <h3>Where</h3>
     <LocationsEditor :locations="model.locations" />
     <h3>When</h3>

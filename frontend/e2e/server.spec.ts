@@ -63,3 +63,13 @@ test('stays file based without a server', async ({ page }) => {
   await expect(page.getByRole('button', { name: /^Save/ })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Download' })).toBeVisible()
 })
+
+test('edits the description of a rule and saves it', async ({ page }) => {
+  const mock = await mockServer(page)
+  await page.goto('/')
+  await page.getByLabel('Rule description').fill('# why\nsecond line')
+  await page.getByRole('button', { name: /^Save/ }).click()
+  await expect(page.locator('.notice')).toContainText('Saved server-rules.yml')
+  expect(mock.puts[0]).toContain('description:')
+  expect(mock.puts[0]).toContain('# why')
+})
