@@ -116,6 +116,7 @@ export type Action =
 
 export interface Rule {
   name: string
+  description?: string
   enabled?: Templatable<boolean>
   locations: Location[]
   when: Expression
