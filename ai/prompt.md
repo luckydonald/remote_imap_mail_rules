@@ -247,3 +247,45 @@ And what's going on with typescript 7 vs 5.9?
 
 ❯ Plan accepted, auto mode.
 
+❯ Continue [@`ai/initial.md`](./initial.md) stages
+
+❯ Question answered.
+> <details><summary>
+>
+>> 1. How should the database store the rules when `RULES_PATH` is not set?
+>> 2. Where does the key for encrypting account passwords come from?
+>> 3. How much of the account management should be in this stage?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Rules in DB** (1/3) <kbd>Single Select</kbd><br>
+>> How should the database store the rules when `RULES_PATH` is not set?
+> - [ ] 1\. One YAML document (Recommended)
+>   - _A single row holds the raw YAML text, same as the file. Keeps comments, anchors and `!var`, so the editor and `PUT /api/editor/rules` work unchanged. Per-rule rows can come later with the action log._
+> - [x] 2\. One row per rule
+>   - _Normalized tables for rules, locations and conditions. Queryable, but loses comments/anchors/templates and is a bigger change._
+> - [ ] 3\. _Type something._
+>
+>> **Encryption** (2/3) <kbd>Single Select</kbd><br>
+>> Where does the key for encrypting account passwords come from?
+> - [x] 1\. `SECRET_KEY` env var (Recommended)
+>   - _A Fernet key (`cryptography`) from an env var, documented in `.example-env`. The server refuses to store a password without it. Simple and works in Docker/Coolify._
+> - [ ] 2\. Key file, auto-generated
+>   - _Generated on first start next to the database (e.g. `secret.key`, gitignored). No setup, but the key sits beside the data it protects._
+> - [ ] 3\. _Type something._
+>
+>> **Scope** (3/3) <kbd>Single Select</kbd><br>
+>> How much of the account management should be in this stage?
+> - [ ] 1\. Backend and API only (Recommended)
+>   - _Models, Alembic, seeding from env vars, mismatch warning, and `/api/accounts` CRUD with tests. The editor keeps working on rules via the DB or file; an accounts screen in the Vue app follows as its own task._
+> - [x] 2\. Include an accounts screen
+>   - _Also a Vue view to list, add, edit and delete accounts, with Vitest and Playwright tests. Roughly doubles the stage._
+> - [ ] 3\. _Type something._
+>
+> </details>
+>
+
+❯ Plan accepted, auto mode.
+
