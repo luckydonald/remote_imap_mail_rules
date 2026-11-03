@@ -109,7 +109,7 @@ The action and log tables are not part of it, they come with stage 5.
 
 
 ## 5. Mail browser for the accounts registered in the server
-Status: viewer and login done; fill from mail and the action log are open.
+Status: viewer, login and fill from mail done; the action log is open.
 
 - [x] basic mail viewer for the accounts registered in the server
   - Basically implement a simple readonly mail client
@@ -118,9 +118,10 @@ Status: viewer and login done; fill from mail and the action log are open.
 - [x] Needs login tech.
   - For now simple: entering the mail creds allows access.
   - Gates the whole API, the credentials of any registered account work (single user).
-- [ ] Rules from a mail:
+- [x] Rules from a mail:
   - [x] basic mail viewer for the accounts registered in the server
-  - [ ] filling conditions from a mail, and the "fill from mail" button on conditions
+  - [x] filling conditions from a mail, and the "fill from mail" button on conditions
+    - Side panel beside the editor, a subpage on a phone; the open mail is kept in a Pinia store cached in localStorage.
 - [ ] the full action log per mail (first seen, rule matches, actions, user actions)
 
 # Status so far
@@ -150,10 +151,12 @@ Status: viewer and login done; fill from mail and the action log are open.
 
 - Login (`/api/auth`, a signed cookie) in front of the whole API, and a read-only mail browser (`/api/mail`, the Mail screen): folders with counts, paged message list, message view with attachments, sanitized and sandboxed HTML, one pane at a time on a phone.
 
+- Rules from a mail: an "Example mail" panel beside the editor, a "From mail" button on conditions and mail-first filling (`+ Add condition`, "Add to the rule"), with the part of an address choosable.
+  The mail detail API returns all headers and flags for it, and the mail state is a Pinia store cached in localStorage.
+
 #### Not built yet
 
 - Moving mails between accounts.
 - Executing rule actions (all IMAP access is read-only for now).
 - The full action log per mail (first seen, rule matches, actions, user actions).
-- Rules from a mail: filling conditions from a mail, and the "fill from mail" button on conditions.
 - Easy custom fields and headers beyond the `header` condition, e.g. a picker in the editor.
