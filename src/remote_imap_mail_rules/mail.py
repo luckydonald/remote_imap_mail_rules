@@ -48,6 +48,7 @@ class Mail:
     date_received: datetime | None = None
     size: int | None = None
     modseq: int | None = None
+    uidvalidity: int | None = None
     mime_type: str | None = None
     attachments: list[Attachment] = field(default_factory=list)
     body_loader: BodyLoader | None = None
