@@ -25,7 +25,10 @@ Read from the environment and from `.env` in the working directory (see `.exampl
 | `IMAP_PASSWORD` | required | Login password. |
 | `IMAP_PAGE_SIZE` | `50` | Mails per page when loading a folder. |
 | `IMAP_POLL_INTERVAL` | `60` | Seconds between polls when the server has no IDLE. |
-| `RULES_PATH` | `rules/example.yml` | The YAML rules file. |
+| `RULES_PATH` | `rules/example.yml` | The YAML rules file. The server edits this file. |
+| `SERVER_HOST` | `127.0.0.1` | Interface of the server. It has no login yet, so only expose it on a trusted network. |
+| `SERVER_PORT` | `8000` | Port of the server. |
+| `FRONTEND_DIST` | `frontend/dist` | Built editor that the server serves at `/`. |
 
 The automated tests read the same names with a `TEST_` prefix (e.g. `TEST_IMAP_HOST`) and never read `.env`.
 
@@ -54,7 +57,22 @@ yarn install
 yarn dev
 ```
 
-The editor validates against `schemas/rules.schema.json`, and does not keep YAML comments.
+The editor validates against `schemas/rules.schema.json`, and keeps the comments of the opened YAML.
+
+### Server
+
+The FastAPI server serves the built editor and lets it load and save the file at `RULES_PATH`.
+It needs no IMAP credentials.
+
+```bash
+cd frontend && yarn install && yarn build && cd ..
+uv run python -m remote_imap_mail_rules.server.main
+```
+
+Then open `http://127.0.0.1:8000`.
+Save writes the file after the server validated it, and a rejected file is reported in the editor and not written.
+Opening or dropping a file in the editor leaves the server file alone, those only ever download.
+For development run the server and `yarn dev` side by side, the dev server proxies `/api` to port 8000.
 
 ## IMAP
 
