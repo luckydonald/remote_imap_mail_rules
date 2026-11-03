@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { personLabel, shortDate } from '@/model/mail-format'
 import type { MailStore } from '@/model/mail-store'
+import MailSpinner from './MailSpinner.vue'
 
 defineProps<{ store: MailStore }>()
 </script>
@@ -37,14 +38,14 @@ defineProps<{ store: MailStore }>()
     >
       No messages.
     </p>
+    <MailSpinner v-if="store.loading.value" />
     <button
-      v-if="store.hasMore.value"
+      v-else-if="store.hasMore.value"
       type="button"
       class="ghost more"
-      :disabled="store.loading.value"
       @click="store.loadMore()"
     >
-      {{ store.loading.value ? 'Loading…' : 'Load older messages' }}
+      Load older messages
     </button>
   </section>
 </template>
