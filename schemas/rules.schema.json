@@ -553,6 +553,19 @@
           "title": "Name",
           "type": "string"
         },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Free text. Comments that a database save would drop are appended as `# ` lines.",
+          "title": "Description"
+        },
         "enabled": {
           "$ref": "#/$defs/Templatable_bool_TypeVar_",
           "default": true

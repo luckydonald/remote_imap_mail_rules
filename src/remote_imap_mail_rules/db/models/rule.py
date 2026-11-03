@@ -3,7 +3,7 @@
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import JSON, Boolean, Integer, String, Uuid
+from sqlalchemy import JSON, Boolean, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..base import Base
@@ -17,6 +17,7 @@ class Rule(Base):
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True)
     position: Mapped[int] = mapped_column(Integer)
     name: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     locations: Mapped[list[Any]] = mapped_column(JSON)
     when: Mapped[dict[str, Any]] = mapped_column(JSON)

@@ -133,3 +133,16 @@ def test_deleting_an_account_used_by_a_rule_is_409(client: TestClient) -> None:
     client.put("/api/editor/rules", content="rules: []\n")
     assert client.delete(f"/api/accounts/{account['id']}").status_code == 204
 # end def
+
+
+def test_comments_end_up_in_the_description(client: TestClient) -> None:
+    text = VALID.replace("rules:\n  - name", "rules:\n  # keep me\n  - name")
+    assert client.put("/api/editor/rules", content=text).status_code == 204
+    saved = client.get("/api/editor/rules").text
+    assert "# keep me" in saved and "description: " in saved
+    assert parse_rules(saved).rules[0].description == "# keep me"
+    # Saving the read-back text, and the original again, does not duplicate the line.
+    client.put("/api/editor/rules", content=saved)
+    client.put("/api/editor/rules", content=text)
+    assert parse_rules(client.get("/api/editor/rules").text).rules[0].description == "# keep me"
+# end def
