@@ -15,13 +15,14 @@ Not in scope: accounts, database, running the IMAP watcher inside the server (st
   - `settings.py`: `ServerSettings(BaseSettings)` with `rules_path`, `server_host` (default `127.0.0.1`), `server_port` (default `8000`) and `frontend_dist` (default `frontend/dist`).
     It is separate from `ImapSettings`, because the server must start without IMAP credentials.
     It reuses the same `RULES_PATH` env var and reads `.env` like `config.py`.
-  - `api.py`: the router under `/api`.
-  - `app.py`: `create_app(settings) -> FastAPI`, mounts the router and serves `frontend/dist` with an index fallback when the directory exists.
+  - `api/editor.py`: the editor router, mounted at `/api/editor`, with `api/__init__.py` as the package.
+    Later routers (accounts, mails) get their own modules and mounts, e.g. `api/accounts.py` at `/api/accounts`.
+  - `app.py`: `create_app(settings) -> FastAPI`, includes the editor router with `prefix="/api/editor"` and serves `frontend/dist` with an index fallback when the directory exists.
   - `main.py`: `uvicorn.run(create_app(...))` with logging set up following the `uvicorn-app-logging` skill, started by `uv run python -m remote_imap_mail_rules.server.main`.
 - Endpoints:
-  - `GET /api/config` returns `{mode: "server", file_name, exists}`, so the editor knows it talks to a server.
-  - `GET /api/rules` returns the YAML text of `RULES_PATH` as `text/plain`, 404 when the file does not exist yet.
-  - `PUT /api/rules` takes the YAML text, validates it with `parse_rules` from `rules/loader.py`, and writes it atomically (temp file in the same folder, then `os.replace`).
+  - `GET /api/editor/config` returns `{mode: "server", file_name, exists}`, so the editor knows it talks to a server.
+  - `GET /api/editor/rules` returns the YAML text of `RULES_PATH` as `text/plain`, 404 when the file does not exist yet.
+  - `PUT /api/editor/rules` takes the YAML text, validates it with `parse_rules` from `rules/loader.py`, and writes it atomically (temp file in the same folder, then `os.replace`).
     On `yaml.YAMLError` or `pydantic.ValidationError` it answers 422 with a readable list of messages and writes nothing.
   - The client never sends a path, so there is no path traversal surface.
   - Sync file I/O goes through `asyncio.to_thread`.
@@ -29,7 +30,7 @@ Not in scope: accounts, database, running the IMAP watcher inside the server (st
 
 ## Frontend
 
-- New `src/model/api.ts`: `fetchConfig()`, `fetchRules()`, `saveRules(text)` using relative `/api` URLs, all failing softly when no server answers (file-only mode, as today).
+- New `src/model/api.ts`: `fetchConfig()`, `fetchRules()`, `saveRules(text)` using relative `/api/editor/...` URLs, all failing softly when no server answers (file-only mode, as today).
 - `store.ts`: add `serverFile` (name or null) and a `dirty` flag that is cleared on load and save.
 - `AppShell.vue`: on mount call `fetchConfig`.
   When a server answers, load its rules, show a Save button and a dirty marker, and show validation or server errors in the existing notice.
@@ -42,7 +43,7 @@ Not in scope: accounts, database, running the IMAP watcher inside the server (st
 - Python, in `tests/test_server.py` with `TestClient` and a `tmp_path` rules file:
   - config and GET (file present and missing), PUT valid (file written, comments kept), PUT invalid YAML and invalid schema (422, file untouched), atomic write leaves no temp files.
 - Frontend Vitest: `api.ts` with a mocked `fetch`, and the store `dirty` flag.
-- Playwright (`yarn test:e2e`): keep the vite-only web server and mock `/api` with `page.route`, covering load from server, edit, save request body, a 422 shown in the notice, and file-only mode when `/api/config` fails.
+- Playwright (`yarn test:e2e`): keep the vite-only web server and mock `/api/editor/**` with `page.route`, covering load from server, edit, save request body, a 422 shown in the notice, and file-only mode when `/api/editor/config` fails.
   No claude-in-chrome tools.
 
 ## Docs and commits
