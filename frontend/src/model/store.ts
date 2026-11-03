@@ -27,6 +27,10 @@ export function createStore(initial: RuleFile = emptyFile()) {
   const file = reactive<RuleFile>(initial)
   const view = ref<View>({ kind: 'yaml' })
   const fileName = ref('rules.yml')
+  /** The file name on the server while the editor works on its rules file, else `null` (a local file never writes to disk). */
+  const serverFile = ref<string | null>(null)
+  /** The YAML as last loaded from or saved to the server. */
+  const savedYaml = ref('')
   /** Comments of the loaded text, written back when generating the YAML. */
   const comments = shallowRef<CommentMap | undefined>()
   const past: string[] = []
@@ -91,11 +95,19 @@ export function createStore(initial: RuleFile = emptyFile()) {
     file.templates = data.templates
     file.rules = data.rules
     if (name) fileName.value = name
+    serverFile.value = null
     view.value = file.rules.length > 0 ? { kind: 'rule', index: 0 } : { kind: 'yaml' }
   }
 
   const problems = computed(() => validateRules(file))
   const yaml = computed(() => stringifyRules(file, comments.value))
+  const dirty = computed(() => serverFile.value !== null && yaml.value !== savedYaml.value)
+
+  /** Marks the current content as the one on the server. */
+  function markSaved(name: string | null = serverFile.value, text: string = yaml.value): void {
+    serverFile.value = name
+    savedYaml.value = text
+  }
 
   function addRule(): void {
     file.rules.push(newRule())
@@ -167,6 +179,9 @@ export function createStore(initial: RuleFile = emptyFile()) {
     file,
     view,
     fileName,
+    serverFile,
+    dirty,
+    markSaved,
     canUndo,
     canRedo,
     problems,

@@ -4,6 +4,7 @@ import RuleEditor from './RuleEditor.vue'
 import RuleList from './RuleList.vue'
 import TemplatesView from './TemplatesView.vue'
 import YamlPanel from './YamlPanel.vue'
+import { fetchConfig, fetchRules, saveRules, SaveError } from '@/model/api'
 import { provideStore } from '@/model/context'
 import { createStore } from '@/model/store'
 
@@ -13,6 +14,42 @@ provideStore(store)
 const fileInput = ref<HTMLInputElement | null>(null)
 const notice = ref('')
 const dragging = ref(false)
+const saving = ref(false)
+
+/** Loads the server's rules file when a server answers; without one the editor stays file based. */
+async function connect(): Promise<void> {
+  const config = await fetchConfig()
+  if (!config) return
+  try {
+    const text = await fetchRules()
+    if (text !== null) store.load(text, config.file_name)
+    else store.fileName.value = config.file_name
+    store.markSaved(config.file_name)
+    notice.value =
+      text !== null
+        ? `Loaded ${config.file_name} from the server.`
+        : `${config.file_name} does not exist yet, saving creates it.`
+  } catch (error) {
+    notice.value = `Could not load the rules from the server: ${error instanceof Error ? error.message : String(error)}`
+  }
+}
+
+async function save(): Promise<void> {
+  saving.value = true
+  try {
+    const text = store.yaml.value
+    await saveRules(text)
+    store.markSaved(undefined, text)
+    notice.value = `Saved ${store.serverFile.value}.`
+  } catch (error) {
+    notice.value =
+      error instanceof SaveError
+        ? `Not saved: ${error.messages.join('; ')}`
+        : `Not saved: ${error instanceof Error ? error.message : String(error)}`
+  } finally {
+    saving.value = false
+  }
+}
 
 async function openFile(file: File): Promise<void> {
   try {
@@ -74,7 +111,10 @@ function onKey(event: KeyboardEvent): void {
   else store.undo()
 }
 
-onMounted(() => window.addEventListener('keydown', onKey))
+onMounted(() => {
+  window.addEventListener('keydown', onKey)
+  void connect()
+})
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 </script>
 
@@ -107,6 +147,16 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       </button>
       <button type="button" class="ghost" @click="copy">Copy YAML</button>
       <button type="button" @click="download">Download</button>
+      <button
+        v-if="store.serverFile.value !== null"
+        type="button"
+        class="save"
+        :disabled="saving || !store.dirty.value || store.problems.value.length > 0"
+        :title="`Write ${store.serverFile.value} on the server`"
+        @click="save"
+      >
+        Save{{ store.dirty.value ? ' ●' : '' }}
+      </button>
       <span
         v-if="store.problems.value.length > 0"
         class="badge error"
