@@ -10,15 +10,15 @@ defineProps<{ store: MailStore }>()
   <section class="mail-list" aria-label="Messages">
     <header class="pane-head">
       <button type="button" class="ghost back" @click="store.back()">‹ Folders</button>
-      <strong>{{ store.currentFolder.value?.display_name ?? '' }}</strong>
-      <span class="muted">{{ store.total.value }} messages</span>
+      <strong>{{ store.currentFolder?.display_name ?? '' }}</strong>
+      <span class="muted">{{ store.total }} messages</span>
     </header>
     <ul>
-      <li v-for="mail in store.messages.value" :key="mail.uid">
+      <li v-for="mail in store.messages" :key="mail.uid">
         <button
           type="button"
           class="row-mail"
-          :class="{ active: mail.uid === store.selectedUid.value, unread: !mail.seen }"
+          :class="{ active: mail.uid === store.selectedUid, unread: !mail.seen }"
           @click="store.openMessage(mail.uid)"
         >
           <span class="dot" :title="mail.seen ? 'Read' : 'Unread'" />
@@ -32,19 +32,11 @@ defineProps<{ store: MailStore }>()
         </button>
       </li>
     </ul>
-    <p
-      v-if="!store.loading.value && store.messages.value.length === 0 && !store.error.value"
-      class="hint"
-    >
+    <p v-if="!store.loading && store.messages.length === 0 && !store.error" class="hint">
       No messages.
     </p>
-    <MailSpinner v-if="store.loading.value" />
-    <button
-      v-else-if="store.hasMore.value"
-      type="button"
-      class="ghost more"
-      @click="store.loadMore()"
-    >
+    <MailSpinner v-if="store.loading" />
+    <button v-else-if="store.hasMore" type="button" class="ghost more" @click="store.loadMore()">
       Load older messages
     </button>
   </section>
