@@ -11,6 +11,7 @@ from pydantic import SecretStr
 from sqlalchemy import create_engine, text
 
 from remote_imap_mail_rules.server.app import create_app
+from remote_imap_mail_rules.server.auth import SESSION_COOKIE, make_session_token
 from remote_imap_mail_rules.server.settings import ServerSettings
 from tests.conftest import ACCOUNT_ID
 from tests.settings import TestImapSettings
@@ -27,7 +28,11 @@ def make_client(tmp_path: Path, key: str | None = KEY, env: TestImapSettings | N
         frontend_dist=tmp_path / "missing",
         secret_key=SecretStr(key) if key else None,
     )
-    return TestClient(create_app(settings, env))
+    client = TestClient(create_app(settings, env))
+    if key:
+        client.cookies.set(SESSION_COOKIE, make_session_token(settings))
+    # end if
+    return client
 # end def
 
 
@@ -115,6 +120,9 @@ def test_changed_env_password_is_reported(tmp_path: Path, caplog: pytest.LogCapt
 
 def test_seeding_skipped_without_key(tmp_path: Path) -> None:
     with make_client(tmp_path, key=None, env=make_env()) as client:
+        assert client.get("/api/accounts").status_code == 503
+    # end with
+    with make_client(tmp_path) as client:
         assert client.get("/api/accounts").json() == []
     # end with
 # end def
