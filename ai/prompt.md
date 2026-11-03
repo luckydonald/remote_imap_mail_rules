@@ -141,3 +141,39 @@ Of cause this can use improvements, but that's my initial idea here.
 > I like the ˋtype: templateˋ to be a pydantic-parsable type; so the json schema stays valid before replacement operations.
 > Basically the template would be ˋTemplatable<CONTENT> = Template<CONTENT> | CONTENTˋ applied to pretty much every field?
 
+❯ Question answered.
+> <details><summary>
+>
+>> 1. How should `Templatable[T] = T | Var` be applied, given the evaluator reads these fields at runtime and must never see a Var?
+>> 2. What should the replaceable-field marker look like in the file, since it has to be valid before expansion in the JSON schema?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Model shape** (1/2) <kbd>Single Select</kbd><br>
+>> How should `Templatable[T] = T | Var` be applied, given the evaluator reads these fields at runtime and must never see a Var?
+> - [ ] 1\. Same classes, annotated (Recommended)
+>   - _Fields are typed `Templatable[T]` in the existing models, so the schema is generated straight from them and `content` of a template is a real `Expression` (fully schema-validated). Loading is parse (Vars allowed), expand on the data, then validate again with the same classes, where no Var remains. Cost: static types are wider, so evaluate/extract narrow through one small `concrete()` helper._
+> - [ ] 2\. Schema-only wrapping
+>   - _Runtime models stay strictly concrete. `schema.py` wraps every property as `anyOf [S, Var]` and adds `TemplateInstance` to the expression union. Least code and no typing noise, but Templatable is not visible in the Python types, and it is the post-processing hack you may not want._
+> - [ ] 3\. Two model sets
+>   - _Hand-written or generated twin of every class: a templatable source model for schema and pre-checks, and the strict runtime model. Cleanest types on both sides, but every condition class is duplicated and must be kept in sync._
+> - [x] 4\. _Type something:_
+>   - > The recommended widening. However, models have a ˋ.concrete()ˋ instance method instead of that external helper. Can have a base class defining it or leaving it abstract. Once the template is used outside of the root ˋtemplatesˋ, the validation would check for all variables to be filled if no default is set, already as normal pydantic validator.
+>
+>> **Var syntax** (2/2) <kbd>Single Select</kbd><br>
+>> What should the replaceable-field marker look like in the file, since it has to be valid before expansion in the JSON schema?
+> - [x] 1\. {var: name} plus !var sugar (Recommended)
+>   - _Canonical data form `value: {var: from_address}` is a pydantic model and schema-valid. The YAML tag `value: !var from_address` is accepted by the loader as shorthand for it. The editor's schema check only understands the object form, a tag shows as a plain string._
+> - [ ] 2\. Only {var: name}
+>   - _One syntax, no custom YAML loader needed, fully visible to the schema._
+> - [ ] 3\. Only !var name tag
+>   - _Nicest to read, but the schema sees a bare string, so non-string fields (numbers, bools) get red squiggles in the editor._
+> - [ ] 4\. _Type something._
+>
+> </details>
+>
+
+❯ Plan accepted, auto mode.
+
