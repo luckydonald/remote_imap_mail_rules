@@ -10,7 +10,8 @@ import logging
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import Any, Never, Protocol
-from uuid import UUID
+
+from aioimaplib import AioImapException
 
 from .config import ImapSettings
 from .imap.client import ConnectionFactory, ImapClient, ImapError, connect_aioimaplib
@@ -249,24 +250,67 @@ def rules_for_mail(by_folder: dict[str, list[Rule[Never]]], mail: Mail) -> list[
 # end def
 
 
-async def apply_actions(settings: ImapSettings, rule_file: RuleFile[Never], mails: list[Mail], factory: ConnectionFactory = connect_aioimaplib) -> list[ChainResult]:
-    """Runs the rules over the given mails of one account for real.
+class ActionRunner:
+    """Runs the rules for real over single mails, on one connection of its own that opens with the first mail.
 
-    Every mail is fetched fresh first (one cheap `FETCH`) through the executor's own connection: the flags may be stale, and the body
-    loader of a mail from a watcher would use the connection that sits in `IDLE`.
+    Every mail is fetched fresh first (one cheap `FETCH`): the flags of a mail from a watcher may be stale, and its body loader would
+    use the connection that sits in `IDLE`.
     """
-    results: list[ChainResult] = []
-    account_id: UUID = settings.imap_account_id
-    async with ImapClient(settings, factory) as client:
-        by_folder = await rules_by_folder(client, rule_file, account_id)
-        writer = ImapWriter(client)
-        for stale in mails:
-            fresh = await client.fetch_message(account_id, stale.folder, stale.uid)
+
+    def __init__(self, settings: ImapSettings, rule_file: RuleFile[Never], factory: ConnectionFactory = connect_aioimaplib) -> None:
+        self.settings = settings
+        self.rule_file = rule_file
+        self.factory = factory
+        self.client: ImapClient | None = None
+        self.by_folder: dict[str, list[Rule[Never]]] = {}
+    # end def
+
+    async def __aenter__(self) -> "ActionRunner":
+        return self
+    # end def
+
+    async def __aexit__(self, *exc: object) -> None:
+        await self.close()
+    # end def
+
+    async def close(self) -> None:
+        client, self.client = self.client, None
+        if client is not None:
+            await client.close()
+        # end if
+    # end def
+
+    async def open(self) -> ImapClient:
+        if self.client is None:
+            client = ImapClient(self.settings, self.factory)
+            await client.connect()
+            self.client = client
+            self.by_folder = await rules_by_folder(client, self.rule_file, self.settings.imap_account_id)
+        # end if
+        return self.client
+    # end def
+
+    async def run(self, mail: Mail) -> ChainResult | None:
+        """The result for the mail, or `None` if it is gone. A broken connection is dropped, so the next call reconnects."""
+        try:
+            client = await self.open()
+            fresh = await client.fetch_message(self.settings.imap_account_id, mail.folder, mail.uid)
             if fresh is None:
-                continue
+                return None
             # end if
-            results.append(await run_chain(rules_for_mail(by_folder, fresh), fresh, writer))
-        # end for
+            return await run_chain(rules_for_mail(self.by_folder, fresh), fresh, ImapWriter(client))
+        except (ImapError, AioImapException, OSError, TimeoutError):
+            await self.close()
+            raise
+        # end try
+    # end def
+# end class
+
+
+async def apply_actions(settings: ImapSettings, rule_file: RuleFile[Never], mails: list[Mail], factory: ConnectionFactory = connect_aioimaplib) -> list[ChainResult]:
+    """Runs the rules over the given mails of one account for real."""
+    async with ActionRunner(settings, rule_file, factory) as runner:
+        results = [await runner.run(mail) for mail in mails]
     # end async with
-    return results
+    return [result for result in results if result is not None]
 # end def

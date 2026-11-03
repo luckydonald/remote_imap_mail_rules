@@ -68,7 +68,7 @@ def create_app(
     app.state.imap_factory = imap_factory
     store: RulesStore = FileRulesStore(settings.rules_path) if settings.rules_path else DatabaseRulesStore(session_factory)
     app.state.rules_store = store
-    app.state.watcher = Watcher(session_factory, store, settings.secret_key, imap_factory, enabled=settings.watch_enabled)
+    app.state.watcher = Watcher(session_factory, store, settings.secret_key, imap_factory, enabled=settings.watch_enabled, actions_enabled=settings.actions_enabled)
     app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
     # Everything else under `/api` needs the login, set here so that a new router cannot forget it.
     protected = [Depends(require_login)]

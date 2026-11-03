@@ -22,5 +22,9 @@ class ServerSettings(BaseSettings):
     server_host: str = "127.0.0.1"
     server_port: int = Field(default=8000, ge=1, le=65535)
     watch_enabled: bool = Field(default=True, description="Run the rules in the background and write the action log of each mail.")
+    actions_enabled: bool = Field(
+        default=False,
+        description="Apply the actions of matching rules to the mailboxes. Off, the server only logs matches and the dry run shows what would happen.",
+    )
     frontend_dist: Path = Field(default=Path("frontend/dist"), description="Built editor; served at `/` when the folder exists.")
 # end class

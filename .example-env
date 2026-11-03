@@ -18,5 +18,7 @@ DATABASE_URL=sqlite+aiosqlite:///./db.sqlite3
 SECRET_KEY=
 # Set to false to stop the background run of the rules (and with it the action log).
 WATCH_ENABLED=true
+# Keep false until you trust your rules: true moves, flags and marks mails for real.
+ACTIONS_ENABLED=false
 SERVER_HOST=127.0.0.1
 SERVER_PORT=8000
