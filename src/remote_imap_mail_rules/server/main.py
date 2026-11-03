@@ -28,7 +28,7 @@ def load_env_account() -> ImapSettings | None:
 def main() -> None:
     logging.config.dictConfig(get_log_config())
     settings = ServerSettings()
-    logger.info("Editing rules file %s", settings.rules_path)
+    logger.info("Rules in %s", f"file {settings.rules_path}" if settings.rules_path else "the database")
     uvicorn.run(
         create_app(settings, load_env_account()),
         host=settings.server_host,

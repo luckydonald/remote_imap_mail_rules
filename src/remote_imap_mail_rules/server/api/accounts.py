@@ -12,6 +12,7 @@ from ...db import accounts as repository
 from ...db.crypto import CryptoError
 from ...db.engine import iter_session
 from ...db.models import Account
+from ..rules_store import RulesStore, rules_referencing
 from ..settings import ServerSettings
 
 router = APIRouter()
@@ -125,6 +126,12 @@ async def update_account(request: Request, account_id: UUID, body: AccountUpdate
 
 
 @router.delete("/{account_id}", status_code=204)
-async def delete_account(account_id: UUID, session: AsyncSession = Depends(get_session)) -> None:
-    await repository.delete_account(session, await find(session, account_id))
+async def delete_account(request: Request, account_id: UUID, session: AsyncSession = Depends(get_session)) -> None:
+    account = await find(session, account_id)
+    store: RulesStore = request.app.state.rules_store
+    names = await rules_referencing(store, account_id)
+    if names:
+        raise HTTPException(status_code=409, detail=[f"Still used by the rule: {name}" for name in names])
+    # end if
+    await repository.delete_account(session, account)
 # end def
