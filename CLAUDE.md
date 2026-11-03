@@ -11,13 +11,14 @@ If the primary working directory (visible in the system prompt) ends with `/base
 Runs mail rules via IMAP, independent of the provider.
 Python 3.14+ with `uv`, async throughout; run tests with `uv run pytest`.
 Follow `/code-style`; `.env` and `.env.example` are blocked for agents, so `.example-env` is the documented template.
-Planned later (not built yet): FastAPI server, Vue frontend, multi-account management, rule actions, the per-mail action log and the rule editor, see `ai/initial.md`.
+Planned later (not built yet): FastAPI server, server-connected frontend (the file-based editor exists), multi-account management, rule actions, the per-mail action log and the rule editor, see `ai/initial.md`.
 
 ## Layout
 
 - `src/remote_imap_mail_rules/rules/`: `models.py` (pydantic rule file), `fields.py` (field and operator enums), `values.py` (dates), `extract.py` (field to mail mapping), `operators.py`, `evaluate.py`, `loader.py`, `schema.py`. Fields are `Templatable` (a value or a `Var`) and `Template` expressions are resolved by `.concrete()` in `loader.py`, see Templates below.
 - `src/remote_imap_mail_rules/imap/`: `client.py` (read-only `ImapClient`), `watcher.py` (IDLE or polling), `fetch.py` / `sexpr.py` / `bodystructure.py` (response parsing), `connection.py` (the slice of `aioimaplib` used, so tests can fake it).
 - `src/remote_imap_mail_rules/matching.py`: `matches()`, the core async generator yielding `RuleMatch` (`existing`, then `new` / `changed`). `demo.py` prints it (`--verbose` lists every inspected mail via `matches(on_inspect=...)`; `--streamer-mode` hashes titles and masks addresses, and agents must pass `--streamer-mode` or `--no-streamer-mode`).
+- `frontend/`: standalone Vue 3 + TS + SCSS rule editor (Vite, Yarn 4, Vitest), no server needed. `src/model/` has `yaml-io.ts` (YAML to model and back, keeps `&anchor` / `<<: *anchor` / `!var`, comments are lost), `validate.ts` (ajv against `schemas/rules.schema.json`, imported through the `@schema` alias, plus the template variable check), `catalog.ts` (enums read from the schema), `store.ts` (undo/redo, rule operations). A template use is `{type: template, ref, variables}` in the editor and only expands for validation. Run with `cd frontend && yarn dev`, `yarn test`, `yarn build` (type checks first).
 - `schemas/rules.schema.json` is generated from the pydantic model, never edited by hand: `uv run python -m remote_imap_mail_rules.rules.schema --write-schema` (`--check` fails when outdated, and a test does the same). The pattern is copied from `scripts/sync_todos.py`.
 
 ## Decisions

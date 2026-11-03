@@ -43,6 +43,19 @@ See `rules/example.yml`.
 Conditions on a field that does not exist are false for every operator, use the `presence` condition to test for that.
 A relative date such as `7d` is the moment seven days before now, so `date_received lt 7d` means received more than a week ago.
 
+### Rule editor
+
+A visual editor for the rules file lives in `frontend/`.
+It runs in the browser without a server: open or drop a rules file, edit rules, conditions, actions and templates, then download the YAML.
+
+```bash
+cd frontend
+yarn install
+yarn dev
+```
+
+The editor validates against `schemas/rules.schema.json`, and does not keep YAML comments.
+
 ## IMAP
 
 Everything is read-only and async: folders are only opened with `EXAMINE`, mails are fetched with `BODY.PEEK`, and nothing writes to the mailbox.
