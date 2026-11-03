@@ -476,6 +476,7 @@ type Action[V = Var] = Annotated[
 
 class Rule[V = Var](Concrete):
     name: str = Field(min_length=1)
+    description: str | None = Field(default=None, description="Free text. Comments that a database save would drop are appended as `# ` lines.")
     enabled: Templatable[bool, V] = True
     locations: list[Location[V]] = Field(min_length=1)
     when: Expression[V]

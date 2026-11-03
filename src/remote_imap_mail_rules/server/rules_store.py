@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from ..db import rules as rule_rows
+from ..rules.comments import append_comments
 from ..rules.loader import parse_rule_file, parse_rules
 from . import rules_file
 
@@ -75,7 +76,8 @@ class DatabaseRulesStore:
         # The same validation as the file, then the non-concrete form is stored, so templates survive.
         await asyncio.to_thread(rules_file.validate, text)
         try:
-            rule_file = parse_rule_file(text)
+            # The rows cannot hold YAML comments, so those of each rule are kept in its description.
+            rule_file = append_comments(text, parse_rule_file(text))
         except (yaml.YAMLError, ValidationError) as e:
             raise rules_file.InvalidRules([str(e)]) from e
         # end try
