@@ -631,6 +631,43 @@ button {
   }
 }
 
+.mail-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 16px;
+  color: var(--muted);
+
+  .dancer {
+    display: inline-block;
+    font-size: 22px;
+    animation: mail-dance 0.9s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dancer {
+      animation-duration: 3s;
+    }
+  }
+}
+
+@keyframes mail-dance {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-12deg);
+  }
+  25% {
+    transform: translateY(-6px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(0) rotate(12deg);
+  }
+  75% {
+    transform: translateY(-6px) rotate(0deg);
+  }
+}
+
 .mail-message {
   padding-bottom: 24px;
 

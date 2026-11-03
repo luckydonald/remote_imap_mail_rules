@@ -372,3 +372,5 @@ And what's going on with typescript 7 vs 5.9?
 
 ❯ Plan accepted, auto mode.
 
+❯ The mail viewer must have a `loading…` + splinner (mail emoji dancing) while it's fetching the initial list or for the infinity-scroll part.
+
