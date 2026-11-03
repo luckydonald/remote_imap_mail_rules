@@ -86,7 +86,9 @@ Status: done, see this checklist; additionally "Status so far" below.
 
 
 ## 3. The initial FastAPI server
-- [ ] FastAPI server, and the editor talking to it instead of working on files.
+Status: done, see this checklist; additionally "Status so far" below.
+
+- [x] FastAPI server, and the editor talking to it instead of working on files.
   - File set via env var (`RULES_PATH`, default; save writes to disk), or via the editor (upload/download; no disk write).
 
 ## 4. A database for accounts, rules, actions and logs
@@ -132,10 +134,13 @@ Status: done, see this checklist; additionally "Status so far" below.
   - Comments in the YAML are kept when saving, matched by path (rules by name), so they follow moved rules and vanish with removed ones.
   - Covered by Vitest and by Playwright end-to-end tests (`yarn test:e2e`) that drive the real app: open, drop, edit, validation, undo/redo, download, copy and the color scheme.
   - Light and dark mode follow the system; there is no manual toggle.
+- FastAPI server (`server/`, started with `python -m remote_imap_mail_rules.server.main`) that serves the built editor:
+  - `/api/editor` loads and saves the file at `RULES_PATH`, validating first and writing atomically.
+  - The editor shows a Save button with a dirty marker when a server answers, and stays file based otherwise.
+  - Covered by pytest (`TestClient`), Vitest and Playwright with the API mocked.
 
 #### Not built yet
 
-- FastAPI server, and the editor talking to it instead of working on files.
 - Multiple accounts and moving mails between them.
 - Executing rule actions (all IMAP access is read-only for now).
 - The full action log per mail (first seen, rule matches, actions, user actions).
