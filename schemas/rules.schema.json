@@ -582,7 +582,7 @@
           "$ref": "#/$defs/remote_imap_mail_rules__rules__models__Expression_TypeVar___2"
         },
         "actions": {
-          "description": "Parsed only; nothing executes them yet.",
+          "description": "Applied by the server when `ACTIONS_ENABLED` is on (the first matching rule wins); otherwise only shown by the dry run.",
           "items": {
             "$ref": "#/$defs/Action_TypeVar_"
           },
