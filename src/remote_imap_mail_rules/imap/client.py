@@ -1,4 +1,4 @@
-"""Read-only async IMAP client: folders are only ever opened with `EXAMINE`, nothing here writes to the mailbox."""
+"""Async IMAP client. Reading only ever uses `EXAMINE` and `BODY.PEEK`; the write methods (`store_flags`, `move`) open the folder with `SELECT`."""
 
 import logging
 import ssl
@@ -79,6 +79,7 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
         self.connection: ImapConnection | None = None
         self.folder: str | None = None
         self.state: FolderState | None = None
+        self.writable = False
     # end def
 
     async def __aenter__(self) -> "ImapClient":
@@ -139,8 +140,51 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
         # `aioimaplib` only moves to SELECTED on `select()`, not on `examine()`, and then refuses SEARCH / FETCH / IDLE with
         # "command SEARCH illegal in state AUTH". The server did open the folder, so tell the library.
         self.conn.protocol.state = aioimaplib.SELECTED
-        self.folder, self.state = folder, state
+        self.folder, self.state, self.writable = folder, state, False
         return state
+    # end def
+
+    async def select(self, folder: str) -> FolderState:
+        """Opens the folder read-write. Only needed for the write methods, which call it themselves."""
+        response = check(await self.conn.select(quote_folder(folder)), f"select {folder}")
+        state = parse_folder_state(response.lines)
+        if state is None:
+            raise ImapError(f"select {folder} gave no UIDVALIDITY/UIDNEXT: {response.lines!r}")
+        # end if
+        self.folder, self.state, self.writable = folder, state, True
+        return state
+    # end def
+
+    async def ensure_writable(self, folder: str) -> None:
+        if self.folder != folder or not self.writable:
+            await self.select(folder)
+        # end if
+    # end def
+
+    async def store_flags(self, folder: str, uid: int, add: tuple[str, ...] = (), remove: tuple[str, ...] = ()) -> None:
+        """Adds and removes flags or keywords of one mail."""
+        await self.ensure_writable(folder)
+        for sign, flags in (("+", add), ("-", remove)):
+            if flags:
+                check(await self.conn.uid("store", str(uid), f"{sign}FLAGS.SILENT", f"({' '.join(flags)})"), "store")
+            # end if
+        # end for
+    # end def
+
+    async def move(self, folder: str, uid: int, target: str) -> None:
+        """Moves one mail to another folder of this account. Without `MOVE` it is copy, flag `\\Deleted` and a `UID EXPUNGE` of just that mail."""
+        await self.ensure_writable(folder)
+        if self.has_capability("MOVE"):
+            check(await self.conn.uid("move", str(uid), quote_folder(target)), f"move to {target}")
+            return
+        # end if
+        if not self.has_capability("UIDPLUS"):
+            # A plain EXPUNGE would also remove unrelated mails flagged `\Deleted`, so refuse instead.
+            raise ImapError("cannot move safely: the server has neither MOVE nor UIDPLUS")
+        # end if
+        check(await self.conn.uid("copy", str(uid), quote_folder(target)), f"copy to {target}")
+        check(await self.conn.uid("store", str(uid), "+FLAGS.SILENT", "(\\Deleted)"), "store")
+        check(await self.conn.uid("expunge", str(uid)), "expunge")
     # end def
 
     async def poll_state(self, folder: str) -> FolderState:

@@ -107,6 +107,7 @@ class FakeConnection:
         self.server = server
         self.protocol = FakeProtocol(server.capabilities)
         self.selected: str | None = None
+        self.writable = False
         self.idle = False
         self.queue: asyncio.Queue[Response] = asyncio.Queue()
         server.push_queues.append(self.queue)
@@ -155,6 +156,17 @@ class FakeConnection:
         self.log(f"EXAMINE {mailbox}")
         folder = self.folder(mailbox)
         self.selected = mailbox.strip('"')
+        self.writable = False
+        self.protocol.state = "AUTH"
+        return Response("OK", self.state_lines(folder))
+    # end def
+
+    async def select(self, mailbox: str = "INBOX") -> Response:
+        self.log(f"SELECT {mailbox}")
+        folder = self.folder(mailbox)
+        self.selected = mailbox.strip('"')
+        self.writable = True
+        self.protocol.state = "SELECTED"
         return Response("OK", self.state_lines(folder))
     # end def
 
@@ -187,8 +199,60 @@ class FakeConnection:
     # end def
 
     async def uid(self, command: str, *criteria: str) -> Response:
-        assert command.lower() == "fetch", "read only: only FETCH is allowed"
-        uid_set, fields = criteria
+        name = command.lower()
+        if name == "fetch":
+            return self.uid_fetch(*criteria)
+        # end if
+        assert name in {"store", "copy", "move", "expunge"}, f"unsupported command {command}"
+        self.log(f"UID {command.upper()} {' '.join(criteria)}")
+        self.require_selected("UID")
+        if not self.writable:
+            return Response("NO", [b"[READ-ONLY] mailbox is examined"])
+        # end if
+        assert self.selected is not None
+        source = self.folder(self.selected)
+        uid = int(criteria[0])
+        message = next((m for m in source.messages if m.uid == uid), None)
+        if message is None:
+            return Response("OK", [b"nothing to do"])
+        # end if
+        if name == "store":
+            self.store(source, message, criteria[1], criteria[2])
+        elif name == "expunge":
+            if "UIDPLUS" not in self.server.capabilities:
+                return Response("BAD", [b"UID EXPUNGE needs UIDPLUS"])
+            # end if
+            if "\\Deleted" in message.flags.split():
+                source.messages.remove(message)
+            # end if
+        else:
+            target = self.folder(criteria[1])
+            copy = FakeMessage(uid=max([m.uid for m in target.messages], default=0) + 1, raw=message.raw, flags=message.flags, body=message.body)
+            target.modseq += 1
+            copy.modseq = target.modseq
+            target.messages.append(copy)
+            if name == "move":
+                source.messages.remove(message)
+            # end if
+        # end if
+        return Response("OK", [b"done"])
+    # end def
+
+    def store(self, folder: FakeFolder, message: FakeMessage, mode: str, flags: str) -> None:
+        wanted = flags.strip("()").split()
+        current = message.flags.split()
+        if mode.startswith("+"):
+            current += [flag for flag in wanted if flag not in current]
+        elif mode.startswith("-"):
+            current = [flag for flag in current if flag not in wanted]
+        else:
+            current = wanted
+        # end if
+        folder.modseq += 1
+        message.flags, message.modseq = " ".join(current), folder.modseq
+    # end def
+
+    def uid_fetch(self, uid_set: str, fields: str) -> Response:
         self.log(f"UID FETCH {uid_set} {fields}")
         self.require_selected("UID")
         assert self.selected is not None
