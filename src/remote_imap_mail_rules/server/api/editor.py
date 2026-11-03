@@ -6,35 +6,36 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
 from .. import rules_file
-from ..settings import ServerSettings
+from ..rules_store import RulesStore
 
 router = APIRouter()
 
 
 class EditorConfig(BaseModel):
     mode: Literal["server"] = "server"
-    file_name: str
+    source: Literal["file", "database"]
+    file_name: str | None
     exists: bool
 
 
-def get_settings(request: Request) -> ServerSettings:
-    settings: ServerSettings = request.app.state.settings
-    return settings
+def get_store(request: Request) -> RulesStore:
+    store: RulesStore = request.app.state.rules_store
+    return store
 # end def
 
 
 @router.get("/config")
 async def get_config(request: Request) -> EditorConfig:
-    path = get_settings(request).rules_path
-    return EditorConfig(file_name=path.name, exists=path.is_file())
+    store = get_store(request)
+    return EditorConfig(source=store.source, file_name=store.file_name, exists=await store.exists())
 # end def
 
 
 @router.get("/rules")
 async def get_rules(request: Request) -> Response:
-    text = await rules_file.read_text(get_settings(request).rules_path)
+    text = await get_store(request).read_text()
     if text is None:
-        raise HTTPException(status_code=404, detail="The rules file does not exist yet.")
+        raise HTTPException(status_code=404, detail="There are no rules yet.")
     # end if
     return Response(content=text, media_type="text/plain; charset=utf-8")
 # end def
@@ -49,7 +50,7 @@ async def put_rules(request: Request) -> None:
         raise HTTPException(status_code=422, detail=["The body is not valid UTF-8."]) from e
     # end try
     try:
-        await rules_file.save_text(get_settings(request).rules_path, text)
+        await get_store(request).save_text(text)
     except rules_file.InvalidRules as e:
         raise HTTPException(status_code=422, detail=e.messages) from e
     # end try

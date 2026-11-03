@@ -11,12 +11,12 @@ from ..db.engine import DEFAULT_DATABASE_URL
 class ServerSettings(BaseSettings):
     """Separate from `ImapSettings`, so the server starts without any IMAP credentials.
 
-    `RULES_PATH` is the same variable the watcher uses.
+    A set `RULES_PATH` (the variable the watcher uses) means the rules live in that file, otherwise in the database.
     """
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore", case_sensitive=False)
 
-    rules_path: Path = Path("rules/example.yml")
+    rules_path: Path | None = Field(default=None, description="Rules file; when unset the rules live in the database.")
     database_url: str = Field(default=DEFAULT_DATABASE_URL, description="Any async SQLAlchemy URL.")
     secret_key: SecretStr | None = Field(default=None, description="Fernet key that encrypts the account passwords.")
     server_host: str = "127.0.0.1"

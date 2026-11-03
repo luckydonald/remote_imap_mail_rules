@@ -11,6 +11,7 @@ from ..db import accounts as account_repository
 from ..db.engine import create_engine, create_session_factory
 from ..db.migrate import upgrade
 from .api import accounts, editor
+from .rules_store import DatabaseRulesStore, FileRulesStore, RulesStore
 from .settings import ServerSettings
 
 
@@ -35,6 +36,8 @@ def create_app(settings: ServerSettings | None = None, env_account: ImapSettings
     app.state.settings = settings
     app.state.session_factory = session_factory
     app.state.env_account = env_account
+    store: RulesStore = FileRulesStore(settings.rules_path) if settings.rules_path else DatabaseRulesStore(session_factory)
+    app.state.rules_store = store
     app.include_router(editor.router, prefix="/api/editor", tags=["editor"])
     app.include_router(accounts.router, prefix="/api/accounts", tags=["accounts"])
     if settings.frontend_dist.is_dir():
