@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AccountsView from './AccountsView.vue'
 import MailLogin from './MailLogin.vue'
 import MailView from './MailView.vue'
@@ -12,6 +13,7 @@ import { provideStore } from '@/model/context'
 import { logout } from '@/model/mail-api'
 import { useMailStore } from '@/model/mail-store'
 import { createStore } from '@/model/store'
+import { locationOfView, viewOfRoute } from '@/router'
 
 const store = createStore()
 provideStore(store)
@@ -23,7 +25,37 @@ const dragging = ref(false)
 const saving = ref(false)
 const online = ref(false)
 const loginRequired = ref(false)
-const screen = ref<'rules' | 'accounts' | 'mail'>('rules')
+const route = useRoute()
+const router = useRouter()
+const screen = computed(() => route.meta.screen ?? 'rules')
+
+// The route and the editor view follow each other: a link changes the view, and the store
+// changes it itself when it adds, removes or moves a rule or loads a file.
+watch(
+  () => [route.name, route.params.index] as const,
+  () => {
+    const view = viewOfRoute(route.name, route.params)
+    if (view === null) return
+    const current = store.view.value
+    if (
+      view.kind !== current.kind ||
+      (view.kind === 'rule' && current.kind === 'rule' && view.index !== current.index)
+    )
+      store.view.value = view
+  },
+  { immediate: true },
+)
+watch(
+  store.view,
+  (view) => {
+    if (screen.value !== 'rules') return
+    const target = router.resolve(locationOfView(view))
+    if (target.fullPath !== route.fullPath) void router.push(target)
+  },
+  { deep: true },
+)
+/** The Rules link returns to the view that was open. */
+const rulesLink = computed(() => locationOfView(store.view.value))
 
 /** Loads the server's rules file when a server answers; without one the editor stays file based. */
 async function connect(): Promise<void> {
@@ -64,7 +96,7 @@ async function logOut(): Promise<void> {
   mail.active = false
   mail.clear()
   loginRequired.value = true
-  screen.value = 'rules'
+  void router.push(locationOfView(store.view.value))
 }
 
 async function save(): Promise<void> {
@@ -158,16 +190,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <span class="file">{{ store.fileName.value }}</span>
       <span class="spacer" />
       <nav v-if="online" class="screens" aria-label="Screens">
-        <button
-          v-for="item in ['rules', 'accounts', 'mail'] as const"
-          :key="item"
-          type="button"
-          class="ghost"
-          :class="{ current: screen === item }"
-          @click="screen = item"
-        >
-          {{ item === 'rules' ? 'Rules' : item === 'accounts' ? 'Accounts' : 'Mail' }}
-        </button>
+        <RouterLink :to="rulesLink" class="ghost" :class="{ current: screen === 'rules' }">
+          Rules
+        </RouterLink>
+        <RouterLink :to="{ name: 'accounts' }" class="ghost">Accounts</RouterLink>
+        <RouterLink :to="{ name: 'mail' }" class="ghost">Mail</RouterLink>
         <button type="button" class="ghost" @click="logOut">Log out</button>
       </nav>
       <button
