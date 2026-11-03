@@ -47,7 +47,7 @@ def client(rules_path: Path, tmp_path: Path) -> Iterator[TestClient]:
 
 def test_config_without_file(client: TestClient) -> None:
     response = client.get("/api/editor/config")
-    assert response.json() == {"mode": "server", "source": "file", "file_name": "rules.yml", "exists": False}
+    assert response.json() == {"mode": "server", "source": "file", "file_name": "rules.yml", "exists": False, "actions_enabled": False}
 # end def
 
 
