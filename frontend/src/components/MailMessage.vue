@@ -3,6 +3,7 @@ import { nextTick, ref, watch } from 'vue'
 import { addressList, fileSize, frameDocument, fullDate } from '@/model/mail-format'
 import type { MailStore } from '@/model/mail-store'
 import MailAddCondition from './MailAddCondition.vue'
+import MailLog from './MailLog.vue'
 import MailSpinner from './MailSpinner.vue'
 
 const props = defineProps<{ store: MailStore; compact?: boolean }>()
@@ -65,6 +66,7 @@ watch(
       />
       <pre v-else-if="store.detail.text" class="body-text">{{ store.detail.text }}</pre>
       <p v-else class="hint">This message has no text.</p>
+      <MailLog :events="store.events" />
     </template>
   </article>
 </template>
