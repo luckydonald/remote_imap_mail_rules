@@ -1,9 +1,10 @@
-"""Background watcher: runs the rules on every stored account and writes the action log (first seen, rule matches)."""
+"""Background watcher: runs the rules on every stored account and writes the action log (first seen, rule matches, and the actions if enabled)."""
 
 import asyncio
 import contextlib
 import logging
 from dataclasses import dataclass
+from typing import Any
 from uuid import UUID
 
 import yaml
@@ -15,6 +16,7 @@ from ..db import accounts as account_repository
 from ..db import mail_events
 from ..db.crypto import CryptoError
 from ..db.models import EventKind
+from ..actions import ActionRunner, ChainResult, StepStatus
 from ..imap.client import ConnectionFactory, ImapError
 from ..mail import Mail
 from ..matching import MatchKind, RuleMatch, matches
@@ -30,7 +32,18 @@ class Seen:
 # end class
 
 
-Entry = Seen | RuleMatch
+@dataclass(frozen=True)
+class Act:
+    """Run the rules for real over this mail (queued once per mail after its first match)."""
+
+    mail: Mail
+# end class
+
+
+Entry = Seen | RuleMatch | Act
+
+LOGGED_STATUSES = {StepStatus.done, StepStatus.error, StepStatus.skipped}
+"""A `noop` step changed nothing, so it is not worth a log entry (and a rerun after a restart stays silent)."""
 
 
 class Watcher:
@@ -45,6 +58,7 @@ class Watcher:
         *,
         enabled: bool = True,
         retry_delay: float = 30.0,
+        actions_enabled: bool = False,
     ) -> None:
         self.session_factory = session_factory
         self.rules_store = rules_store
@@ -52,6 +66,7 @@ class Watcher:
         self.imap_factory = imap_factory
         self.enabled = enabled
         self.retry_delay = retry_delay
+        self.actions_enabled = actions_enabled
         self.task: asyncio.Task[None] | None = None
     # end def
 
@@ -126,10 +141,17 @@ class Watcher:
             return
         # end try
         queue: asyncio.Queue[Entry] = asyncio.Queue()
-        recorder = asyncio.create_task(self.record(queue))
+        pending: set[tuple[str, int, int | None]] = set()
+        runner = ActionRunner(settings, rule_file, self.imap_factory) if self.actions_enabled else None
+        recorder = asyncio.create_task(self.record(queue, runner, pending))
         try:
             async for found in matches(settings, rule_file, self.imap_factory, on_inspect=lambda mail: queue.put_nowait(Seen(mail))):
                 queue.put_nowait(found)
+                key = (found.mail.folder, found.mail.uid, found.mail.uidvalidity)
+                if runner is not None and key not in pending:
+                    pending.add(key)
+                    queue.put_nowait(Act(found.mail))
+                # end if
             # end for
             await queue.join()
         finally:
@@ -137,16 +159,28 @@ class Watcher:
             with contextlib.suppress(asyncio.CancelledError):
                 await recorder
             # end with
+            if runner is not None:
+                await runner.close()
+            # end if
         # end try
     # end def
 
-    async def record(self, queue: asyncio.Queue[Entry]) -> None:
+    async def record(self, queue: asyncio.Queue[Entry], runner: ActionRunner | None = None, pending: set[tuple[str, int, int | None]] | None = None) -> None:
         """Writes the entries in the order they were queued, so a mail's first seen precedes its matches."""
         while True:
             entry = await queue.get()
             try:
                 async with self.session_factory() as session:
-                    await self.write(session, entry)
+                    if isinstance(entry, Act):
+                        if pending is not None:
+                            pending.discard((entry.mail.folder, entry.mail.uid, entry.mail.uidvalidity))
+                        # end if
+                        if runner is not None:
+                            await self.write_actions(session, await runner.run(entry.mail))
+                        # end if
+                    else:
+                        await self.write(session, entry)
+                    # end if
                     await session.commit()
                 # end with
             except Exception:
@@ -155,6 +189,24 @@ class Watcher:
                 queue.task_done()
             # end try
         # end while
+    # end def
+
+    async def write_actions(self, session: AsyncSession, result: ChainResult | None) -> None:
+        """One `action` entry per step that did something, under the key the mail had when the step ran."""
+        if result is None:
+            return
+        # end if
+        for round_ in result.rounds:
+            for step in round_.steps:
+                if step.status in LOGGED_STATUSES:
+                    detail: dict[str, Any] = {"type": step.type, "status": step.status.value, **step.args}
+                    if step.reason:
+                        detail["reason"] = step.reason
+                    # end if
+                    await self.add(session, result.mail, EventKind.action, rule_name=round_.rule.name, detail=detail)
+                # end if
+            # end for
+        # end for
     # end def
 
     async def write(self, session: AsyncSession, entry: Entry) -> None:
@@ -175,7 +227,7 @@ class Watcher:
         await self.add(session, mail, EventKind.rule_match, rule_name=name, detail={"match_kind": entry.kind.value})
     # end def
 
-    async def add(self, session: AsyncSession, mail: Mail, kind: EventKind, *, rule_name: str | None = None, detail: dict[str, str] | None = None) -> None:
+    async def add(self, session: AsyncSession, mail: Mail, kind: EventKind, *, rule_name: str | None = None, detail: dict[str, Any] | None = None) -> None:
         await mail_events.record_event(
             session,
             mail.account_id,

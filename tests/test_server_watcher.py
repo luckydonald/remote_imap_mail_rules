@@ -16,7 +16,7 @@ from remote_imap_mail_rules.server.watcher import Watcher
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from .fake_imap import FakeServer
+from .fake_imap import FakeFolder, FakeServer
 from .test_imap import ACCOUNT
 from .test_server_accounts import KEY
 
@@ -206,4 +206,108 @@ async def test_account_and_rule_edits_restart_the_watcher(tmp_path: Path, monkey
         assert client.delete(f"/api/accounts/{created['id']}").status_code == 409
         assert len(restarts) == 3
     # end with
+# end def
+
+
+ACTION_RULES = f"""
+rules:
+  - name: invoices
+    locations: [{{account_id: {ACCOUNT}}}]
+    when:
+      type: all
+      conditions:
+        - {{type: text, field: subject, operator: contains, value: invoice}}
+        - {{type: bool, field: seen, value: false}}
+    actions:
+      - {{type: mark_read}}
+      - {{type: flag}}
+  - name: archive
+    locations: [{{account_id: {ACCOUNT}}}]
+    when: {{type: text, field: subject, operator: contains, value: invoice}}
+    actions:
+      - {{type: move, folder: Archive}}
+"""
+
+
+def action_server() -> FakeServer:
+    server = FakeServer({"IMAP4REV1", "IDLE", "CONDSTORE", "MOVE"})
+    server.add("INBOX", 1, "invoice one")
+    server.add("INBOX", 2, "hello")
+    server.folders["Archive"] = FakeFolder()
+    return server
+# end def
+
+
+def make_acting_watcher(factory: async_sessionmaker[AsyncSession], server: FakeServer, actions_enabled: bool) -> Watcher:
+    return Watcher(factory, StaticRules(ACTION_RULES), SecretStr(KEY), server.connect, retry_delay=0.05, actions_enabled=actions_enabled)
+# end def
+
+
+async def action_events(factory: async_sessionmaker[AsyncSession]) -> list[tuple[str, str | None, dict[str, object]]]:
+    async with factory() as session:
+        events = (await session.scalars(select(MailEvent).where(MailEvent.kind == "action").order_by(MailEvent.created_at))).all()
+        return [(event.detail["type"], event.rule_name, event.detail) for event in events]
+    # end with
+# end def
+
+
+async def test_actions_are_applied_and_logged_when_enabled(factory: async_sessionmaker[AsyncSession]) -> None:
+    server = action_server()
+    watcher = make_acting_watcher(factory, server, actions_enabled=True)
+    watcher.start()
+    try:
+        async def moved() -> bool:
+            return [m.uid for m in server.folders["Archive"].messages] != [] and len(await action_events(factory)) >= 3
+        # end def
+        await until(moved)
+        # `invoices` wins first and marks the mail read and flagged, which stops it matching, then `archive` moves it.
+        events = await action_events(factory)
+        assert [(kind, rule) for kind, rule, _ in events] == [("mark_read", "invoices"), ("flag", "invoices"), ("move", "archive")]
+        assert all(detail["status"] == "done" for _, _, detail in events)
+        assert events[2][2]["folder"] == "Archive"
+        assert [m.uid for m in server.folders["INBOX"].messages] == [2]
+        assert set(server.folders["Archive"].messages[0].flags.split()) == {"\\Seen", "\\Flagged"}
+    finally:
+        await watcher.stop()
+    # end try
+# end def
+
+
+async def test_nothing_is_written_when_actions_are_disabled(factory: async_sessionmaker[AsyncSession]) -> None:
+    server = action_server()
+    watcher = make_acting_watcher(factory, server, actions_enabled=False)
+    watcher.start()
+    try:
+        await until(lambda: _has(factory, "INBOX", 1, [("first_seen", None), ("rule_match", "invoices"), ("rule_match", "archive")]))
+        await asyncio.sleep(0.2)
+    finally:
+        await watcher.stop()
+    # end try
+    assert await action_events(factory) == []
+    assert not any(word in command for command in server.commands for word in ("STORE", "MOVE", "COPY", "EXPUNGE", "SELECT"))
+    assert [m.uid for m in server.folders["INBOX"].messages] == [1, 2]
+# end def
+
+
+async def test_a_restart_does_not_repeat_actions(factory: async_sessionmaker[AsyncSession]) -> None:
+    server = action_server()
+    server.add("INBOX", 3, "invoice two", flags="\\Seen \\Flagged")
+    server.folders["Archive"].messages.clear()
+    watcher = make_acting_watcher(factory, server, actions_enabled=True)
+    watcher.start()
+    try:
+        await until(lambda: _count(factory, 4))
+        await asyncio.sleep(0.2)
+        await watcher.restart()
+        await asyncio.sleep(0.4)
+    finally:
+        await watcher.stop()
+    # end try
+    assert len(await action_events(factory)) == 4
+    assert len(server.folders["Archive"].messages) == 2
+# end def
+
+
+async def _count(factory: async_sessionmaker[AsyncSession], expected: int) -> bool:
+    return len(await action_events(factory)) >= expected
 # end def
