@@ -14,7 +14,8 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: `yarn vite --port ${PORT} --strictPort`,
+    // Nothing listens on port 9, so a server running on 8000 cannot change what the tests see.
+    command: `API_PROXY=http://127.0.0.1:9 yarn vite --port ${PORT} --strictPort`,
     port: PORT,
     reuseExistingServer: !process.env.CI,
   },

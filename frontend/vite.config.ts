@@ -14,6 +14,6 @@ export default defineConfig({
     },
   },
   // The schema lives one level up, in the backend part of the repo.
-  // `/api` goes to the FastAPI server (`uv run python -m remote_imap_mail_rules.server.main`) while developing.
-  server: { fs: { allow: ['..'] }, proxy: { '/api': 'http://127.0.0.1:8000' } },
+  // `/api` goes (or to `API_PROXY`, the e2e tests point it at a closed port so a running server cannot interfere) to the FastAPI server (`uv run python -m remote_imap_mail_rules.server.main`) while developing.
+  server: { fs: { allow: ['..'] }, proxy: { '/api': process.env.API_PROXY ?? 'http://127.0.0.1:8000' } },
 })
