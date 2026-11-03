@@ -27,6 +27,8 @@ export function createMailStore(onUnauthorized: () => void = () => {}) {
   const selectedUid = ref<number | null>(null)
   const error = ref('')
   const loading = ref(false)
+  // True from the start until the accounts and the folders of the first account are in.
+  const foldersLoading = ref(true)
   const pane = ref<Pane>('folders')
   // Answers of requests that were overtaken by a newer choice are dropped.
   let listTicket = 0
@@ -47,7 +49,9 @@ export function createMailStore(onUnauthorized: () => void = () => {}) {
     try {
       accounts.value = await listAccounts()
       if (accountId.value === null && accounts.value[0]) await selectAccount(accounts.value[0].id)
+      else foldersLoading.value = false
     } catch (caught) {
+      foldersLoading.value = false
       fail('Could not load the accounts', caught)
     }
   }
@@ -61,14 +65,18 @@ export function createMailStore(onUnauthorized: () => void = () => {}) {
     selectedUid.value = null
     error.value = ''
     pane.value = 'folders'
+    foldersLoading.value = true
     try {
       const found = await listFolders(id)
       if (accountId.value !== id) return
       folders.value = found.filter((item) => item.selectable)
+      foldersLoading.value = false
       const inbox = folders.value.find((item) => item.special_use === 'inbox')
       if (inbox) await selectFolder(inbox.name)
     } catch (caught) {
       fail('Could not load the folders', caught)
+    } finally {
+      if (accountId.value === id) foldersLoading.value = false
     }
   }
 
@@ -144,6 +152,7 @@ export function createMailStore(onUnauthorized: () => void = () => {}) {
     selectedUid,
     error,
     loading,
+    foldersLoading,
     pane,
     loadAccounts,
     selectAccount,

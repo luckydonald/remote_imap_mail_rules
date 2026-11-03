@@ -374,3 +374,5 @@ And what's going on with typescript 7 vs 5.9?
 
 ❯ The mail viewer must have a `loading…` + splinner (mail emoji dancing) while it's fetching the initial list or for the infinity-scroll part.
 
+❯ The mailbox/dirs on the left-most pane need that spinner, too. On first page draw, this is not visibly loading still.
+

@@ -20,7 +20,10 @@ onMounted(() => void store.loadAccounts())
     >
       {{ store.error.value }}
     </p>
-    <p v-if="store.accounts.value.length === 0 && !store.error.value" class="hint empty">
+    <p
+      v-if="store.accounts.value.length === 0 && !store.error.value && !store.foldersLoading.value"
+      class="hint empty"
+    >
       No accounts yet, add one on the Accounts screen.
     </p>
     <MailFolders :store="store" />
