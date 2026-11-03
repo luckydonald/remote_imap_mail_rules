@@ -51,3 +51,10 @@ def make_mail(raw: str = RAW, **overrides: object) -> Mail:
 def mail() -> Mail:
     return make_mail()
 # end def
+
+
+@pytest.fixture(autouse=True)
+def no_watcher(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The server tests do not want the background watcher; its own tests build a `Watcher` directly."""
+    monkeypatch.setenv("WATCH_ENABLED", "false")
+# end def
