@@ -536,3 +536,45 @@ Hoist mail into a shared pinia store, persisted/cached by localstorage.
 
 ❯ Check if [@`ai/errors/3.txt`](./errors/3.txt) needs fixing
 
+❯ Continue [@`ai/initial.md`](./initial.md) stages
+
+❯ Task Notification:
+> - Task `a24b8b9dffc9c397f` <kbd>completed</kbd>
+> - Tool `toolu_01KfmtNiVZjVBsneSj6kdTm3`
+> - > Agent "Explore actions and move code" finished
+> - [Query (`1117` chars, `1.09 KB`)](output/agents/020.a24b8b9dffc9c397f/prompt.md)
+> - [Answer (`11638` chars, `11.4 KB`)](output/agents/020.a24b8b9dffc9c397f/result.md)
+> - [Raw log (`446007` chars, `436 KB`)](/private/tmp/claude-501/-Users-user-Documents-programming-Python-remote-imap-mail-rules/f7366d9f-ba98-4112-a086-01cf7718eaca/tasks/a24b8b9dffc9c397f.output)
+> - `12` tools, `60575` tokens, `0.999083 s`
+
+❯ Question answered.
+> <details><summary>
+>
+>> 1. What should this round cover from the 'Not built yet' list?
+>> 2. How should a cross-account move deliver the message?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Scope** (1/2) <kbd>Single Select</kbd><br>
+>> What should this round cover from the 'Not built yet' list?
+> - [x] 1\. Cross-account move + log continuation (Recommended)
+>   - _Stage 6b: APPEND to the target account, then remove from the source, and write the moved mail's log under its new key. user_action is left for a later stage._
+> - [ ] 2\. 6b plus user_action
+>   - _Also log user changes. That needs either a mail-browser write API or diffing watcher changes against our own actions, which is a bigger design._
+> - [ ] 3\. Only user_action
+>   - _Skip cross-account moves for now._
+> - [ ] 4\. _Type something._
+>
+>> **Move safety** (2/2) <kbd>Single Select</kbd><br>
+>> How should a cross-account move deliver the message?
+> - [x] 1\. APPEND first, verify, then delete source (Recommended)
+>   - _Fetch the full RFC822 with BODY.PEEK[], APPEND with flags and INTERNALDATE, and only then delete the source mail. A failure in between leaves a duplicate rather than losing the mail._
+> - [ ] 2\. Copy only, keep the source
+>   - _Never deletes at the source, which is safest but not a real move._
+> - [ ] 3\. _Type something._
+>
+> </details>
+>
+
