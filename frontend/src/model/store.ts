@@ -1,3 +1,4 @@
+import { defineStore } from 'pinia'
 import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { validateRules } from './validate'
 import { parseRulesWithComments, stringifyRules } from './yaml-io'
@@ -52,8 +53,9 @@ export function newRule(): Rule {
   }
 }
 
-export function createStore(initial: RuleFile = emptyFile()) {
-  const file = reactive<RuleFile>(initial)
+/** The rule editor's document and its history, one per app (a Pinia setup store, so unwrapped refs: `store.view`, not `store.view.value`). */
+export const useStore = defineStore('rules', () => {
+  const file = reactive<RuleFile>(emptyFile())
   const view = ref<View>({ kind: 'yaml' })
   const fileName = ref('rules.yml')
   /** The file name on the server while the editor works on its rules file, else `null` (a local file never writes to disk). */
@@ -332,6 +334,6 @@ export function createStore(initial: RuleFile = emptyFile()) {
     usesOf,
     renameTemplate,
   }
-}
+})
 
-export type Store = ReturnType<typeof createStore>
+export type Store = ReturnType<typeof useStore>

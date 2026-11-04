@@ -1,4 +1,4 @@
-/** Client of the server's login and read-only mail endpoints. */
+/** Client of the server's login and mail endpoints; reading is read-only, `setFlags` and `moveMessage` write and need `ACTIONS_ENABLED`. */
 
 import { ApiError, failure } from './http'
 
@@ -65,6 +65,13 @@ export interface Detail extends Summary {
   message_id: string | null
   text: string | null
   html: string | null
+  /** Remote image URLs left out of `html`, unless `remote_images_allowed`. */
+  blocked_images: string[]
+  /** `cid:` images without a part in the mail. */
+  broken_embeds: string[]
+  styles_blocked: boolean
+  remote_images_allowed: boolean
+  styles_allowed: boolean
   attachments: Attachment[]
 }
 
@@ -107,9 +114,54 @@ export async function listMessages(
   return json<Page>(await fetch(`${MAIL}/accounts/${accountId}/messages?${query}`))
 }
 
-export async function getMessage(accountId: string, folder: string, uid: number): Promise<Detail> {
+/** What the server may let the HTML load: remote images and its own CSS, both off unless asked for. */
+export interface BodyOptions {
+  remoteImages?: boolean
+  styles?: boolean
+}
+
+export async function getMessage(
+  accountId: string,
+  folder: string,
+  uid: number,
+  options: BodyOptions = {},
+): Promise<Detail> {
   const query = new URLSearchParams({ folder })
+  if (options.remoteImages) query.set('remote_images', 'true')
+  if (options.styles) query.set('styles', 'true')
   return json<Detail>(await fetch(`${MAIL}/accounts/${accountId}/messages/${uid}?${query}`))
+}
+
+/** Sets and clears `\\Seen`, `\\Flagged` or `\\Answered` on one mail. */
+export async function setFlags(
+  accountId: string,
+  folder: string,
+  uid: number,
+  change: { add?: string[]; remove?: string[] },
+): Promise<void> {
+  const query = new URLSearchParams({ folder })
+  const response = await fetch(`${MAIL}/accounts/${accountId}/messages/${uid}/flags?${query}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ add: change.add ?? [], remove: change.remove ?? [] }),
+  })
+  if (!response.ok) throw await failure(response)
+}
+
+/** Moves one mail to another folder of the same account. */
+export async function moveMessage(
+  accountId: string,
+  folder: string,
+  uid: number,
+  target: string,
+): Promise<void> {
+  const query = new URLSearchParams({ folder })
+  const response = await fetch(`${MAIL}/accounts/${accountId}/messages/${uid}/move?${query}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ folder: target }),
+  })
+  if (!response.ok) throw await failure(response)
 }
 
 /** One entry of the action log of a mail, written by the server's watcher. */

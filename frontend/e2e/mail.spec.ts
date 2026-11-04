@@ -170,3 +170,93 @@ test('opens a mail from its URL', async ({ page }) => {
   await expect(page.locator('.mail-folders .folder.active')).toContainText('INBOX')
   await expect(page).toHaveURL(`/mail/${ACCOUNT_ID}/INBOX`)
 })
+
+
+const MOVE_RULES = `rules:
+  - name: sent copy
+    locations:
+      - account_id: ${ACCOUNT_ID}
+        folder: INBOX
+    when:
+      type: bool
+      field: seen
+    actions:
+      - type: move
+        folder: Sent
+`
+
+async function openThird(page: import('@playwright/test').Page): Promise<void> {
+  await page.goto('/')
+  await logIn(page)
+  await page.getByRole('link', { name: 'Mail', exact: true }).click()
+  await page.locator('.row-mail', { hasText: 'Subject 3' }).click()
+  await expect(page.locator('.mail-message h2')).toHaveText('Subject 3')
+}
+
+test('marks the open mail unread and read again', async ({ page }) => {
+  const calls = await mockServer(page)
+  await openThird(page)
+  await page.getByRole('button', { name: 'Mark read' }).click()
+  await expect(page.getByRole('button', { name: 'Mark unread' })).toBeVisible()
+  await expect(page.locator('.row-mail.active')).not.toHaveClass(/unread/)
+  expect(calls).toContain('body {"add":["\\\\Seen"],"remove":[]}')
+})
+
+test('moves the mail to a destination of the rules', async ({ page }) => {
+  const calls = await mockServer(page, false, MOVE_RULES)
+  await openThird(page)
+  await page.getByRole('button', { name: 'Move ▾' }).click()
+  await page.getByRole('menuitem', { name: 'Sent' }).click()
+  expect(calls).toContain('body {"folder":"Sent"}')
+  await expect(page.locator('.row-mail')).toHaveCount(1)
+})
+
+test('moves the mail to a folder picked in the tree under More', async ({ page }) => {
+  const calls = await mockServer(page)
+  await openThird(page)
+  await page.getByRole('button', { name: 'Move ▾' }).click()
+  await page.getByRole('menuitem', { name: 'More …' }).click()
+  await page.getByRole('treeitem', { name: /Sent/ }).click()
+  expect(calls).toContain('body {"folder":"Sent"}')
+})
+
+test('shows the text version and remembers the choice', async ({ page }) => {
+  await mockServer(page)
+  await openThird(page)
+  await expect(page.locator('iframe.body-frame')).toBeVisible()
+  await page.getByRole('radio', { name: 'Text' }).click()
+  await expect(page.locator('pre.body-text')).toHaveText('plain text')
+  await page.reload()
+  await expect(page.getByRole('radio', { name: 'Text' })).toHaveAttribute('aria-checked', 'true')
+})
+
+test('lists the blocked images and loads them on request', async ({ page }) => {
+  const calls = await mockServer(page)
+  await openThird(page)
+  await page.locator('.blocked-images summary').click()
+  await expect(page.locator('.blocked-images a')).toHaveCount(2)
+  await expect(page.locator('.blocked-images a').first()).toHaveText('https://t.example/a.gif')
+  await page.getByRole('button', { name: 'Load remote images' }).click()
+  await expect(page.locator('.blocked-images')).toHaveCount(0)
+  expect(calls.some((call) => call.includes('remote_images=true'))).toBe(true)
+})
+
+test('the header and the body scroll as one', async ({ page }) => {
+  await mockServer(page)
+  await openThird(page)
+  const frame = page.locator('iframe.body-frame')
+  const sizes = await frame.evaluate((element: HTMLIFrameElement) => ({
+    frame: element.clientHeight,
+    content: element.contentDocument?.documentElement.scrollHeight ?? 0,
+  }))
+  // The page scrolls, not the frame: its content fits into it.
+  expect(sizes.content).toBeLessThanOrEqual(sizes.frame)
+})
+
+test('the rule button starts a rule from the mail', async ({ page }) => {
+  await mockServer(page, false, MOVE_RULES)
+  await openThird(page)
+  await page.getByRole('button', { name: 'Rule ▾' }).click()
+  await page.getByRole('menuitem', { name: 'New rule from this mail' }).click()
+  await expect(page).toHaveURL(/\/rules\/1$/)
+})

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { addressFields, boolFields, dateFields, numberFields, textFields } from '@/model/catalog'
-import { useStore } from '@/model/context'
+import { useStore } from '@/model/store'
 import {
   appendCondition,
   conditionFor,
@@ -24,7 +24,7 @@ const granularity = ref<Granularity>('address')
 const chosen = computed(() => (fields.value.includes(field.value) ? field.value : fields.value[0]))
 const isAddress = computed(() => chosen.value !== undefined && addressFields.includes(chosen.value))
 const rule = computed(() => {
-  const view = store.view.value
+  const view = store.view
   return view.kind === 'rule' ? store.file.rules[view.index] : undefined
 })
 

@@ -154,3 +154,41 @@ describe('mail format', () => {
     expect(shortDate(null)).toBe('')
   })
 })
+
+describe('mail store writes', () => {
+  it('marks the open mail read and keeps the list and the badge right', async () => {
+    const fetchMock = stubServer()
+    const store = useMailStore()
+    await store.loadAccounts()
+    await store.openMessage(3)
+    await store.setSeen(true)
+    expect(store.detail?.seen).toBe(true)
+    expect(store.messages.find((item) => item.uid === 3)?.seen).toBe(true)
+    expect(store.folders[0]?.unseen).toBe(0)
+    const call = fetchMock.mock.calls.find(([url]) => String(url).includes('/flags?'))
+    expect(JSON.parse(String(call?.[1]?.body))).toEqual({ add: ['\\Seen'], remove: [] })
+  })
+
+  it('moves the open mail away and opens the next one', async () => {
+    const fetchMock = stubServer()
+    const store = useMailStore()
+    await store.loadAccounts()
+    await store.openMessage(3)
+    await store.moveTo('Sent')
+    expect(store.messages.map((item) => item.uid)).toEqual([2])
+    expect(store.selectedUid).toBe(2)
+    const call = fetchMock.mock.calls.find(([url]) => String(url).includes('/move?'))
+    expect(JSON.parse(String(call?.[1]?.body))).toEqual({ folder: 'Sent' })
+  })
+
+  it('loads the mail again with its remote images when asked', async () => {
+    const fetchMock = stubServer()
+    const store = useMailStore()
+    await store.loadAccounts()
+    await store.openMessage(3)
+    await store.allow({ remoteImages: true })
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('remote_images=true'))).toBe(
+      true,
+    )
+  })
+})

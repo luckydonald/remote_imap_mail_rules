@@ -9,18 +9,17 @@ import MailView from './MailView.vue'
 import RuleEditor from './RuleEditor.vue'
 import RuleList from './RuleList.vue'
 import SampleErrorView from './SampleErrorView.vue'
+import SettingsView from './SettingsView.vue'
 import SourceMenu from './SourceMenu.vue'
 import TemplatesView from './TemplatesView.vue'
 import YamlPanel from './YamlPanel.vue'
 import { fetchConfig, fetchRules, saveRules, SaveError } from '@/model/api'
-import { provideStore } from '@/model/context'
 import { logout } from '@/model/mail-api'
 import { useMailStore } from '@/model/mail-store'
-import { createStore } from '@/model/store'
+import { useStore } from '@/model/store'
 import { locationOfView, viewOfRoute } from '@/router'
 
-const store = createStore()
-provideStore(store)
+const store = useStore()
 const mail = useMailStore()
 
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -40,17 +39,17 @@ watch(
   () => {
     const view = viewOfRoute(route.name, route.params)
     if (view === null) return
-    const current = store.view.value
+    const current = store.view
     if (
       view.kind !== current.kind ||
       (view.kind === 'rule' && current.kind === 'rule' && view.index !== current.index)
     )
-      store.view.value = view
+      store.view = view
   },
   { immediate: true },
 )
 watch(
-  store.view,
+  () => store.view,
   (view) => {
     if (screen.value !== 'rules') return
     const target = router.resolve(locationOfView(view))
@@ -59,7 +58,7 @@ watch(
   { deep: true },
 )
 /** The Rules link returns to the view that was open. */
-const rulesLink = computed(() => locationOfView(store.view.value))
+const rulesLink = computed(() => locationOfView(store.view))
 
 /** Loads the server's rules file when a server answers; without one the editor stays file based. */
 async function connect(): Promise<void> {
@@ -76,11 +75,11 @@ async function connect(): Promise<void> {
   mail.active = true
   mail.actionsEnabled = config.actions_enabled === true
   const label = config.file_name ?? 'the database'
-  store.backend.value = { kind: config.source, name: config.file_name }
+  store.backend = { kind: config.source, name: config.file_name }
   try {
     const text = await fetchRules()
     if (text !== null) store.load(text, label)
-    else store.fileName.value = label
+    else store.fileName = label
     store.markSaved(label, undefined, text ?? undefined)
     notice.value =
       text !== null
@@ -102,16 +101,16 @@ async function logOut(): Promise<void> {
   mail.active = false
   mail.clear()
   loginRequired.value = true
-  void router.push(locationOfView(store.view.value))
+  void router.push(locationOfView(store.view))
 }
 
 async function save(): Promise<void> {
   saving.value = true
   try {
-    const text = store.yaml.value
+    const text = store.yaml
     await saveRules(text)
     store.markSaved(undefined, text, text)
-    notice.value = `Saved ${store.serverFile.value}.`
+    notice.value = `Saved ${store.serverFile}.`
   } catch (error) {
     notice.value =
       error instanceof SaveError
@@ -125,7 +124,7 @@ async function save(): Promise<void> {
 async function openFile(file: File): Promise<void> {
   try {
     store.openDocument(await file.text(), file.name)
-    notice.value = `Opened ${file.name} in memory${store.backend.value ? ', it is not written to the server' : ''}.`
+    notice.value = `Opened ${file.name} in memory${store.backend ? ', it is not written to the server' : ''}.`
   } catch (error) {
     notice.value = `Could not open ${file.name}: ${error instanceof Error ? error.message : String(error)}`
   }
@@ -151,17 +150,17 @@ function onDragOver(event: DragEvent): void {
 }
 
 function download(): void {
-  const url = URL.createObjectURL(new Blob([store.yaml.value], { type: 'text/yaml' }))
+  const url = URL.createObjectURL(new Blob([store.yaml], { type: 'text/yaml' }))
   const link = document.createElement('a')
   link.href = url
-  link.download = store.fileName.value
+  link.download = store.fileName
   link.click()
   URL.revokeObjectURL(url)
 }
 
 async function copy(): Promise<void> {
   try {
-    await navigator.clipboard.writeText(store.yaml.value)
+    await navigator.clipboard.writeText(store.yaml)
     notice.value = 'YAML copied.'
   } catch {
     notice.value = 'Copying is blocked by the browser, use the YAML view.'
@@ -170,7 +169,7 @@ async function copy(): Promise<void> {
 
 function reset(): void {
   store.openDocument('rules: []\n')
-  store.view.value = { kind: 'yaml' }
+  store.view = { kind: 'yaml' }
 }
 
 function onKey(event: KeyboardEvent): void {
@@ -214,6 +213,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <RouterLink :to="{ name: 'log' }" class="ghost" :class="{ current: screen === 'log' }"
           >Log</RouterLink
         >
+        <RouterLink
+          :to="{ name: 'settings' }"
+          class="ghost"
+          :class="{ current: screen === 'settings' }"
+          >Settings</RouterLink
+        >
         <button type="button" class="ghost" @click="logOut">Log out</button>
       </nav>
       <button
@@ -226,14 +231,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       >
         Example mail
       </button>
-      <template v-if="screen !== 'mail' && screen !== 'log'">
+      <template v-if="screen !== 'mail' && screen !== 'log' && screen !== 'settings'">
         <button type="button" @click="fileInput?.click()">Open…</button>
         <input ref="fileInput" type="file" accept=".yml,.yaml,text/yaml" hidden @change="onPick" />
         <button type="button" class="ghost" @click="reset">New</button>
         <button
           type="button"
           class="ghost"
-          :disabled="!store.canUndo.value"
+          :disabled="!store.canUndo"
           title="Undo"
           @click="store.undo()"
         >
@@ -242,7 +247,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <button
           type="button"
           class="ghost"
-          :disabled="!store.canRedo.value"
+          :disabled="!store.canRedo"
           title="Redo"
           @click="store.redo()"
         >
@@ -251,21 +256,21 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <button type="button" class="ghost" @click="copy">Copy YAML</button>
         <button type="button" @click="download">Download</button>
         <button
-          v-if="store.serverFile.value !== null"
+          v-if="store.serverFile !== null"
           type="button"
           class="save"
-          :disabled="saving || !store.dirty.value || store.problems.value.length > 0"
-          :title="`Write ${store.serverFile.value} on the server`"
+          :disabled="saving || !store.dirty || store.problems.length > 0"
+          :title="`Write ${store.serverFile} on the server`"
           @click="save"
         >
-          Save to {{ store.backend.value?.kind === 'database' ? 'Database' : store.serverFile.value
-          }}{{ store.dirty.value ? ' ●' : '' }}
+          Save to {{ store.backend?.kind === 'database' ? 'Database' : store.serverFile
+          }}{{ store.dirty ? ' ●' : '' }}
         </button>
         <span
-          v-if="store.problems.value.length > 0"
+          v-if="store.problems.length > 0"
           class="badge error"
-          @click="store.view.value = { kind: 'yaml' }"
-          >{{ store.problems.value.length }} problems</span
+          @click="store.view = { kind: 'yaml' }"
+          >{{ store.problems.length }} problems</span
         >
         <span v-else class="badge ok">valid</span>
       </template>
@@ -275,18 +280,19 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     <SampleErrorView v-else-if="screen === 'sample-error'" />
     <MailView v-else-if="screen === 'mail'" @unauthorized="logOut" />
     <ActionLogView v-else-if="screen === 'log'" @unauthorized="logOut" />
+    <SettingsView v-else-if="screen === 'settings'" />
     <AccountsView v-else-if="screen === 'accounts'" />
     <GitView v-else-if="screen === 'git'" />
     <div v-else class="body" :class="{ 'with-mail': online && mail.panelOpen }">
       <RuleList />
       <main>
         <RuleEditor
-          v-if="store.view.value.kind === 'rule' && store.file.rules[store.view.value.index]"
-          :key="store.view.value.index"
-          :rule="store.file.rules[store.view.value.index]!"
-          :index="store.view.value.index"
+          v-if="store.view.kind === 'rule' && store.file.rules[store.view.index]"
+          :key="store.view.index"
+          :rule="store.file.rules[store.view.index]!"
+          :index="store.view.index"
         />
-        <TemplatesView v-else-if="store.view.value.kind === 'templates'" />
+        <TemplatesView v-else-if="store.view.kind === 'templates'" />
         <YamlPanel v-else />
       </main>
       <aside v-if="online && mail.panelOpen" class="mail-panel">

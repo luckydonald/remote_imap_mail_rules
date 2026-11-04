@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { useStore } from '@/model/context'
+import { useStore } from '@/model/store'
 
 const store = useStore()
 
 function problemCount(index: number): number {
-  return store.problems.value.filter((problem) => problem.rule === index).length
+  return store.problems.filter((problem) => problem.rule === index).length
 }
 
 function isActive(index: number): boolean {
-  return store.view.value.kind === 'rule' && store.view.value.index === index
+  return store.view.kind === 'rule' && store.view.index === index
 }
 </script>
 
@@ -21,7 +21,7 @@ function isActive(index: number): boolean {
         :key="index"
         :class="{ active: isActive(index), disabled: rule.enabled === false }"
       >
-        <button type="button" class="select" @click="store.view.value = { kind: 'rule', index }">
+        <button type="button" class="select" @click="store.view = { kind: 'rule', index }">
           <span class="name">{{ rule.name || '(unnamed)' }}</span>
           <span
             v-if="problemCount(index) > 0"
@@ -67,17 +67,17 @@ function isActive(index: number): boolean {
     <button type="button" class="add" @click="store.addRule()">+ New rule</button>
     <h2>File</h2>
     <ul>
-      <li :class="{ active: store.view.value.kind === 'templates' }">
-        <button type="button" class="select" @click="store.view.value = { kind: 'templates' }">
+      <li :class="{ active: store.view.kind === 'templates' }">
+        <button type="button" class="select" @click="store.view = { kind: 'templates' }">
           <span class="name">Templates</span>
           <span class="badge">{{ Object.keys(store.file.templates).length }}</span>
         </button>
       </li>
-      <li :class="{ active: store.view.value.kind === 'yaml' }">
-        <button type="button" class="select" @click="store.view.value = { kind: 'yaml' }">
+      <li :class="{ active: store.view.kind === 'yaml' }">
+        <button type="button" class="select" @click="store.view = { kind: 'yaml' }">
           <span class="name">YAML</span>
-          <span v-if="store.problems.value.length > 0" class="badge error">{{
-            store.problems.value.length
+          <span v-if="store.problems.length > 0" class="badge error">{{
+            store.problems.length
           }}</span>
         </button>
       </li>

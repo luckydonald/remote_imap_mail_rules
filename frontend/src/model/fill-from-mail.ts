@@ -310,10 +310,52 @@ export function conditionFor(
   return filled === base ? null : filled
 }
 
-/** Adds a condition to a rule's `when`: into an `all` group, else the two together in a new one. */
-export function appendCondition(when: Expression, added: Expression): Expression {
-  if (when.type === 'all') return { ...when, conditions: [...when.conditions, added] }
-  return { type: 'all', conditions: [when, added] }
+/**
+ * Adds a condition to a rule's `when`.
+ * Without `path` it goes into a root `all`, else the rule and the new condition are wrapped in a new `all`.
+ * With a `path` (child indexes from the root, `[]` is the root group itself, `not` has the single child 0) it goes into that group:
+ * an `all` / `any` gets it appended, and a `not` gets its child wrapped in an `all` so it stays one condition.
+ * A path that leads nowhere falls back to no path.
+ */
+export function appendCondition(
+  when: Expression,
+  added: Expression,
+  path?: readonly number[],
+): Expression {
+  if (path === undefined) {
+    if (when.type === 'all') return { ...when, conditions: [...when.conditions, added] }
+    return { type: 'all', conditions: [when, added] }
+  }
+  const [step, ...rest] = path
+  if (step === undefined) {
+    if (when.type === 'all' || when.type === 'any')
+      return { ...when, conditions: [...when.conditions, added] }
+    if (when.type === 'not')
+      return { ...when, condition: { type: 'all', conditions: [when.condition, added] } }
+    return { type: 'all', conditions: [when, added] }
+  }
+  const child = when.type === 'all' || when.type === 'any' ? when.conditions[step] : undefined
+  if ((when.type === 'all' || when.type === 'any') && child) {
+    const conditions = [...when.conditions]
+    conditions[step] = appendCondition(child, added, rest)
+    return { ...when, conditions }
+  }
+  if (when.type === 'not' && step === 0)
+    return { ...when, condition: appendCondition(when.condition, added, rest) }
+  return appendCondition(when, added)
+}
+
+/** The groups of a `when` a condition can be added to, with their path and depth, e.g. to show them as a tree. */
+export function groupsOf(
+  when: Expression,
+  path: number[] = [],
+): { path: number[]; type: 'all' | 'any' | 'not'; depth: number }[] {
+  if (when.type !== 'all' && when.type !== 'any' && when.type !== 'not') return []
+  const children = when.type === 'not' ? [when.condition] : when.conditions
+  return [
+    { path, type: when.type, depth: path.length },
+    ...children.flatMap((child, index) => groupsOf(child, [...path, index])),
+  ]
 }
 
 /** Header names to suggest for a `header` condition: those of the open mail first, then the common ones, each once. */

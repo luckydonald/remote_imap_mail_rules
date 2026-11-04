@@ -2,7 +2,8 @@
 import { provide, ref } from 'vue'
 import ConditionNode from './ConditionNode.vue'
 import { newExpression } from '@/model/catalog'
-import { ALLOW_VARS, useStore } from '@/model/context'
+import { ALLOW_VARS } from '@/model/context'
+import { useStore } from '@/model/store'
 import { parseValue, showValue } from '@/model/values'
 import { templateVariables } from '@/model/validate'
 
