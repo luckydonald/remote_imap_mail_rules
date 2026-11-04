@@ -614,3 +614,9 @@ Have an admin user via environment variables, using coolify to set them. This me
 
 ❯ Remember that edit tool sed issue
 
+❯ Continue
+
+❯ Continue
+
+❯ Remember that env fuckup & it's learnings
+

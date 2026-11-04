@@ -24,11 +24,17 @@ def test_compose_sets_only_known_variables() -> None:
 # end def
 
 
-def test_compose_requires_what_the_first_login_needs() -> None:
+def test_compose_requires_only_the_secret_key() -> None:
     text = COMPOSE.read_text()
-    for name in ("SECRET_KEY", "IMAP_ACCOUNT_ID", "IMAP_HOST", "IMAP_USERNAME", "IMAP_PASSWORD"):
-        assert f"${{{name}:?}}" in text, name
-    # end for
+    assert "${SECRET_KEY:?}" in text
+    assert "?}" not in text.replace("${SECRET_KEY:?}", ""), "everything but SECRET_KEY must be optional or generated"
+# end def
+
+
+def test_compose_gets_the_admin_login_from_coolify() -> None:
+    text = COMPOSE.read_text()
+    assert "ADMIN_USERNAME=${SERVICE_USER_ADMIN}" in text
+    assert "ADMIN_PASSWORD=${SERVICE_PASSWORD_ADMIN}" in text
 # end def
 
 

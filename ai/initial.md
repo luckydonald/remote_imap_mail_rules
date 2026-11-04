@@ -154,6 +154,13 @@ Status: done, see this checklist; additionally "Status so far" below.
   - A mail that left the folder cannot be told apart as moved or deleted.
 - [x] Header name suggestions on `header` conditions: the headers of the open example mail, then common ones.
 
+## 8. A proper login
+Status: done, see this checklist; additionally "Status so far" below.
+
+- [x] An admin user from the environment (`ADMIN_USERNAME`, `ADMIN_PASSWORD`), filled by Coolify's magic variables `SERVICE_USER_ADMIN` and `SERVICE_PASSWORD_ADMIN`.
+  - Replaces the mail accounts' credentials as the login, so no initial mail account is needed any more; the `IMAP_*` seed is optional.
+  - Changing the admin login ends all sessions.
+
 # Status so far
 #### Done
 
@@ -192,6 +199,7 @@ Status: done, see this checklist; additionally "Status so far" below.
 
 - `user_action` entries (`matches(on_change=...)`, `OwnChanges` in the `Watcher`): flag changes and vanished mails the user made, worded in the message view.
 - A header name picker (`<datalist>`) on `header` conditions.
+- Admin login from `ADMIN_USERNAME` / `ADMIN_PASSWORD` (Coolify magic variables in the compose file), the `IMAP_*` account is optional.
 
 #### Not built yet
 

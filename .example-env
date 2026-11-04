@@ -1,4 +1,8 @@
 # Copy to `.env` and fill in. Agents cannot read `.env`.
+# The login of the service. Without both nobody can log in. On Coolify the compose file takes them from its magic variables.
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=change-me
+# Optional: a first mail account, added to the database once. Leave these out and add accounts on the Accounts screen instead.
 # A UUID of your choosing, generate one with `uuidgen`. Never change it, rules refer to it.
 IMAP_ACCOUNT_ID=6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11
 IMAP_ACCOUNT_NAME=Private
