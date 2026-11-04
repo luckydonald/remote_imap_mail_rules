@@ -81,7 +81,7 @@ Generate a `SECRET_KEY` once with `uv run python -c "from cryptography.fernet im
   Without `SECRET_KEY` nobody can log in, the API then answers `503`.
 - The Mail screen is a read-only mail client for the registered accounts: folders, the message list (newest first, paged), and the message with its attachments.
   HTML mail is sanitized (no scripts, no remote images) and shown in a sandboxed frame.
-- The server watches every registered account in the background (`WATCH_ENABLED`) and keeps an action log per mail: when it was first seen and which rules matched it.
+- The server watches every registered account in the background (`WATCH_ENABLED`) and keeps an action log per mail: when it was first seen, which rules matched it, what they did with it, and changes made outside the rules (read/unread, flags, mail that left the folder).
   The message view shows that log.
   Mails already in the folders when the server first runs are logged as first seen at that moment, and the watcher restarts after the accounts or the rules changed.
   Rule actions are not executed yet, so the log has no action entries so far.
