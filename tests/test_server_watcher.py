@@ -194,7 +194,7 @@ async def test_account_and_rule_edits_restart_the_watcher(tmp_path: Path, monkey
     monkeypatch.setattr(Watcher, "restart", restart)
     settings = ServerSettings(
         _env_file=None, rules_path=None, database_url=f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}",
-        frontend_dist=tmp_path / "missing", secret_key=SecretStr(KEY),
+        frontend_dist=tmp_path / "missing", secret_key=SecretStr(KEY), admin_username="admin", admin_password=SecretStr("admin-secret"),
     )
     with TestClient(create_app(settings)) as client:
         client.cookies.set(SESSION_COOKIE, make_session_token(settings))

@@ -607,3 +607,8 @@ The next two tasks then will be to:
 ❯ Following [@`ai/initial.md`](./initial.md), we now create a proper login.
 Have an admin user via environment variables, using coolify to set them. This means we no longer need any initial mail account.
 
+❯ Plan denied:
+> User and password env shall use the coolify magic env vars to fill them.
+
+❯ Plan accepted, auto mode.
+
