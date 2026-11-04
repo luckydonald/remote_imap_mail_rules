@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AccountsView from './AccountsView.vue'
+import GitView from './GitView.vue'
 import MailLogin from './MailLogin.vue'
 import MailView from './MailView.vue'
 import RuleEditor from './RuleEditor.vue'
@@ -201,6 +202,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           :class="{ current: screen === 'accounts' }"
           >Accounts</RouterLink
         >
+        <RouterLink :to="{ name: 'git' }" class="ghost" :class="{ current: screen === 'git' }"
+          >Git</RouterLink
+        >
         <RouterLink :to="{ name: 'mail' }" class="ghost" :class="{ current: screen === 'mail' }"
           >Mail</RouterLink
         >
@@ -264,6 +268,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     <SampleErrorView v-else-if="screen === 'sample-error'" />
     <MailView v-else-if="screen === 'mail'" @unauthorized="logOut" />
     <AccountsView v-else-if="screen === 'accounts'" />
+    <GitView v-else-if="screen === 'git'" />
     <div v-else class="body" :class="{ 'with-mail': online && mail.panelOpen }">
       <RuleList />
       <main>

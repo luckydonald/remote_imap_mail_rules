@@ -424,6 +424,39 @@ button {
   }
 }
 
+.git {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+
+  .status,
+  .actions {
+    flex-wrap: wrap;
+    margin: 8px 0;
+  }
+
+  .files {
+    margin: 4px 0 8px;
+    padding-left: 20px;
+  }
+
+  .last-error {
+    display: block;
+    white-space: pre-wrap;
+  }
+
+  .key {
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  button.link {
+    cursor: pointer;
+    border: 0;
+  }
+}
+
+.git-form,
 .account-form {
   display: grid;
   gap: 8px;
