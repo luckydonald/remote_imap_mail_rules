@@ -146,6 +146,14 @@ Status: done, see this checklist; additionally "Status so far" below.
 - [x] The log of a moved mail continues under its new folder and UID (`moved_in` entry, linked by `message_id`).
 - [x] A mail that rules moved five times is not moved again (`move_loop`), so rules cannot ping-pong it.
 
+## 7. User actions and the header picker
+Status: done, see this checklist; additionally "Status so far" below.
+
+- [x] `user_action` entries in the log of a mail: flag changes and mails that left the folder, made by the user or another client.
+  - Found by the server watcher from a snapshot per folder; what rule actions did is not logged as the user's.
+  - A mail that left the folder cannot be told apart as moved or deleted.
+- [x] Header name suggestions on `header` conditions: the headers of the open example mail, then common ones.
+
 # Status so far
 #### Done
 
@@ -182,7 +190,9 @@ Status: done, see this checklist; additionally "Status so far" below.
 
 - Moves between accounts (`ImapClient.append` / `delete` / `fetch_raw`, `ImapWriter.move_across`), the `moved_in` log entry under the new key and the `move_loop` guard.
 
+- `user_action` entries (`matches(on_change=...)`, `OwnChanges` in the `Watcher`): flag changes and vanished mails the user made, worded in the message view.
+- A header name picker (`<datalist>`) on `header` conditions.
+
 #### Not built yet
 
-- `user_action` entries of the log.
-- Easy custom fields and headers beyond the `header` condition, e.g. a picker in the editor.
+- Nothing from the plan; ideas are e.g. telling a user move from a delete, or a picker for custom fields beyond headers.
