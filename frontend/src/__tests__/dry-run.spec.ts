@@ -34,9 +34,20 @@ describe('describeStep', () => {
         type: 'move',
         args: { folder: 'X' },
         status: 'skipped',
-        reason: 'cross_account_not_supported',
+        reason: 'superseded',
       }),
-    ).toBe('move to X (moving to another account is not supported yet)')
+    ).toBe('move to X (another move came first)')
+  })
+
+  it('names a move to another account', () => {
+    expect(
+      describeStep({
+        type: 'move',
+        args: { folder: 'Inbox2', account_id: 'abc' },
+        status: 'planned',
+        reason: null,
+      }),
+    ).toBe('move to Inbox2 of another account')
   })
 })
 
@@ -59,6 +70,29 @@ describe('the action log', () => {
     expect(
       describeLoggedAction({ type: 'move', status: 'skipped', folder: 'A', reason: 'superseded' }),
     ).toBe('Skipped "move to A" (another move came first)')
+  })
+
+  it('words the moves between accounts', () => {
+    expect(
+      eventLabel(event({ type: 'move', status: 'done', folder: 'In', account_id: 'abc' })),
+    ).toBe('Moved to In of another account by the rule "invoices"')
+    expect(
+      eventLabel(
+        event({
+          type: 'moved_in',
+          status: 'done',
+          from: { account_id: 'abc', folder: 'INBOX', uid: 1 },
+        }),
+      ),
+    ).toBe('Moved in from INBOX by the rule "invoices"')
+    expect(
+      describeLoggedAction({
+        type: 'move',
+        status: 'error',
+        folder: 'A',
+        reason: 'source_not_deleted',
+      }),
+    ).toBe('Failed to move to A: copied, but the original could not be deleted')
   })
 })
 

@@ -111,6 +111,7 @@ interface Wording {
 function wording(type: string, args: Record<string, unknown>): Wording {
   const off = args.value === false
   const folder = String(args.folder ?? '?')
+  const where = args.account_id ? `${folder} of another account` : folder
   const keyword = String(args.keyword ?? '?')
   switch (type) {
     case 'mark_read':
@@ -126,7 +127,12 @@ function wording(type: string, args: Record<string, unknown>): Wording {
         ? { plan: `remove the keyword "${keyword}"`, past: `Removed the keyword "${keyword}"` }
         : { plan: `add the keyword "${keyword}"`, past: `Added the keyword "${keyword}"` }
     case 'move':
-      return { plan: `move to ${folder}`, past: `Moved to ${folder}` }
+      return { plan: `move to ${where}`, past: `Moved to ${where}` }
+    case 'moved_in': {
+      const from = (args.from ?? {}) as Record<string, unknown>
+      const source = `Moved in from ${String(from.folder ?? '?')}`
+      return { plan: source, past: source }
+    }
     default:
       return { plan: type, past: type }
   }
@@ -135,7 +141,10 @@ function wording(type: string, args: Record<string, unknown>): Wording {
 const REASONS: Record<string, string> = {
   already: 'already so',
   superseded: 'another move came first',
-  cross_account_not_supported: 'moving to another account is not supported yet',
+  unknown_account: 'the target account does not exist',
+  source_not_deleted: 'copied, but the original could not be deleted',
+  move_loop: 'moved too often already',
+  gone: 'the mail is gone',
 }
 
 /** A step in the dry run, e.g. `move to Archive`, with the reason it does nothing in brackets. */
@@ -150,8 +159,10 @@ export function describeStep(step: Pick<Step, 'type' | 'args' | 'status' | 'reas
 export function describeLoggedAction(detail: Record<string, unknown>): string {
   const type = String(detail.type ?? 'action')
   const text = wording(type, detail).past
-  if (detail.status === 'error')
-    return `Failed to ${wording(type, detail).plan}: ${String(detail.reason ?? 'error')}`
+  if (detail.status === 'error') {
+    const reason = String(detail.reason ?? 'error')
+    return `Failed to ${wording(type, detail).plan}: ${REASONS[reason] ?? reason}`
+  }
   if (detail.status === 'skipped') {
     const reason = String(detail.reason ?? 'skipped')
     return `Skipped "${wording(type, detail).plan}" (${REASONS[reason] ?? reason})`
