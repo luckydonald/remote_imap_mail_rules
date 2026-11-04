@@ -31,7 +31,7 @@ async function submit(): Promise<void> {
 <template>
   <form class="login" @submit.prevent="submit">
     <h2>Log in</h2>
-    <p class="hint">Use the username and password of any account registered on this server.</p>
+    <p class="hint">Log in with the administrator username and password of this server.</p>
     <label>
       Username
       <input v-model="username" name="username" autocomplete="username" required />
