@@ -46,6 +46,7 @@ class FakeServer:
         self.capabilities = capabilities if capabilities is not None else {"IMAP4REV1", "IDLE", "CONDSTORE"}
         self.folders: dict[str, FakeFolder] = {}
         self.attributes: dict[str, str] = {}
+        self.delimiter = "/"
         self.commands: list[str] = []
         self.push_queues: list[asyncio.Queue[Response]] = []
     # end def
@@ -193,7 +194,7 @@ class FakeConnection:
     async def list(self, reference_name: str, mailbox_pattern: str) -> Response:
         self.log(f"LIST {mailbox_pattern}")
         prefix = mailbox_pattern.strip('"').rstrip("*")
-        return Response("OK", [f'({self.server.attributes.get(name, "")}) "/" "{name}"'.encode() for name in self.server.folders if name.startswith(prefix)])
+        return Response("OK", [f'({self.server.attributes.get(name, "")}) "{self.server.delimiter}" "{name}"'.encode() for name in self.server.folders if name.startswith(prefix)])
     # end def
 
     async def uid_search(self, *criteria: str, charset: str | None = "utf-8") -> Response:
