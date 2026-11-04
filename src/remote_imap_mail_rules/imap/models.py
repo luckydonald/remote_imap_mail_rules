@@ -32,6 +32,27 @@ class FetchedMessage:
 
 
 @dataclass(frozen=True)
+class Moved:
+    """Where a mail ended up after `move` / `append`. `uid` and `uidvalidity` are `None` when the server sent no `COPYUID` / `APPENDUID` (no `UIDPLUS`)."""
+
+    folder: str
+    uid: int | None = None
+    uidvalidity: int | None = None
+# end class
+
+
+@dataclass(frozen=True)
+class RawMessage:
+    """A whole mail as the server stores it, for copying it to another account."""
+
+    uid: int
+    raw: bytes
+    flags: frozenset[str]
+    internaldate: datetime | None
+# end class
+
+
+@dataclass(frozen=True)
 class FolderCounts:
     """`STATUS (MESSAGES UNSEEN)` of a folder."""
 

@@ -1,4 +1,4 @@
-"""Async IMAP client. Reading only ever uses `EXAMINE` and `BODY.PEEK`; the write methods (`store_flags`, `move`) open the folder with `SELECT`."""
+"""Async IMAP client. Reading only ever uses `EXAMINE` and `BODY.PEEK`; the write methods (`store_flags`, `move`, `delete`, `append`) open the folder with `SELECT` or `APPEND`."""
 
 import logging
 import ssl
@@ -15,8 +15,9 @@ from ..config import ImapSettings
 from ..mail import Attachment, Bodies, Mail
 from .bodystructure import Part, parse_parts
 from .connection import ImapConnection
-from .fetch import parse_fetch, parse_folder_counts, parse_folder_state, parse_list, parse_search
-from .models import FetchedMessage, FolderCounts, FolderInfo, FolderState
+from .fetch import parse_fetch, parse_folder_counts, parse_folder_state, parse_list, parse_new_uid, parse_search
+from .models import FetchedMessage, FolderCounts, FolderInfo, FolderState, Moved, RawMessage
+from .sexpr import Chunk
 from .transfer import decode_transfer
 
 FETCH_FIELDS = "(UID FLAGS INTERNALDATE RFC822.SIZE BODYSTRUCTURE BODY.PEEK[HEADER])"
@@ -171,20 +172,43 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
         # end for
     # end def
 
-    async def move(self, folder: str, uid: int, target: str) -> None:
-        """Moves one mail to another folder of this account. Without `MOVE` it is copy, flag `\\Deleted` and a `UID EXPUNGE` of just that mail."""
+    def moved(self, target: str, lines: list[Chunk]) -> Moved:
+        new = parse_new_uid(lines)
+        return Moved(folder=target, uid=new[1], uidvalidity=new[0]) if new else Moved(folder=target)
+    # end def
+
+    async def move(self, folder: str, uid: int, target: str) -> Moved:
+        """Moves one mail to another folder of this account and says where it went. Without `MOVE` it is copy, flag `\\Deleted` and a `UID EXPUNGE` of just that mail."""
         await self.ensure_writable(folder)
         if self.has_capability("MOVE"):
-            check(await self.conn.uid("move", str(uid), quote_folder(target)), f"move to {target}")
-            return
+            return self.moved(target, check(await self.conn.uid("move", str(uid), quote_folder(target)), f"move to {target}").lines)
         # end if
+        self.require_safe_delete("move")
+        moved = self.moved(target, check(await self.conn.uid("copy", str(uid), quote_folder(target)), f"copy to {target}").lines)
+        await self.delete(folder, uid)
+        return moved
+    # end def
+
+    def require_safe_delete(self, what: str) -> None:
         if not self.has_capability("UIDPLUS"):
             # A plain EXPUNGE would also remove unrelated mails flagged `\Deleted`, so refuse instead.
-            raise ImapError("cannot move safely: the server has neither MOVE nor UIDPLUS")
+            raise ImapError(f"cannot {what} safely: the server has neither MOVE nor UIDPLUS")
         # end if
-        check(await self.conn.uid("copy", str(uid), quote_folder(target)), f"copy to {target}")
+    # end def
+
+    async def delete(self, folder: str, uid: int) -> None:
+        """Flags one mail `\\Deleted` and expunges just that UID. Refused without `UIDPLUS`."""
+        self.require_safe_delete("delete")
+        await self.ensure_writable(folder)
         check(await self.conn.uid("store", str(uid), "+FLAGS.SILENT", "(\\Deleted)"), "store")
         check(await self.conn.uid("expunge", str(uid)), "expunge")
+    # end def
+
+    async def append(self, folder: str, message: RawMessage) -> Moved:
+        """Stores a whole mail in a folder, with its flags and internal date. The new UID is known with `UIDPLUS`."""
+        flags = " ".join(sorted(flag for flag in message.flags if flag.lower() != "\\recent")) or None
+        response = check(await self.conn.append(message.raw, quote_folder(folder), flags, message.internaldate), f"append to {folder}")
+        return self.moved(folder, response.lines)
     # end def
 
     async def poll_state(self, folder: str) -> FolderState:
@@ -288,6 +312,24 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
         await self.examine(folder)
         mails = await self.fetch_mails(account_id, folder, [uid])
         return mails[0] if mails else None
+    # end def
+
+    async def fetch_raw(self, folder: str, uid: int) -> RawMessage | None:
+        """The whole mail with flags and internal date (`BODY.PEEK[]`, so nothing is marked seen), or `None` if the UID does not exist."""
+        await self.examine(folder)
+        fetched = next(iter(await self.fetch(str(uid), "(UID FLAGS INTERNALDATE BODY.PEEK[])")), None)
+        if fetched is None or fetched.uid is None or "" not in fetched.sections:
+            return None
+        # end if
+        return RawMessage(uid=fetched.uid, raw=fetched.sections[""], flags=fetched.flags, internaldate=fetched.internaldate)
+    # end def
+
+    async def find_message_id(self, folder: str, message_id: str) -> int | None:
+        """The UID of the mail with this `Message-ID` header in a folder, if any. Used to not copy a mail twice."""
+        await self.examine(folder)
+        escaped = message_id.replace("\\", "\\\\").replace('"', '\\"')
+        uids = await self.search_uids("HEADER", "Message-ID", f'"{escaped}"')
+        return uids[0] if uids else None
     # end def
 
     async def fetch_part(self, folder: str, uid: int, number: str) -> tuple[Part, bytes] | None:

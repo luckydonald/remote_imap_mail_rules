@@ -578,3 +578,5 @@ Hoist mail into a shared pinia store, persisted/cached by localstorage.
 > </details>
 >
 
+❯ Plan accepted, auto mode.
+

@@ -136,6 +136,26 @@ def parse_folder_counts(lines: list[Chunk]) -> FolderCounts | None:
 # end def
 
 
+APPENDUID_RE = re.compile(r"\[APPENDUID (\d+) (\d+)\]", re.IGNORECASE)
+COPYUID_RE = re.compile(r"\[COPYUID (\d+) [\d:,]+ (\d+)\]", re.IGNORECASE)
+
+
+def parse_new_uid(lines: list[Chunk]) -> tuple[int, int] | None:
+    """`(uidvalidity, uid)` of the new copy from an `APPENDUID` / `COPYUID` response code (UIDPLUS), `None` without one or for several mails."""
+    for line in lines:
+        if not isinstance(line, bytes):
+            continue
+        # end if
+        text = line.decode("utf-8", errors="replace")
+        match = APPENDUID_RE.search(text) or COPYUID_RE.search(text)
+        if match:
+            return int(match.group(1)), int(match.group(2))
+        # end if
+    # end for
+    return None
+# end def
+
+
 def parse_search(lines: list[Chunk]) -> list[int]:
     uids: list[int] = []
     for line in lines:
