@@ -38,6 +38,7 @@ def main() -> None:
         logger.warning(reason)
     # end if
     logger.info("Rules in %s", f"file {settings.rules_path}" if settings.rules_path else "the database")
+    logger.info("Data in %s, git folder %s", settings.data_dir, settings.git_dir)
     uvicorn.run(
         create_app(settings, load_env_account()),
         host=settings.server_host,

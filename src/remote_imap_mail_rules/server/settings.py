@@ -17,6 +17,8 @@ class ServerSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore", case_sensitive=False)
 
     rules_path: Path | None = Field(default=None, description="Rules file; when unset the rules live in the database.")
+    data_dir: Path = Field(default=Path("data"), description="Everything the server stores besides the database: the rules mirror and the git credentials. The container sets `/data`.")
+    rules_dir: Path | None = Field(default=None, description="Folder of the rules YAML that git tracks; defaults to `DATA_DIR/rules`. With `RULES_PATH` set, that file's folder is used instead.")
     database_url: str = Field(default=DEFAULT_DATABASE_URL, description="Any async SQLAlchemy URL.")
     secret_key: SecretStr | None = Field(default=None, description="Fernet key that encrypts the account passwords.")
     admin_username: str | None = Field(default=None, description="Login of the one admin; without it and the password nobody can log in.")
@@ -41,4 +43,19 @@ class ServerSettings(BaseSettings):
     vite_sentry_release: str = Field(default="", description="Frontend release; falls back to the backend's release.")
     vite_sentry_traces_sample_rate: float = Field(default=0, ge=0, le=1, description="Share of the page loads and navigations that get a tracing span.")
     source_commit: str = Field(default="", description="Commit of the deployed source, set by Coolify; the fallback for the release.")
+
+    @property
+    def git_dir(self) -> Path:
+        """The folder under git: the folder of the rules file in file mode, else the rules mirror."""
+        if self.rules_path:
+            return self.rules_path.resolve().parent
+        # end if
+        return self.rules_dir or self.data_dir / "rules"
+    # end def
+
+    @property
+    def git_state_dir(self) -> Path:
+        """Askpass helper and SSH key; outside the tracked folder, so they are never committed."""
+        return self.data_dir / "git"
+    # end def
 # end class

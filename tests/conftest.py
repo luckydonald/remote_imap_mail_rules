@@ -25,6 +25,14 @@ body
 """
 
 
+@pytest.fixture(autouse=True)
+def isolated_data_dir(tmp_path_factory: pytest.TempPathFactory, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Server tests in database mode mirror the rules into `DATA_DIR`; never let that be the working directory."""
+    monkeypatch.setenv("DATA_DIR", str(tmp_path_factory.mktemp("data")))
+    monkeypatch.delenv("RULES_DIR", raising=False)
+# end def
+
+
 def make_mail(raw: str = RAW, **overrides: object) -> Mail:
     async def load() -> Bodies:
         return Bodies(text="Hello World", html=None)

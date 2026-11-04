@@ -620,3 +620,52 @@ Have an admin user via environment variables, using coolify to set them. This me
 
 ❯ Remember that env fuckup & it's learnings
 
+❯ The folder containing the conflict files should be possible to put under git version control.
+The web UI must be able to enable that, check for `git init` being run, and allow to properly set credentials for push. Enabling automatic permits and push should be check boxes, and additionally manual buttons exist. Also, it should show the state (changes, pending, push, etc.)
+Generally i want all data under /data/ in the container.
+This includes the directory for rules and the SQLight database
+
+❯ Question answered.
+> <details><summary>
+>
+>> 1. I read "conflict files" as "config files" (the rules folder) and "permits" as "commits". Git only makes sense for rules files, so how should the container store the rules?
+>> 2. How should the push credentials work?
+>> 3. Should the git settings (enabled, auto-commit, auto-push, remote) live in the database or be env vars?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Rules mode** (1/3) <kbd>Single Select</kbd><br>
+>> I read "conflict files" as "config files" (the rules folder) and "permits" as "commits". Git only makes sense for rules files, so how should the container store the rules?
+> - [ ] 1\. File mode by default (Recommended)
+>   - _Docker sets RULES_PATH=/data/rules/rules.yml, so rules are YAML files in a git-able folder. The DB mode stays available if RULES_PATH is unset, but git is then disabled._
+> - [x] 2\. Keep DB mode, mirror to files
+>   - _Rules stay in the database and every save also writes a YAML export into /data/rules for git. More code, two sources of truth._
+> - [ ] 3\. _Type something._
+>
+>> **Credentials** (2/3) <kbd>Single Select</kbd><br>
+>> How should the push credentials work?
+> - [x] 1\. HTTPS token + SSH deploy key (Recommended)
+>   - _UI takes the remote URL, and either a username/token (stored Fernet-encrypted in the DB, passed via GIT_ASKPASS) or a generated SSH deploy key (public key shown in the UI to paste into GitHub/Gitea)._
+> - [ ] 2\. HTTPS token only
+>   - _Simplest: remote URL plus username/token, encrypted with SECRET_KEY._
+> - [ ] 3\. SSH deploy key only
+>   - _Server generates an ed25519 key under /data, UI shows the public key._
+> - [ ] 4\. _Type something._
+>
+>> **Settings** (3/3) <kbd>Single Select</kbd><br>
+>> Should the git settings (enabled, auto-commit, auto-push, remote) live in the database or be env vars?
+> - [x] 1\. Database, edited in the web UI (Recommended)
+>   - _New table + Alembic migration; the checkboxes and credentials are saved from the UI as you asked._
+> - [ ] 2\. Env vars
+>   - _Not editable from the UI, contradicts the request._
+> - [ ] 3\. _Type something._
+>
+> </details>
+>
+
+❯ Plan accepted, auto mode.
+
+❯ Fix the flaky tests.
+
