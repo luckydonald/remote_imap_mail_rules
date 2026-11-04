@@ -6,9 +6,31 @@ from collections.abc import AsyncIterator
 from aioimaplib import AioImapException
 
 from .client import ImapClient
+from .connection import ImapConnection
 from .models import ChangeEvent, ChangeKind
 
 IDLE_RENEW_SECONDS = 28 * 60
+IDLE_DONE_WAIT_SECONDS = 5.0
+
+
+async def _wait_idle_ended(connection: ImapConnection) -> None:
+    """Waits for the tagged reply to `IDLE` after `DONE`, so nobody sends a second `DONE` (the server would answer `BAD`).
+
+    Shielded, so it also finishes when the watcher task is cancelled (rules saved) while leaving `IDLE`.
+    """
+
+    async def poll() -> None:
+        while connection.has_pending_idle():
+            await asyncio.sleep(0.01)
+        # end while
+    # end def
+
+    try:
+        await asyncio.shield(asyncio.wait_for(poll(), timeout=IDLE_DONE_WAIT_SECONDS))
+    except (TimeoutError, asyncio.CancelledError):
+        pass
+    # end try
+# end def
 
 
 async def idle_once(client: ImapClient, folder: str, timeout: float) -> ChangeEvent | None:
@@ -24,6 +46,7 @@ async def idle_once(client: ImapClient, folder: str, timeout: float) -> ChangeEv
     finally:
         if connection.has_pending_idle():
             connection.idle_done()
+            await _wait_idle_ended(connection)
         # end if
     # end try
     return ChangeEvent(kind=ChangeKind.push, folder=folder)

@@ -534,3 +534,5 @@ Hoist mail into a shared pinia store, persisted/cached by localstorage.
 
 ❯ Add pagination to the dry run with a "load more…" like the mail viewer. This means smaller batches for quicker loading (takes 59 seconds right now), and the ability to actually see all the mails the rule would touch. If a page comes back with no new mails, it would automatically fetch the next, click is only needed if there is a page with more mails loaded.
 
+❯ Check if [@`ai/errors/3.txt`](./errors/3.txt) needs fixing
+
