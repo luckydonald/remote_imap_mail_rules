@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import MailSpinner from './MailSpinner.vue'
 import { useStore } from '@/model/context'
 import {
   describeStep,
@@ -183,8 +184,8 @@ async function apply(): Promise<void> {
       <label class="auto-load" title="Keep loading the next page until the end">
         <input v-model="autoLoad" type="checkbox" /> Load all pages
       </label>
-      <span v-if="loading" class="hint">Looking at the mails…</span>
     </div>
+    <MailSpinner v-if="loading" label="Looking at the mails…" />
     <p v-if="result && blocked" class="hint blocked">{{ blocked }}</p>
     <p v-if="confirming" class="confirm">
       Apply {{ result?.next ? 'at least ' : '' }}{{ plannedCount }} changes to
@@ -259,7 +260,7 @@ async function apply(): Promise<void> {
         :disabled="loading"
         @click="loadMore"
       >
-        {{ loading ? 'Looking at the mails…' : 'Load more…' }}
+        Load more…
       </button>
     </template>
   </section>
