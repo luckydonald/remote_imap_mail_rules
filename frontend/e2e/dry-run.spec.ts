@@ -59,7 +59,13 @@ const mockServer = async (page: Page, actionsEnabled: boolean): Promise<Mock> =>
   const mock: Mock = { dryRuns: [], runs: [] }
   await page.route('**/api/editor/config', (route) =>
     route.fulfill({
-      json: { mode: 'server', source: 'file', file_name: 'rules.yml', exists: true, actions_enabled: actionsEnabled },
+      json: {
+        mode: 'server',
+        source: 'file',
+        file_name: 'rules.yml',
+        exists: true,
+        actions_enabled: actionsEnabled,
+      },
     }),
   )
   await page.route('**/api/editor/rules', (route) =>
@@ -86,9 +92,13 @@ test('shows the summary and drills down into the mails', async ({ page }) => {
   await expect(page.locator('.summary tr')).toHaveCount(2)
   await expect(page.locator('.summary')).toContainText('2×move to Archive')
   await expect(page.locator('.affected > li')).toHaveCount(2)
-  await expect(page.locator('.chain').first()).toContainText('Invoices: mark as read, move to Archive')
+  await expect(page.locator('.chain').first()).toContainText(
+    'Invoices: mark as read, move to Archive',
+  )
   await page.locator('.summary tr', { hasText: 'mark as read' }).click()
-  await expect(page.locator('.dry-run .hint', { hasText: 'Showing' })).toContainText('Showing 2 mails')
+  await expect(page.locator('.dry-run .hint', { hasText: 'Showing' })).toContainText(
+    'Showing 2 mails',
+  )
   expect(mock.dryRuns).toHaveLength(1)
   expect(mock.dryRuns[0]).toContain('"rule":"Invoices"')
   expect(mock.dryRuns[0]).toContain('Invoices')
@@ -120,8 +130,22 @@ test('loads the dry run in pages, skipping pages without mails', async ({ page }
   const one = RESULT.summary.map((row) => ({ ...row, count: 1 }))
   const pages = [
     { ...RESULT, inspected: 200, affected: 0, summary: [], mails: [], next: cursor(300) },
-    { ...RESULT, inspected: 200, affected: 1, summary: one, mails: [mail(1, 'invoice March')], next: cursor(100) },
-    { ...RESULT, inspected: 50, affected: 1, summary: one, mails: [mail(2, 'invoice April')], next: null },
+    {
+      ...RESULT,
+      inspected: 200,
+      affected: 1,
+      summary: one,
+      mails: [mail(1, 'invoice March')],
+      next: cursor(100),
+    },
+    {
+      ...RESULT,
+      inspected: 50,
+      affected: 1,
+      summary: one,
+      mails: [mail(2, 'invoice April')],
+      next: null,
+    },
   ]
   const bodies: string[] = []
   await mockServer(page, false)
@@ -143,4 +167,36 @@ test('loads the dry run in pages, skipping pages without mails', async ({ page }
   await expect(page.getByRole('button', { name: 'Load more…' })).toHaveCount(0)
   await expect(page.locator('.totals')).toContainText('Looked at 450 mails, 2 would be affected')
   await expect(page.locator('.summary')).toContainText('2×move to Archive')
+})
+
+test('"Load all pages" keeps fetching until the end', async ({ page }) => {
+  const cursor = (before: number) => ({ account_id: ACCOUNT, folder: 'INBOX', before_uid: before })
+  const one = RESULT.summary.map((row) => ({ ...row, count: 1 }))
+  const pages = [
+    {
+      ...RESULT,
+      inspected: 200,
+      affected: 1,
+      summary: one,
+      mails: [mail(1, 'invoice March')],
+      next: cursor(100),
+    },
+    {
+      ...RESULT,
+      inspected: 50,
+      affected: 1,
+      summary: one,
+      mails: [mail(2, 'invoice April')],
+      next: null,
+    },
+  ]
+  let calls = 0
+  await mockServer(page, false)
+  await page.route('**/api/dry-run', (route) => route.fulfill({ json: pages[calls++] }))
+  await page.goto('/rules/0')
+  await page.getByLabel('Load all pages').check()
+  await page.getByRole('button', { name: 'Dry run', exact: true }).click()
+  await expect(page.locator('.affected > li')).toHaveCount(2)
+  expect(calls).toBe(2)
+  await expect(page.getByRole('button', { name: 'Load more…' })).toHaveCount(0)
 })
