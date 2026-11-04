@@ -669,3 +669,15 @@ This includes the directory for rules and the SQLight database
 
 ❯ Fix the flaky tests.
 
+❯ I need to be able to edit the uuid of the mail accuont in the UI, to make sure two system use the same UUID for the rules.
+
+❯ Plan denied:
+> - `ON UPDATE CASCADE` sounds useful.
+> - Rules may use this UUID in the `where`, update it.
+>   - If a local file is set, do it in the `.yml` too.
+
+❯ Plan denied:
+> - Do not re-seed an identical account (username, domain etc. settings, password, …)
+
+❯ Plan accepted, auto mode.
+
