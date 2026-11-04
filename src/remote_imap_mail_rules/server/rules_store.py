@@ -15,6 +15,9 @@ from ..rules.loader import parse_rule_file, parse_rules
 from . import rules_file
 
 
+MIRROR_NAME = "rules.yml"
+
+
 class RulesStore(Protocol):
     source: Literal["file", "database"]
     file_name: str | None
@@ -57,8 +60,17 @@ class DatabaseRulesStore:
     source: Literal["file", "database"] = "database"
     file_name: str | None = None
 
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession], mirror_dir: Path | None = None) -> None:
         self.session_factory = session_factory
+        self.mirror_dir = mirror_dir
+    # end def
+
+    async def write_mirror(self) -> None:
+        """Writes the stored rules as `rules.yml` into the mirror folder, which git tracks; nothing stored or no folder means nothing to write."""
+        text = await self.read_text()
+        if self.mirror_dir is not None and text is not None:
+            await asyncio.to_thread(rules_file.write_atomic, self.mirror_dir / MIRROR_NAME, text)
+        # end if
     # end def
 
     async def exists(self) -> bool:
@@ -85,6 +97,7 @@ class DatabaseRulesStore:
             await rule_rows.replace_rule_file(session, rule_file)
             await session.commit()
         # end with
+        await self.write_mirror()
     # end def
 # end class
 
