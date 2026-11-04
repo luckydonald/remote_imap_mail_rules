@@ -26,7 +26,7 @@ class MailEvent(Base):
     """A mail is identified by account, folder, `uidvalidity` and `uid`; `message_id` survives moves between accounts."""
 
     __tablename__ = "mail_events"
-    __table_args__ = (Index("ix_mail_events_mail", "account_id", "folder", "uid"),)
+    __table_args__ = (Index("ix_mail_events_mail", "account_id", "folder", "uid"), Index("ix_mail_events_created_at", "created_at"))
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     account_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("accounts.id", ondelete="CASCADE", onupdate="CASCADE"))

@@ -13,7 +13,7 @@ from ..db import accounts as account_repository
 from ..db.engine import create_engine, create_session_factory
 from ..db.migrate import upgrade
 from ..imap.client import ConnectionFactory, connect_aioimaplib
-from .api import accounts, auth, dry_run, editor, events, git, mail, public, sample_error
+from .api import accounts, auth, dry_run, editor, events, git, log, mail, public, sample_error
 from .auth import require_login
 from .git_repo import GitRepo
 from .git_service import GitService
@@ -92,6 +92,7 @@ def create_app(
     app.include_router(dry_run.router, prefix="/api/dry-run", tags=["dry-run"], dependencies=protected)
     app.include_router(sample_error.router, prefix="/api/sample-error", tags=["sample-error"], dependencies=protected)
     app.include_router(events.router, prefix="/api/mail", tags=["mail"], dependencies=protected)
+    app.include_router(log.router, prefix="/api/log", tags=["log"], dependencies=protected)
     if settings.frontend_dist.is_dir():
         # Mounted last, so `/api` wins; `html=True` serves `index.html` for `/`.
         app.mount("/", SpaStaticFiles(directory=settings.frontend_dist, html=True), name="frontend")

@@ -1,9 +1,11 @@
 """Repository of the action log per mail."""
 
+from collections.abc import Sequence
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import EventKind, MailEvent
@@ -78,4 +80,73 @@ async def has_event(
         MailEvent.rule_name.is_(None) if rule_name is None else MailEvent.rule_name == rule_name,
     )
     return (await session.scalars(query.limit(1))).first() is not None
+# end def
+
+
+def as_utc(value: datetime) -> datetime:
+    """The stored times are UTC; SQLite hands them back without a zone, so a naive value counts as UTC."""
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+# end def
+
+
+def like_pattern(text: str) -> str:
+    escaped = text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+# end def
+
+
+async def list_log(
+    session: AsyncSession,
+    *,
+    account_id: UUID | None = None,
+    folder: str | None = None,
+    kinds: Sequence[EventKind] = (),
+    rule: str | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    text: str | None = None,
+    before: tuple[datetime, UUID] | None = None,
+    limit: int = 50,
+) -> list[MailEvent]:
+    """The log across all mails, newest first. `before` is the `(created_at, id)` of the last entry of the previous page.
+
+    `text` looks (case insensitive) into the rule name, folder, `Message-ID` and the detail.
+    """
+    query = select(MailEvent)
+    if account_id is not None:
+        query = query.where(MailEvent.account_id == account_id)
+    # end if
+    if folder is not None:
+        query = query.where(MailEvent.folder == folder)
+    # end if
+    if kinds:
+        query = query.where(MailEvent.kind.in_([kind.value for kind in kinds]))
+    # end if
+    if rule is not None:
+        query = query.where(MailEvent.rule_name == rule)
+    # end if
+    if since is not None:
+        query = query.where(MailEvent.created_at >= as_utc(since))
+    # end if
+    if until is not None:
+        query = query.where(MailEvent.created_at <= as_utc(until))
+    # end if
+    if text:
+        pattern = like_pattern(text)
+        query = query.where(or_(*(column.ilike(pattern, escape="\\") for column in (
+            MailEvent.rule_name, MailEvent.folder, MailEvent.message_id, cast(MailEvent.detail, String),
+        ))))
+    # end if
+    if before is not None:
+        created, event_id = before
+        query = query.where(or_(MailEvent.created_at < as_utc(created), (MailEvent.created_at == as_utc(created)) & (MailEvent.id < event_id)))
+    # end if
+    return list((await session.scalars(query.order_by(MailEvent.created_at.desc(), MailEvent.id.desc()).limit(limit))).all())
+# end def
+
+
+async def last_event_at(session: AsyncSession, kinds: Sequence[EventKind]) -> datetime | None:
+    """When the newest entry of one of these kinds was logged."""
+    newest = await session.scalar(select(func.max(MailEvent.created_at)).where(MailEvent.kind.in_([kind.value for kind in kinds])))
+    return None if newest is None else as_utc(newest)
 # end def
