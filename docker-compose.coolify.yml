@@ -47,7 +47,7 @@ services:
       - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0}
       - VITE_SENTRY_TRACES_SAMPLE_RATE=${VITE_SENTRY_TRACES_SAMPLE_RATE:-0}
     volumes:
-      # The SQLite database (accounts, rules, action log).
+      # Everything the server stores: the SQLite database (accounts, rules, action log), the rules folder that git tracks (`rules/`) and the git credentials (`git/`).
       - data:/data
     healthcheck:
       # The slim image has no curl; `urlopen` raises on anything but a 2xx.

@@ -200,6 +200,7 @@ Status: done, see this checklist; additionally "Status so far" below.
 - `user_action` entries (`matches(on_change=...)`, `OwnChanges` in the `Watcher`): flag changes and vanished mails the user made, worded in the message view.
 - A header name picker (`<datalist>`) on `header` conditions.
 - Admin login from `ADMIN_USERNAME` / `ADMIN_PASSWORD` (Coolify magic variables in the compose file), the `IMAP_*` account is optional.
+- Git for the rules folder (Git screen, `/api/git`): enable, init, credentials (HTTPS token or SSH deploy key), auto commit and push check boxes, manual buttons and the state; the rules mirror and all data under `/data`.
 
 #### Not built yet
 
