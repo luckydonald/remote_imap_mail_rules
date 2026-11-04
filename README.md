@@ -102,6 +102,11 @@ Generate a `SECRET_KEY` once with `uv run python -c "from cryptography.fernet im
   The message view shows that log.
   Mails already in the folders when the server first runs are logged as first seen at that moment, and the watcher restarts after the accounts or the rules changed.
   Rule actions are not executed yet, so the log has no action entries so far.
+- The Log screen lists the action log of all accounts, newest first, with search and filters (account, folder, rule, kind, time range); the filters are in the URL.
+  An info box on top shows when the watcher last woke up (not known after a restart until it does), when it last found a change and when an action last ran.
+- The editor always shows what it edits in the top bar: the rules file on the server, the database, or a file in memory (opened, dropped or new), which is never written to the server.
+  The YAML view of the server's rules is a raw mode: it shows the server's own text and saves what you type as it is.
+  In database mode comments end up in the rule descriptions.
 - The rule editor can show a mail beside it ("Example mail") and fill conditions from it, e.g. the sender as name, email or domain.
   It works on a phone as well, where one pane shows at a time.
 
