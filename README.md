@@ -28,6 +28,8 @@ Read from the environment and from `.env` in the working directory (see `.exampl
 | `IMAP_PAGE_SIZE` | `50` | Mails per page when loading a folder. |
 | `IMAP_POLL_INTERVAL` | `60` | Seconds between polls when the server has no IDLE. |
 | `RULES_PATH` | `rules/example.yml` for the demo, unset for the server | The YAML rules file. When set, the server edits this file; when unset, the rules live in the database. |
+| `DATA_DIR` | `data` (`/data` in the container) | Where the server keeps what is not in the database: the rules mirror in `rules/` and the git credentials in `git/`. |
+| `RULES_DIR` | `DATA_DIR/rules` | The folder git tracks. With `RULES_PATH` set, that file's folder is tracked instead. |
 | `DATABASE_URL` | `sqlite+aiosqlite:///./db.sqlite3` | Any async SQLAlchemy URL. The server runs the Alembic migrations at start-up. |
 | `SECRET_KEY` | none | Fernet key that encrypts the account passwords in the database. Without it no password can be stored. |
 | `WATCH_ENABLED` | `true` | Whether the server runs the rules in the background and writes the action log of each mail. |
@@ -78,6 +80,13 @@ Generate a `SECRET_KEY` once with `uv run python -c "from cryptography.fernet im
 
 - The rules are stored in the file at `RULES_PATH` when that is set, otherwise in the database, one row per rule.
   A file keeps comments and YAML anchors, the database does not, because it stores the parsed rules.
+- Git (the Git screen): the rules folder can be put under git from the browser.
+  In database mode every save also writes the rules as `rules.yml` into `RULES_DIR`, and that folder is what git tracks (without YAML comments, as the database does not keep them); in file mode it is the folder of the `RULES_PATH` file.
+  The screen shows whether `git init` was run, the uncommitted files, the commits waiting for a push, how far the remote is ahead (after "Check remote") and the last error.
+  "Enabled", "Commit automatically" and "Push automatically" are check boxes, "Commit now" and "Push now" do it by hand.
+  Pushing automatically needs committing automatically, a failing automatic step never fails the save and a rejected push is reported, never forced.
+  The settings live in the database. Credentials are an HTTPS username and token (encrypted with `SECRET_KEY`, handed to git through `GIT_ASKPASS`, never in the URL) or an SSH deploy key the server generates in `DATA_DIR/git/ssh` (only the public key is shown, add it as a deploy key with write access).
+  The image contains `git` and `ssh`.
 - The accounts live in the database, passwords encrypted with `SECRET_KEY`.
   The account from the `IMAP_*` variables is optional: if all required ones are set it is added once at start-up and never overwritten afterwards, otherwise add accounts on the Accounts screen.
   If it differs from the variables later (e.g. a changed password), the log warns and the accounts screen shows a badge.
@@ -124,7 +133,7 @@ In Coolify create a Docker Compose resource from this repository, point it at th
 - The login is `ADMIN_USERNAME` and `ADMIN_PASSWORD`, which the compose file fills from Coolify's magic variables `SERVICE_USER_ADMIN` and `SERVICE_PASSWORD_ADMIN`.
   Coolify generates them on the first deploy, read (or change) them in the environment variables of the resource.
 - The `IMAP_*` variables are optional, add the mail accounts on the Accounts screen after logging in.
-- The SQLite database lives in the `data` volume at `/data` (`DATABASE_URL=sqlite+aiosqlite:////data/db.sqlite3`).
+- All data lives in the `data` volume at `/data`: the SQLite database (`DATABASE_URL=sqlite+aiosqlite:////data/db.sqlite3`), the rules folder `/data/rules` and the git credentials `/data/git`.
 - `ACTIONS_ENABLED` stays `false` until you set it.
 - Run exactly one container, the watcher runs inside the server.
 - `SENTRY_DSN`, `VITE_SENTRY_DSN` and the other `SENTRY_*` variables are optional, `SOURCE_COMMIT` (set by Coolify) becomes the release.
