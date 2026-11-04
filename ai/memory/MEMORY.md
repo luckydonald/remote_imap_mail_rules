@@ -8,3 +8,4 @@
 - [Never touch the live account](feedback_never_touch_live_account.md) — action/write features: only `TEST_*`, FakeServer, separate-port servers
 - [Playwright, not Chrome](feedback_playwright_not_chrome.md) — verify the frontend with Playwright e2e tests, never the claude-in-chrome tools
 - [Edit, not sed](feedback_use_edit_not_sed.md) — macOS BSD `sed -i` fails; use the Edit tool (or Python) for file changes
+- [Pinia, not inject](feedback_pinia_not_inject.md) — global frontend state: `defineStore` + `useStore()` per file, no provide/inject or lifting into AppShell

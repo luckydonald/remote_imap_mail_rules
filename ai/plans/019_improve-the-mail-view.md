@@ -57,6 +57,14 @@ Reads use `EXAMINE` and `BODY.PEEK`, and writes only happen when `ACTIONS_ENABLE
 ## 6. Inline (`cid:`) embeds
 
 - The sanitizer already rewrites `cid:` to the part URL, so first reproduce why it does not show reliably (inline types are limited to png, jpeg, gif and webp, and the part route, cookie and iframe `allow-same-origin` have to line up) with a fake mail that has a `multipart/related` image, then fix what is broken.
+- The user's report: the `html` field has `<img alt="Capture Visualisation" width="90" height="90">` with no `src`.
+  Both cases end up there today, because `keep()` in `html_sanitize.py` returns `None` for every remote `src`, and also for a `cid:` whose Content-ID is not in `by_content_id` (`part_url` returns `None`), so the two cannot be told apart from the output.
+  First step is a diagnosis test with the real mail's structure (log which `src` values hit which branch), then handle the cases separately:
+  - `cid:` with a matching part: rewritten to the part URL (already works, add the regression test).
+  - `cid:` with Content-ID matching issues (case, `<>`, percent-encoding, or a part that has only a `Content-Location`): improve the lookup, including `Content-Location` and `cid:` values compared case-insensitively.
+  - `cid:` without any part: keep it removed, and record it as a broken embed (not a blocked remote image).
+  - remote `http(s)`: goes through section 7 and lands in `blocked_images`.
+  - `data:` URIs: allowed for `image/png|jpeg|gif|webp` only, since they are embedded and need no network.
 - Add `image/svg+xml` only if it is served with the forced `sandbox` CSP, otherwise leave it out.
 - Tests: `test_server_mail.py` (rewritten URL, part served inline), and an e2e that the image has a non-zero `naturalWidth` in the iframe.
 
