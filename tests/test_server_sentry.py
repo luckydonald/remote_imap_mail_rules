@@ -24,7 +24,7 @@ def make_settings(tmp_path: Path, **values: Any) -> ServerSettings:
         rules_path=None,
         database_url=f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}",
         frontend_dist=tmp_path / "missing",
-        secret_key=SecretStr(KEY),
+        secret_key=SecretStr(KEY), admin_username="admin", admin_password=SecretStr("admin-secret"),
         **values,
     )
 # end def
