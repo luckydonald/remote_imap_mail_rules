@@ -12,7 +12,8 @@ from ...db import accounts as repository
 from ...db.crypto import CryptoError
 from ...db.engine import iter_session
 from ...db.models import Account
-from ..rules_store import RulesStore, rules_referencing
+from .. import rules_file
+from ..rules_store import RulesStore, replace_account_id, rules_referencing
 from ..settings import ServerSettings
 
 router = APIRouter()
@@ -29,10 +30,12 @@ class AccountIn(BaseModel):
 
 
 class AccountCreate(AccountIn):
+    id: UUID | None = Field(default=None, description="Omitted generates one.")
     password: str = Field(min_length=1)
 
 
 class AccountUpdate(AccountIn):
+    id: UUID | None = Field(default=None, description="Omitted keeps the id; a new one is written into the rules too.")
     password: str | None = Field(default=None, description="Omitted keeps the stored password.")
 
 
@@ -98,8 +101,13 @@ async def list_accounts(request: Request, session: AsyncSession = Depends(get_se
 
 @router.post("", status_code=201)
 async def create_account(request: Request, background: BackgroundTasks, body: AccountCreate, session: AsyncSession = Depends(get_session)) -> AccountOut:
+    values = body.model_dump()
+    account_id = values.pop("id")
+    if account_id is not None and await repository.get_account(session, account_id) is not None:
+        raise HTTPException(status_code=409, detail=["An account with this id exists already."])
+    # end if
     try:
-        account = await repository.create_account(session, get_settings(request).secret_key, **body.model_dump())
+        account = await repository.create_account(session, get_settings(request).secret_key, account_id=account_id, **values)
     except CryptoError as e:
         raise no_key() from e
     # end try
@@ -117,8 +125,25 @@ async def get_account(request: Request, account_id: UUID, session: AsyncSession 
 @router.put("/{account_id}")
 async def update_account(request: Request, background: BackgroundTasks, account_id: UUID, body: AccountUpdate, session: AsyncSession = Depends(get_session)) -> AccountOut:
     account = await find(session, account_id)
+    values = body.model_dump()
+    new_id = values.pop("id")
+    changed_id = new_id is not None and new_id != account_id
+    if changed_id and await repository.get_account(session, new_id) is not None:
+        raise HTTPException(status_code=409, detail=["An account with this id exists already."])
+    # end if
+    if changed_id:
+        # First the rules, as they can be refused; nothing references an account row, so the order does not matter otherwise.
+        try:
+            rewritten = await replace_account_id(request.app.state.rules_store, account_id, new_id)
+        except rules_file.InvalidRules as e:
+            raise HTTPException(status_code=422, detail=e.messages) from e
+        # end try
+        if rewritten:
+            background.add_task(request.app.state.git.auto)
+        # end if
+    # end if
     try:
-        await repository.update_account(session, get_settings(request).secret_key, account, **body.model_dump())
+        await repository.update_account(session, get_settings(request).secret_key, account, new_id=new_id, **values)
     except CryptoError as e:
         raise no_key() from e
     # end try

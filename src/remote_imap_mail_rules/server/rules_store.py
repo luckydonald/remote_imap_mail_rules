@@ -1,6 +1,7 @@
 """Where the rules live: a file, or the database."""
 
 import asyncio
+import re
 from pathlib import Path
 from typing import Literal, Protocol
 from uuid import UUID
@@ -114,4 +115,23 @@ async def rules_referencing(store: RulesStore, account_id: UUID) -> list[str]:
         return []
     # end try
     return [rule.name for rule in rule_file.rules if any(location.account_id == account_id for location in rule.locations)]
+# end def
+
+
+async def replace_account_id(store: RulesStore, old: UUID, new: UUID) -> bool:
+    """Writes `new` in place of `old` everywhere in the stored rules (locations, `move` actions, conditions, templates).
+
+    It is a text replacement, so comments and anchors of a rules file stay.
+    Raises `rules_file.InvalidRules` and stores nothing if the result is invalid. Returns whether anything changed.
+    """
+    text = await store.read_text()
+    if text is None:
+        return False
+    # end if
+    replaced = re.sub(re.escape(str(old)), str(new), text, flags=re.IGNORECASE)
+    if replaced == text:
+        return False
+    # end if
+    await store.save_text(replaced)
+    return True
 # end def

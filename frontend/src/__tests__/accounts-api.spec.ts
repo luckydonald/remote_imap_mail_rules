@@ -9,6 +9,7 @@ import {
 } from '@/model/accounts-api'
 
 const INPUT: AccountInput = {
+  id: '',
   name: 'Work',
   host: 'imap.work.example',
   port: 993,
@@ -38,6 +39,17 @@ describe('accounts api', () => {
     await updateAccount('a', INPUT)
     expect(fetchMock.mock.calls[1]![0]).toBe('/api/accounts/a')
     expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string).password).toBeNull()
+  })
+
+  it('sends an id only when one is set', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => json({ id: 'a' }))
+    vi.stubGlobal('fetch', fetchMock)
+    await updateAccount('a', INPUT)
+    expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string).id).toBeNull()
+    await updateAccount('a', { ...INPUT, id: ' 6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11 ' })
+    expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string).id).toBe(
+      '6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11',
+    )
   })
 
   it('turns the server detail into messages', async () => {

@@ -20,6 +20,8 @@ export interface Account {
 
 /** What the form edits; an empty `password` keeps the stored one on update. */
 export interface AccountInput {
+  /** Empty generates one on create and keeps the current one on update. */
+  id: string
   name: string
   host: string
   port: number
@@ -33,8 +35,12 @@ export interface AccountInput {
 export { ApiError as AccountError } from './http'
 
 function body(input: AccountInput, update: boolean): string {
-  const { password, ...rest } = input
-  return JSON.stringify({ ...rest, password: update && password === '' ? null : password })
+  const { password, id, ...rest } = input
+  return JSON.stringify({
+    ...rest,
+    id: id.trim() === '' ? null : id.trim(),
+    password: update && password === '' ? null : password,
+  })
 }
 
 export async function listAccounts(): Promise<Account[]> {
