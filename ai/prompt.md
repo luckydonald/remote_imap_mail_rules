@@ -750,3 +750,10 @@ This includes the directory for rules and the SQLight database
 >   - is just another rule like the rule builder already does
 >   - so you can specify your specifics very granularly
 
+❯ Plan denied:
+> Oh, and a similar mechansim to enable style/css to render, currently that's blocked, too. Again possibly CSP.
+> Ah, and I copied you some stuff the console says (about 24 times with unknown source and then 1x `Script Element 1:25` and 1x `Script Element 1:53`, whatever that is):
+> ```
+> Blocked script execution in 'about:srcdoc' because the document's frame is sandboxed and the 'allow-scripts' permission is not set.
+> ```
+
