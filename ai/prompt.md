@@ -604,3 +604,6 @@ The next two tasks then will be to:
 
 ❯ Properly stop Docker here. Use podman instead after docker and all it’s servises are cleanly shut down.
 
+❯ Following [@`ai/initial.md`](./initial.md), we now create a proper login.
+Have an admin user via environment variables, using coolify to set them. This means we no longer need any initial mail account.
+
