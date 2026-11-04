@@ -10,7 +10,7 @@ import type { Place } from '@/model/mail-store'
 import type { View } from '@/model/store'
 
 /** The top level screens of the app; a route names the one it shows in `meta.screen`. */
-export type Screen = 'rules' | 'accounts' | 'mail' | 'sample-error'
+export type Screen = 'rules' | 'accounts' | 'git' | 'mail' | 'sample-error'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -32,6 +32,7 @@ export const routes: RouteRecordRaw[] = [
   },
   { path: '/rules/:index(\\d+)', name: 'rule', component: empty, meta: { screen: 'rules' } },
   { path: '/accounts', name: 'accounts', component: empty, meta: { screen: 'accounts' } },
+  { path: '/git', name: 'git', component: empty, meta: { screen: 'git' } },
   // The mail browser nests account, folder and message. A folder name goes in as one encoded segment.
   {
     path: '/mail',
