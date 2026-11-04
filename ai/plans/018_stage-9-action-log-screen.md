@@ -32,7 +32,22 @@ The info box shows the last time the watcher ran, the last time it found a chang
 1. Backend: `Watcher.last_run` + `on_poll` plumbing, with a watcher test in `tests/test_server_watcher.py`.
 2. Backend: migration `0006`, `list_log` / `last_event_at`, `/api/log` router and tests (`tests/test_db_mail_events.py`, new `tests/test_server_log.py` after the pattern of `test_server_events.py`, including the 401 case).
 3. Frontend: `log-api.ts` + Vitest spec, `ActionLogView.vue`, route and nav, component spec, Playwright `e2e/log.spec.ts` (mocking `/api/log/**`; no clash with `/api/mail/**`).
-4. Docs: `CLAUDE.md` layout and decisions, `README.md` if endpoints are listed there, and tick stage 9 in `ai/initial.md`.
+4. Frontend (own commit, requested additionally): raw mode for the server-side rules `.yml`, see below.
+5. Docs: `CLAUDE.md` layout and decisions, `README.md` if endpoints are listed there, and tick stage 9 in `ai/initial.md`.
+
+## Raw mode for the server-side YAML
+
+`YamlPanel.vue` (view `{kind: 'yaml'}`) already has a textarea with Apply and Reset, but it shows the regenerated YAML, and `store.load()` drops `serverFile`, so Save vanishes after Apply.
+Backend needs no change: `PUT /api/editor/rules` already takes the raw text and validates it (422 with a message list), and `FileRulesStore` writes it verbatim.
+
+- **Draft source:** when a server file is open and not dirty, the textarea starts from the server's last text (`store.savedYaml`, set by `markSaved`), otherwise from `store.yaml`.
+- **Apply keeps the server file:** a new `store.applyText(text)` in `model/store.ts` that loads like `load()` but keeps `serverFile` (and `savedYaml`), so the file stays dirty-tracked and Save stays available.
+- **Save raw:** a "Save" button in `YamlPanel.vue` that sends the draft verbatim through `saveRules` (`model/api.ts`), without a round trip through the model, so comments, anchors and formatting stay as typed in file mode.
+  On success it re-fetches (`fetchRules`) and `markSaved`s, so database mode shows what the server stored; on a 422 the `SaveError.messages` show inline under the textarea (the same `.message.error` as parse errors).
+  Parse and schema problems of the draft show live (`parseRulesWithComments` + `validateRules`, reusing the problem list markup of `YamlPanel.vue`) and do not block Save, the server is the judge.
+- **Database mode hint:** a note that comments there end up in the rule descriptions and anchors are not kept (`DatabaseRulesStore.save_text` and `append_comments`); the hint reads `EditorConfig.source`.
+- **Paste:** works through the textarea; the panel needs no extra drop handling, the shell's drop handler still opens files.
+- **Tests:** Vitest for `applyText` (`store.spec.ts`, keeps `serverFile`) and the panel (`components.spec.ts`); Playwright in `e2e/server.spec.ts` style (`mockServer` records the PUT body: raw text with a comment is sent unchanged, a 422 is shown inline).
 
 ## Verification
 
