@@ -73,6 +73,13 @@ class DetailOut(SummaryOut):
     message_id: str | None
     text: str | None
     html: str | None
+    #: Remote image URLs the HTML had, left out unless `remote_images` was asked for.
+    blocked_images: list[str] = []
+    #: `cid:` images without a part in the mail.
+    broken_embeds: list[str] = []
+    styles_blocked: bool = False
+    remote_images_allowed: bool = False
+    styles_allowed: bool = False
     attachments: list[AttachmentOut]
 
 
