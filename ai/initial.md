@@ -136,6 +136,16 @@ Moving between accounts and user actions are still open, see "Not built yet".
 - [x] `action` entries in the log of a mail, shown in the message view.
 - [x] Dry run in the rule editor: a summary of what the actions would do, a drill-down into the affected mails, and "Run now" (disabled with a hint while `ACTIONS_ENABLED` is off).
 
+## 6b. Moving mails between accounts
+Status: done, see this checklist; additionally "Status so far" below.
+`user_action` entries are still open, see "Not built yet".
+
+- [x] A `move` action with another `account_id` copies the whole mail to the target account (`APPEND`, with its flags and date) and deletes the original only afterwards.
+  - A failure in between leaves a duplicate, never a lost mail; a restarted move does not copy twice (found by `Message-ID`).
+  - Needs `UIDPLUS` at the source for the delete.
+- [x] The log of a moved mail continues under its new folder and UID (`moved_in` entry, linked by `message_id`).
+- [x] A mail that rules moved five times is not moved again (`move_loop`), so rules cannot ping-pong it.
+
 # Status so far
 #### Done
 
@@ -170,8 +180,9 @@ Moving between accounts and user actions are still open, see "Not built yet".
 
 - Rule actions inside one account (`actions.py`): first matching rule wins with re-evaluation, `ImapClient` write methods, `ACTIONS_ENABLED` (default off), `action` log entries, and a dry run with "Run now" in the editor.
 
+- Moves between accounts (`ImapClient.append` / `delete` / `fetch_raw`, `ImapWriter.move_across`), the `moved_in` log entry under the new key and the `move_loop` guard.
+
 #### Not built yet
 
-- Moving mails between accounts.
-- `user_action` entries of the log, and the continuation of a moved mail's log under its new folder and UID.
+- `user_action` entries of the log.
 - Easy custom fields and headers beyond the `header` condition, e.g. a picker in the editor.
