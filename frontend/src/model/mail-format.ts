@@ -71,6 +71,39 @@ export function frameDocument(html: string): string {
   return `<!doctype html><meta charset="utf-8"><base target="_blank"><style>${FRAME_STYLE}</style><body>${html}</body>`
 }
 
+const FLAG_ADDED: Record<string, string> = {
+  '\\Seen': 'marked it read',
+  '\\Flagged': 'flagged it',
+  '\\Answered': 'marked it answered',
+  '\\Draft': 'marked it as a draft',
+  '\\Deleted': 'marked it deleted',
+}
+const FLAG_REMOVED: Record<string, string> = {
+  '\\Seen': 'marked it unread',
+  '\\Flagged': 'removed the flag',
+  '\\Answered': 'removed the answered mark',
+  '\\Draft': 'removed the draft mark',
+  '\\Deleted': 'removed the deleted mark',
+}
+
+function names(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : []
+}
+
+/** A `user_action` entry, e.g. `You marked it read`; changes the server saw that no rule made. */
+export function describeUserAction(detail: Record<string, unknown>): string {
+  if (detail.type === 'gone')
+    return 'It left the folder (moved or deleted by you or another client)'
+  if (detail.type !== 'flags') return 'Changed by you'
+  const parts = [
+    ...names(detail.added).map((flag) => FLAG_ADDED[flag] ?? `added the keyword ${flag}`),
+    ...names(detail.removed).map((flag) => FLAG_REMOVED[flag] ?? `removed the keyword ${flag}`),
+  ]
+  return parts.length ? `You ${parts.join(' and ')}` : 'Changed by you'
+}
+
 /** One line of the action log, e.g. `Matched the rule "invoices" (new)`. */
 export function eventLabel(event: MailEvent): string {
   const rule = event.rule_name ?? '(unnamed rule)'
@@ -83,6 +116,6 @@ export function eventLabel(event: MailEvent): string {
     case 'action':
       return `${describeLoggedAction(event.detail)} by the rule "${rule}"`
     case 'user_action':
-      return 'Changed by you'
+      return describeUserAction(event.detail)
   }
 }

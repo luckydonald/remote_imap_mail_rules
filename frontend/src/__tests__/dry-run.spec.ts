@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { describeLoggedAction, describeStep, dryRun, mergeSummary, runNow } from '@/model/dry-run'
 import { ApiError } from '@/model/http'
-import { eventLabel } from '@/model/mail-format'
+import { describeUserAction, eventLabel } from '@/model/mail-format'
 import type { MailEvent } from '@/model/mail-api'
 
 const reply = (body: unknown, status = 200): Response =>
@@ -155,5 +155,40 @@ describe('dry run api', () => {
     const error = await runNow('r').catch((caught: unknown) => caught)
     expect(error).toBeInstanceOf(ApiError)
     expect((error as ApiError).status).toBe(409)
+  })
+})
+
+describe('describeUserAction', () => {
+  it('words flag changes of the user', () => {
+    expect(describeUserAction({ type: 'flags', added: ['\\Seen'], removed: [] })).toBe(
+      'You marked it read',
+    )
+    expect(describeUserAction({ type: 'flags', added: ['\\Seen'], removed: ['\\Flagged'] })).toBe(
+      'You marked it read and removed the flag',
+    )
+    expect(describeUserAction({ type: 'flags', added: ['Work'], removed: ['Old'] })).toBe(
+      'You added the keyword Work and removed the keyword Old',
+    )
+    expect(describeUserAction({ type: 'flags', added: [], removed: ['\\Seen'] })).toBe(
+      'You marked it unread',
+    )
+  })
+
+  it('words a vanished mail and falls back for anything else', () => {
+    expect(describeUserAction({ type: 'gone' })).toBe(
+      'It left the folder (moved or deleted by you or another client)',
+    )
+    expect(describeUserAction({})).toBe('Changed by you')
+  })
+
+  it('is what the log shows for a user_action entry', () => {
+    const entry: MailEvent = {
+      id: '1',
+      kind: 'user_action',
+      rule_name: null,
+      detail: { type: 'flags', added: ['\\Flagged'], removed: [] },
+      created_at: '2026-11-04T10:00:00Z',
+    }
+    expect(eventLabel(entry)).toBe('You flagged it')
   })
 })
