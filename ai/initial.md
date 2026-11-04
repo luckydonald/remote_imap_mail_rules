@@ -162,10 +162,12 @@ Status: done, see this checklist; additionally "Status so far" below.
   - Changing the admin login ends all sessions.
 
 ## 9. Action Log
-Status: pending implementation.
+Status: done, see this checklist; additionally "Status so far" below.
 
-- A dedicated screen for the action log, with filters and search.
-- Up top is an info box, which shows the last time the watcher ran, and the last time it found a change in any of the accounts, and the last time an action ran.
+- [x] A dedicated screen for the action log, with filters and search.
+- [x] Up top is an info box, which shows the last time the watcher ran, and the last time it found a change in any of the accounts, and the last time an action ran.
+  - The time of the last watcher run is kept in memory, so it is unknown after a restart until the watcher wakes up.
+- [x] Additionally: a raw mode for the server-side rules YAML, and a source menu that always names what is edited (file on the server, database, in memory).
 
 
 # Status so far
@@ -209,6 +211,9 @@ Status: pending implementation.
 - Admin login from `ADMIN_USERNAME` / `ADMIN_PASSWORD` (Coolify magic variables in the compose file), the `IMAP_*` account is optional.
 - Git for the rules folder (Git screen, `/api/git`): enable, init, credentials (HTTPS token or SSH deploy key), auto commit and push check boxes, manual buttons and the state; the rules mirror and all data under `/data`.
 
+- Action log screen (`/log`, `/api/log`): filters, search, cursor paging and an info box with the last watcher run, change and action; a `created_at` index.
+- Raw mode for the server-side YAML and a source menu (`📄 file`, `🗄️ Database`, `🕳️ In Memory`) in the rule editor; opened files are ad-hoc documents beside the server's rules.
+
 #### Not built yet
 
-- Stage 9
+- Nothing, all stages are built.
