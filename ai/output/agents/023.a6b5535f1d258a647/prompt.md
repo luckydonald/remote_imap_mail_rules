@@ -1,0 +1,5 @@
+Medium thoroughness, read-only, in /Users/user/Documents/programming/Python/remote_imap_mail_rules. I'm planning a "raw mode" in the rule editor: a plain text view/editor of the server-side rules YAML (paste, edit raw, then apply/save). Report concisely with file paths and line numbers:
+1. Frontend: AppShell.vue topbar/buttons (open, drop, download, copy, save), `src/model/store.ts` (how the model is loaded from YAML text, undo/redo, `serverFile`, `dirty`, how save is done), `yaml-io.ts` (parse/serialize, comment/anchor handling, errors), `validate.ts` (validation messages/how shown), `api.ts` (`/api/editor` client: getRules/putRules, config), and any existing validation-problem display component.
+2. Backend: `server/api/editor.py` GET/PUT /rules (body, content type, 422 shape), `rules_store.py` FileRulesStore vs DatabaseRulesStore read/write of raw YAML (what raw text does database mode return and does PUT keep comments there).
+3. Existing tests for these (frontend/src/__tests__, frontend/e2e, tests/test_server_editor*.py) to mirror.
+Write nothing.
