@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AccountsView from './AccountsView.vue'
+import ActionLogView from './ActionLogView.vue'
 import GitView from './GitView.vue'
 import MailLogin from './MailLogin.vue'
 import MailView from './MailView.vue'
@@ -208,6 +209,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <RouterLink :to="{ name: 'mail' }" class="ghost" :class="{ current: screen === 'mail' }"
           >Mail</RouterLink
         >
+        <RouterLink :to="{ name: 'log' }" class="ghost" :class="{ current: screen === 'log' }"
+          >Log</RouterLink
+        >
         <button type="button" class="ghost" @click="logOut">Log out</button>
       </nav>
       <button
@@ -220,7 +224,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       >
         Example mail
       </button>
-      <template v-if="screen !== 'mail'">
+      <template v-if="screen !== 'mail' && screen !== 'log'">
         <button type="button" @click="fileInput?.click()">Open…</button>
         <input ref="fileInput" type="file" accept=".yml,.yaml,text/yaml" hidden @change="onPick" />
         <button type="button" class="ghost" @click="reset">New</button>
@@ -267,6 +271,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     <MailLogin v-if="loginRequired" @logged-in="loggedIn" />
     <SampleErrorView v-else-if="screen === 'sample-error'" />
     <MailView v-else-if="screen === 'mail'" @unauthorized="logOut" />
+    <ActionLogView v-else-if="screen === 'log'" @unauthorized="logOut" />
     <AccountsView v-else-if="screen === 'accounts'" />
     <GitView v-else-if="screen === 'git'" />
     <div v-else class="body" :class="{ 'with-mail': online && mail.panelOpen }">

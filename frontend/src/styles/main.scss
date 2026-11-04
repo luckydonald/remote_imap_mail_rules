@@ -456,6 +456,91 @@ button {
   }
 }
 
+.action-log {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+
+  .info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    margin: 12px 0;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+
+    dt {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    dd {
+      margin: 0;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+
+    input[type='search'] {
+      flex: 1 1 200px;
+    }
+
+    .kinds {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+  }
+
+  .entries {
+    display: grid;
+    gap: 6px;
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: grid;
+      grid-template-columns: 11em 1fr;
+      gap: 2px 12px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    time {
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .where {
+      grid-column: 2;
+      color: var(--muted);
+      font-size: 13px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .entries li {
+      grid-template-columns: 1fr;
+
+      .where {
+        grid-column: 1;
+      }
+    }
+  }
+}
+
 .git-form,
 .account-form {
   display: grid;
