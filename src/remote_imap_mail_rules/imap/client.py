@@ -180,6 +180,7 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
     async def move(self, folder: str, uid: int, target: str) -> Moved:
         """Moves one mail to another folder of this account and says where it went. Without `MOVE` it is copy, flag `\\Deleted` and a `UID EXPUNGE` of just that mail."""
         await self.ensure_writable(folder)
+        target = await self.resolve_folder(target)
         if self.has_capability("MOVE"):
             return self.moved(target, check(await self.conn.uid("move", str(uid), quote_folder(target)), f"move to {target}").lines)
         # end if
@@ -206,6 +207,7 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
 
     async def append(self, folder: str, message: RawMessage) -> Moved:
         """Stores a whole mail in a folder, with its flags and internal date. The new UID is known with `UIDPLUS`."""
+        folder = await self.resolve_folder(folder)
         flags = " ".join(sorted(flag for flag in message.flags if flag.lower() != "\\recent")) or None
         response = check(await self.conn.append(message.raw, quote_folder(folder), flags, message.internaldate), f"append to {folder}")
         return self.moved(folder, response.lines)
@@ -226,8 +228,40 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
         return parse_list(check(await self.conn.list('""', quote_folder(pattern)), "list").lines)
     # end def
 
+    async def resolve_folder(self, name: str) -> str:
+        """The server's real name for a folder as written in a rule, where `/` means subfolder.
+
+        A name the server lists is kept. Otherwise `/` becomes the server's delimiter, the namespace prefix (`INBOX.` on Dovecot) is added
+        if the server keeps its folders there, and case is ignored. A folder that does not exist yet gets the converted, prefixed name.
+        """
+        found = await self.list_folders("*")
+        listed = [info.name for info in found]
+        if name in listed:
+            return name
+        # end if
+        delimiter = next((info.delimiter for info in found if info.delimiter), "/")
+        converted = name.replace("/", delimiter)
+        inbox = f"INBOX{delimiter}"
+        prefixed = any(entry.upper().startswith(inbox.upper()) for entry in listed)
+        candidates = [converted] + ([inbox + converted] if prefixed and not converted.upper().startswith(inbox.upper()) else [])
+        for candidate in candidates:
+            if candidate in listed:
+                return candidate
+            # end if
+        # end for
+        for candidate in candidates:
+            lowered = candidate.lower()
+            match = next((entry for entry in listed if entry.lower() == lowered), None)
+            if match is not None:
+                return match
+            # end if
+        # end for
+        return candidates[-1]
+    # end def
+
     async def expand_folder(self, folder: str, recursive: bool) -> list[str]:
         """The folder itself plus, if `recursive`, all selectable folders below it. Empty if the folder does not exist."""
+        folder = await self.resolve_folder(folder)
         found = await self.list_folders(f"{folder}*")
         names = [info.name for info in found if info.name == folder and info.selectable]
         if not names:
