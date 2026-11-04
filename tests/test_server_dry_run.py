@@ -84,7 +84,7 @@ def test_dry_run_summarizes_and_lists_without_writing(client: TestClient, server
     response = client.post("/api/dry-run", json={"rule": "invoices"})
     assert response.status_code == 200, response.text
     data = response.json()
-    assert (data["inspected"], data["affected"], data["truncated"], data["actions_enabled"]) == (3, 1, False, False)
+    assert (data["inspected"], data["affected"], data["next"], data["actions_enabled"]) == (3, 1, None, False)
     assert {(row["type"], row["status"], row["folder"], row["count"]) for row in data["summary"]} == {("mark_read", "planned", None, 1), ("move", "planned", "Archive", 1)}
     [mail] = data["mails"]
     assert (mail["uid"], mail["folder"], mail["moved_to"]) == (1, "INBOX", "Archive")
@@ -136,4 +136,33 @@ def test_run_now_applies_and_logs(tmp_path: Path) -> None:
             ("action", "invoices", "mark_read"), ("action", "invoices", "move"),
         ]
     # end for
+# end def
+
+
+def test_dry_run_comes_in_pages(client: TestClient, server: FakeServer, account: str) -> None:
+    pages = []
+    cursor = None
+    while True:
+        data = client.post("/api/dry-run", json={"rule": "invoices", "limit": 1, "cursor": cursor}).json()
+        pages.append(data)
+        cursor = data["next"]
+        if cursor is None:
+            break
+        # end if
+    # end while
+    # Newest first: uid 3 (hello), uid 2 (seen invoice, nothing to do), uid 1 (the one that is affected).
+    assert [(page["inspected"], page["affected"]) for page in pages] == [(1, 0), (1, 0), (1, 1)]
+    assert [mail["uid"] for page in pages for mail in page["mails"]] == [1]
+    assert pages[-1]["summary"][0]["count"] == 1
+# end def
+
+
+def test_a_page_may_end_exactly_at_the_end(client: TestClient, account: str) -> None:
+    data = client.post("/api/dry-run", json={"rule": "invoices", "limit": 3}).json()
+    assert (data["inspected"], data["affected"]) == (3, 1)
+    # Nothing known to be left, but the folder is only known to be done by asking again.
+    if data["next"] is not None:
+        again = client.post("/api/dry-run", json={"rule": "invoices", "limit": 3, "cursor": data["next"]}).json()
+        assert (again["inspected"], again["next"]) == (0, None)
+    # end if
 # end def

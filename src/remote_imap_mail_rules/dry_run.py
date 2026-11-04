@@ -9,13 +9,14 @@ import logging
 from collections import Counter
 from dataclasses import dataclass, field, replace
 from typing import Never
+from uuid import UUID
 
 from .actions import ChainResult, Round, Step, StepStatus, VirtualWriter, run_chain
 from .config import ImapSettings
 from .imap.client import ConnectionFactory, ImapClient, connect_aioimaplib
 from .mail import Mail
 from .matching import rules_by_folder
-from .rules.models import RuleFile
+from .rules.models import Rule, RuleFile
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,64 @@ class DryRunResult:
         self.errors += other.errors
     # end def
 # end class
+
+
+@dataclass(frozen=True)
+class Cursor:
+    """Where the next page of a dry run starts: a folder of an account, below `before_uid` (newest first)."""
+
+    account_id: UUID
+    folder: str | None = None
+    """`None` means the first folder of the account."""
+    before_uid: int | None = None
+
+
+async def inspect(rules: list[Rule[Never]], rule_name: str, mail: Mail, result: DryRunResult) -> None:
+    """Runs the chain on a copy of the mail and keeps the entry if the chosen rule is part of it."""
+    result.inspected += 1
+    chain = await run_chain(rules, replace(mail), VirtualWriter())
+    chain.rounds = [Round(round_.rule, as_planned(round_.steps)) for round_ in chain.rounds]
+    entry = DryRunEntry(mail, chain)
+    if own_rounds(entry, rule_name):
+        result.entries.append(entry)
+    # end if
+# end def
+
+
+async def dry_run_page(
+    settings: ImapSettings,
+    rule_file: RuleFile[Never],
+    rule_name: str,
+    limit: int,
+    cursor: Cursor | None = None,
+    factory: ConnectionFactory = connect_aioimaplib,
+) -> tuple[DryRunResult, Cursor | None]:
+    """Looks at up to `limit` mails of one account, from the cursor on. The cursor for the next page is `None` when the account is done."""
+    result = DryRunResult(rule=rule_name)
+    account_id = settings.imap_account_id
+    async with ImapClient(settings, factory) as client:
+        by_folder = await rules_by_folder(client, rule_file, account_id)
+        folders = [folder for folder, rules in by_folder.items() if any(rule.name == rule_name for rule in rules)]
+        resumed = cursor is not None and cursor.folder in folders
+        start = folders.index(cursor.folder) if cursor is not None and resumed else 0
+        before = cursor.before_uid if cursor is not None and resumed else None
+        for folder in folders[start:]:
+            if result.inspected >= limit:
+                return result, Cursor(account_id, folder)
+            # end if
+            uids = await client.list_uids(folder, before)
+            batch = uids[: limit - result.inspected]
+            for mail in await client.fetch_mails(account_id, folder, batch):
+                await inspect(by_folder[folder], rule_name, mail, result)
+            # end for
+            if len(uids) > len(batch):
+                return result, Cursor(account_id, folder, batch[-1])
+            # end if
+            before = None
+        # end for
+    # end async with
+    return result, None
+# end def
 
 
 def own_rounds(entry: DryRunEntry, rule: str) -> list[Round]:
@@ -81,13 +140,7 @@ async def dry_run_account(
                         result.truncated = True
                         return result
                     # end if
-                    result.inspected += 1
-                    chain = await run_chain(rules, replace(mail), VirtualWriter())
-                    chain.rounds = [Round(round_.rule, as_planned(round_.steps)) for round_ in chain.rounds]
-                    entry = DryRunEntry(mail, chain)
-                    if own_rounds(entry, rule_name):
-                        result.entries.append(entry)
-                    # end if
+                    await inspect(rules, rule_name, mail, result)
                 # end for
             # end async for
         # end for

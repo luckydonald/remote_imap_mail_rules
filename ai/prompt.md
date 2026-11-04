@@ -529,7 +529,8 @@ Hoist mail into a shared pinia store, persisted/cached by localstorage.
 
 ❯ Plan accepted, auto mode.
 
-❯ Plan denied:
-> Ah, that was what it was about. 
-> Yeah, actually process it rule by rule in order, and first matching rule in order wins. If the mail is changed by the rule, the rules must be re-evaluated from the top with the new data, anyways. Maybe we can optimize this as we already have the mail (as opposed to doing a full mail listing again)
+❯ Conversation compacted <kbd>auto</kbd>:
+> - [Result (`13524` chars, `13.2 KB`)](output/compact/001.a69a1439-fa85-4ffa-8618-49a4fa92927e/result.md)
+
+❯ Add pagination to the dry run with a "load more…" like the mail viewer. This means smaller batches for quicker loading (takes 59 seconds right now), and the ability to actually see all the mails the rule would touch. If a page comes back with no new mails, it would automatically fetch the next, click is only needed if there is a page with more mails loaded.
 

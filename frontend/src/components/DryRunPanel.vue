@@ -7,7 +7,8 @@ import {
   dryRun,
   runNow,
   type AffectedMail,
-  type DryRunResult,
+  mergeSummary,
+  type DryRunCursor,
   type RunResult,
   type SummaryRow,
 } from '@/model/dry-run'
@@ -20,7 +21,20 @@ const props = defineProps<{ rule: Rule }>()
 const store = useStore()
 const mail = useMailStore()
 
-const result = ref<DryRunResult | null>(null)
+/** What the pages so far add up to. */
+interface Totals {
+  actionsEnabled: boolean
+  inspected: number
+  affected: number
+  summary: SummaryRow[]
+  mails: AffectedMail[]
+  errors: string[]
+  next: DryRunCursor | null
+}
+
+const result = ref<Totals | null>(null)
+/** Counts the runs, so the pages of an outdated run are dropped. */
+let generation = 0
 const ran = ref<RunResult | null>(null)
 const error = ref('')
 const loading = ref(false)
@@ -80,20 +94,50 @@ function sender(m: AffectedMail): string {
   return m.sender.name || m.sender.address
 }
 
-async function start(): Promise<void> {
+/**
+ * Fetches pages until one brings new affected mails, or there are no more.
+ * A page without any is not worth a click, so the next one is requested right away.
+ */
+async function fetchPages(first: boolean): Promise<void> {
+  const mine = ++generation
   loading.value = true
   error.value = ''
+  try {
+    let cursor = first ? null : (result.value?.next ?? null)
+    for (;;) {
+      const page = await dryRun(props.rule.name, store.yaml.value, cursor)
+      if (mine !== generation) return
+      const before = first && cursor === null ? null : result.value
+      result.value = {
+        actionsEnabled: page.actions_enabled,
+        inspected: (before?.inspected ?? 0) + page.inspected,
+        affected: (before?.affected ?? 0) + page.affected,
+        summary: mergeSummary(before?.summary ?? [], page.summary),
+        mails: [...(before?.mails ?? []), ...page.mails],
+        errors: [...(before?.errors ?? []), ...page.errors],
+        next: page.next,
+      }
+      if (page.next === null || page.mails.length > 0) return
+      cursor = page.next
+    }
+  } catch (e) {
+    if (mine !== generation) return
+    error.value = describeError(e)
+  } finally {
+    if (mine === generation) loading.value = false
+  }
+}
+
+async function start(): Promise<void> {
   ran.value = null
   confirming.value = false
   only.value = null
-  try {
-    result.value = await dryRun(props.rule.name, store.yaml.value)
-  } catch (e) {
-    result.value = null
-    error.value = describeError(e)
-  } finally {
-    loading.value = false
-  }
+  result.value = null
+  await fetchPages(true)
+}
+
+function loadMore(): Promise<void> {
+  return fetchPages(false)
 }
 
 async function apply(): Promise<void> {
@@ -102,12 +146,14 @@ async function apply(): Promise<void> {
   error.value = ''
   try {
     ran.value = await runNow(props.rule.name)
-    result.value = await dryRun(props.rule.name, store.yaml.value)
   } catch (e) {
     error.value = describeError(e)
-  } finally {
     loading.value = false
+    return
   }
+  result.value = null
+  only.value = null
+  await fetchPages(true)
 }
 </script>
 
@@ -132,7 +178,11 @@ async function apply(): Promise<void> {
     </div>
     <p v-if="result && blocked" class="hint blocked">{{ blocked }}</p>
     <p v-if="confirming" class="confirm">
-      Apply {{ plannedCount }} changes to {{ result?.affected }} mails for real?
+      Apply {{ result?.next ? 'at least ' : '' }}{{ plannedCount }} changes to
+      {{ result?.affected }} mails{{
+        result?.next ? ' (not all looked at yet; the rule is applied to all)' : ''
+      }}
+      for real?
       <button type="button" class="confirm-run" @click="apply">Apply</button>
       <button type="button" class="ghost" @click="confirming = false">Cancel</button>
     </p>
@@ -152,14 +202,12 @@ async function apply(): Promise<void> {
         <li v-for="(e, i) in result.errors" :key="i">{{ e }}</li>
       </ul>
       <p class="totals">
-        Looked at {{ result.inspected }} mails, {{ result.affected }} would be affected{{
+        Looked at {{ result.inspected }} mails{{ result.next ? ' so far' : '' }},
+        {{ result.affected }} would be affected{{
           noopCount ? `, ${noopCount} steps change nothing` : ''
         }}.
       </p>
-      <p v-if="result.truncated" class="hint">
-        Stopped early, only the newest mails were looked at.
-      </p>
-      <p v-if="result.summary.length === 0" class="hint empty">
+      <p v-if="result.summary.length === 0 && !result.next && !loading" class="hint empty">
         This rule would do nothing right now.
       </p>
       <table v-else class="summary">
@@ -179,9 +227,6 @@ async function apply(): Promise<void> {
         Showing {{ shown.length }} mails for "{{ rowLabel(only) }}".
         <button type="button" class="ghost" @click="only = null">Show all</button>
       </p>
-      <p v-if="result.listed < result.affected && !only" class="hint">
-        The list shows the first {{ result.listed }} of {{ result.affected }} mails.
-      </p>
       <ul class="affected">
         <li v-for="m in shown" :key="`${m.account_id}-${m.folder}-${m.uid}`">
           <RouterLink
@@ -198,6 +243,15 @@ async function apply(): Promise<void> {
           </ol>
         </li>
       </ul>
+      <button
+        v-if="result.next"
+        type="button"
+        class="load-more"
+        :disabled="loading"
+        @click="loadMore"
+      >
+        {{ loading ? 'Looking at the mails…' : 'Load more…' }}
+      </button>
     </template>
   </section>
 </template>

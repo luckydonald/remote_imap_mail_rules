@@ -17,10 +17,10 @@ from ...actions import ActionRunner, ChainResult, Round
 from ...config import ImapSettings
 from ...db import accounts as account_repository
 from ...db.crypto import CryptoError
-from ...dry_run import DryRunEntry, DryRunResult, dry_run_account, own_rounds, summarize
+from ...dry_run import Cursor, DryRunEntry, DryRunResult, dry_run_account, dry_run_page, own_rounds, summarize
 from ...imap.client import ConnectionFactory, ImapError
 from ...rules.loader import parse_rules
-from ...rules.models import RuleFile
+from ...rules.models import Rule, RuleFile
 from ..mail_view import SummaryOut, summary_out
 from ..rules_store import RulesStore
 from ..settings import ServerSettings
@@ -28,13 +28,23 @@ from .accounts import get_session
 
 router = APIRouter()
 
-MAX_LISTED = 500
-"""Affected mails sent to the browser; the summary counts all of them."""
 FAILURES = (ImapError, aioimaplib.AioImapException, OSError, TimeoutError)
+
+
+PAGE_SIZE = 200
+"""Mails looked at per request, so a page comes back quickly."""
+
+
+class CursorModel(BaseModel):
+    account_id: UUID
+    folder: str | None = None
+    before_uid: int | None = Field(default=None, ge=1)
 
 
 class DryRunIn(BaseModel):
     rule: str = Field(min_length=1, description="Name of the rule.")
+    cursor: CursorModel | None = Field(default=None, description="The `next` of the previous page; the first page if unset.")
+    limit: int = Field(default=PAGE_SIZE, ge=1, le=1000, description="How many mails to look at in this page.")
     yaml: str | None = Field(default=None, description="The rule file to simulate, e.g. the editor's unsaved text; the stored file if unset.")
 
 
@@ -74,12 +84,14 @@ class DryRunOut(BaseModel):
     rule: str
     actions_enabled: bool
     inspected: int
-    truncated: bool
+    """Mails looked at in this page."""
     affected: int
-    listed: int
+    """Of those, the mails the rule does something to."""
     summary: list[SummaryRowOut]
     mails: list[AffectedMail]
     errors: list[str]
+    next: CursorModel | None
+    """Pass it back to get the next page, `None` when everything was looked at."""
 
 
 class RunOut(BaseModel):
@@ -126,12 +138,18 @@ async def load_rule_file(request: Request, text: str | None) -> RuleFile[Never]:
 # end def
 
 
-async def simulate(request: Request, session: AsyncSession, rule_file: RuleFile[Never], rule_name: str) -> tuple[DryRunResult, list[ImapSettings]]:
-    """Dry runs the rule on every stored account it has a location for. Accounts that fail are reported, not raised."""
+def find_rule(rule_file: RuleFile[Never], rule_name: str) -> Rule[Never]:
     rule = next((rule for rule in rule_file.rules if rule.name == rule_name), None)
     if rule is None:
         raise HTTPException(status_code=404, detail=f"There is no rule named {rule_name!r}.")
     # end if
+    return rule
+# end def
+
+
+async def simulate(request: Request, session: AsyncSession, rule_file: RuleFile[Never], rule_name: str) -> tuple[DryRunResult, list[ImapSettings]]:
+    """Dry runs the rule on every stored account it has a location for. Accounts that fail are reported, not raised."""
+    rule = find_rule(rule_file, rule_name)
     settings: ServerSettings = request.app.state.settings
     factory: ConnectionFactory = request.app.state.imap_factory
     total = DryRunResult(rule=rule_name)
@@ -159,21 +177,64 @@ async def simulate(request: Request, session: AsyncSession, rule_file: RuleFile[
 # end def
 
 
+async def simulate_page(request: Request, session: AsyncSession, rule_file: RuleFile[Never], body: DryRunIn) -> tuple[DryRunResult, Cursor | None]:
+    """The next `limit` mails of the rule's accounts, in the order of its locations, and where to go on."""
+    rule = find_rule(rule_file, body.rule)
+    settings: ServerSettings = request.app.state.settings
+    factory: ConnectionFactory = request.app.state.imap_factory
+    account_ids = list(dict.fromkeys(location.account_id for location in rule.locations))
+    cursor = Cursor(body.cursor.account_id, body.cursor.folder, body.cursor.before_uid) if body.cursor else None
+    if cursor is not None and cursor.account_id not in account_ids:
+        cursor = None
+    # end if
+    total = DryRunResult(rule=body.rule)
+    for index in range(account_ids.index(cursor.account_id) if cursor is not None else 0, len(account_ids)):
+        account_id = account_ids[index]
+        if total.inspected >= body.limit:
+            return total, Cursor(account_id)
+        # end if
+        account = await account_repository.get_account(session, account_id)
+        if account is None:
+            total.errors.append(f"Account {account_id} is not registered in the server.")
+            continue
+        # end if
+        try:
+            imap_settings = account_repository.imap_settings(account, settings.secret_key)
+        except CryptoError as e:
+            total.errors.append(f"Account {account.name}: {e}")
+            continue
+        # end try
+        try:
+            page, following = await dry_run_page(imap_settings, rule_file, body.rule, body.limit - total.inspected, cursor, factory)
+        except FAILURES as e:
+            total.errors.append(f"Account {account.name}: the mail server failed: {e}")
+            cursor = None
+            continue
+        # end try
+        cursor = None
+        total.merge(page)
+        if following is not None:
+            return total, following
+        # end if
+    # end for
+    return total, None
+# end def
+
+
 @router.post("")
 async def post_dry_run(request: Request, body: DryRunIn, session: AsyncSession = Depends(get_session)) -> DryRunOut:
+    """One page of the dry run: the next `limit` mails are looked at, the summary and the list are for this page only."""
     rule_file = await load_rule_file(request, body.yaml)
-    result, _ = await simulate(request, session, rule_file, body.rule)
-    shown = result.entries[:MAX_LISTED]
+    result, following = await simulate_page(request, session, rule_file, body)
     return DryRunOut(
         rule=body.rule,
         actions_enabled=request.app.state.settings.actions_enabled,
         inspected=result.inspected,
-        truncated=result.truncated,
         affected=len(result.entries),
-        listed=len(shown),
         summary=[SummaryRowOut(**row.__dict__) for row in summarize(result)],
-        mails=[affected_mail(entry) for entry in shown],
+        mails=[affected_mail(entry) for entry in result.entries],
         errors=result.errors,
+        next=CursorModel(account_id=following.account_id, folder=following.folder, before_uid=following.before_uid) if following else None,
     )
 # end def
 
