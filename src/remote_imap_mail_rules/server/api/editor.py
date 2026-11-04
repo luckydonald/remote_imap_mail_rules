@@ -56,4 +56,5 @@ async def put_rules(request: Request, background: BackgroundTasks) -> None:
         raise HTTPException(status_code=422, detail=e.messages) from e
     # end try
     background.add_task(request.app.state.watcher.restart)
+    background.add_task(request.app.state.git.auto)
 # end def

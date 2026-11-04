@@ -13,8 +13,10 @@ from ..db import accounts as account_repository
 from ..db.engine import create_engine, create_session_factory
 from ..db.migrate import upgrade
 from ..imap.client import ConnectionFactory, connect_aioimaplib
-from .api import accounts, auth, dry_run, editor, events, mail, public, sample_error
+from .api import accounts, auth, dry_run, editor, events, git, mail, public, sample_error
 from .auth import require_login
+from .git_repo import GitRepo
+from .git_service import GitService
 from .rules_store import DatabaseRulesStore, FileRulesStore, RulesStore
 from .sentry import report_startup_failure
 from .settings import ServerSettings
@@ -53,6 +55,9 @@ def create_app(
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         try:
             await upgrade(settings.database_url)
+            if isinstance(store, DatabaseRulesStore):
+                await store.write_mirror()
+            # end if
             async with session_factory() as session:
                 await account_repository.seed_from_env(session, env_account, settings.secret_key)
                 await session.commit()
@@ -72,14 +77,16 @@ def create_app(
     app.state.session_factory = session_factory
     app.state.env_account = env_account
     app.state.imap_factory = imap_factory
-    store: RulesStore = FileRulesStore(settings.rules_path) if settings.rules_path else DatabaseRulesStore(session_factory)
+    store: RulesStore = FileRulesStore(settings.rules_path) if settings.rules_path else DatabaseRulesStore(session_factory, settings.git_dir)
     app.state.rules_store = store
+    app.state.git = GitService(GitRepo(settings.git_dir, settings.git_state_dir), session_factory, settings.secret_key)
     app.state.watcher = Watcher(session_factory, store, settings.secret_key, imap_factory, enabled=settings.watch_enabled, actions_enabled=settings.actions_enabled)
     app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
     app.include_router(public.router, prefix="/api/public", tags=["public"])
     # Everything else under `/api` needs the login, set here so that a new router cannot forget it.
     protected = [Depends(require_login)]
     app.include_router(editor.router, prefix="/api/editor", tags=["editor"], dependencies=protected)
+    app.include_router(git.router, prefix="/api/git", tags=["git"], dependencies=protected)
     app.include_router(accounts.router, prefix="/api/accounts", tags=["accounts"], dependencies=protected)
     app.include_router(mail.router, prefix="/api/mail", tags=["mail"], dependencies=protected)
     app.include_router(dry_run.router, prefix="/api/dry-run", tags=["dry-run"], dependencies=protected)

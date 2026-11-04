@@ -981,3 +981,6 @@ coverage/
 # automatically added unversioned files:
 *.sqlite3
 *.sqlite3-journal
+
+# Local default of DATA_DIR (rules mirror, git credentials)
+/data/
