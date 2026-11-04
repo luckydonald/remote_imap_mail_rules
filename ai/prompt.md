@@ -134,7 +134,7 @@ Log the RULES_PATH at startup on DEBUG, that was my issue, printing it once more
 Now, adding rules in the format needed for anonaddy is quite teadious.
 I'd like to basically have some kind of miniture macro system based on the `&ref`/`*ref` system of yaml.
 Basically I could specify a root level `templates: []`, where an item has an `&ref`, and some special syntax for replacable fields (here: each `value`s).
-Then you could do something like [@`rules/rules.example.yml`](../rules/rules.example.yml) 
+Then you could do something like [@`rules/rules.example.yml`](../rules/rules.example.yml)
 Of cause this can use improvements, but that's my initial idea here.
 
 ❯ Plan denied:
@@ -521,7 +521,7 @@ Hoist mail into a shared pinia store, persisted/cached by localstorage.
 >   - the watcher should not write anything for dry runs.
 
 ❯ Plan denied:
-> Ah, that was what it was about. 
+> Ah, that was what it was about.
 > Yeah, actually process it rule by rule in order, and first matching rule in order wins. If the mail is changed by the rule, the rules must be re-evaluated from the top with the new data, anyways. Maybe we can optimize this as we already have the mail (as opposed to doing a full mail listing again)
 
 ❯ Plan denied:
@@ -736,7 +736,7 @@ This includes the directory for rules and the SQLight database
 >   - this has a 2-button-segment toggle
 >     - e.g. `[ Text | HTML ]`, with the current state highlighted
 >     - as a new custom component
-> - New 6th feature: 
+> - New 6th feature:
 >   - If there are internal embeds in HTML mode, render them in the viewer.
 > - New 7th feature:
 >   - If there are external embeds in HTML mode
@@ -763,4 +763,32 @@ This includes the directory for rules and the SQLight database
 ❯ Plan accepted, auto mode.
 
 ❯ Commit per task as outlined.
+
+❯ Conversation compacted <kbd>auto</kbd>:
+> - [Result (`16994` chars, `16.6 KB`)](output/compact/002.a8ace1d1-f629-4aa0-8b74-d6ab89d1cf91/result.md)
+
+❯ Fix [@`ai/errors/4.txt`](./errors/4.txt)
+
+❯ Question answered.
+> <details><summary>
+>
+>> 1. The server (Dovecot) has its personal namespace under `INBOX.`, so the rule's target `Boxed In/Updates` is refused. How should this be fixed?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Fix** (1/1) <kbd>Single Select</kbd><br>
+>> The server (Dovecot) has its personal namespace under `INBOX.`, so the rule's target `Boxed In/Updates` is refused. How should this be fixed?
+> - [ ] 1\. Resolve in code (Recommended)
+>   - _Before a move or append, the client looks the target up via LIST/NAMESPACE and, if it is not found as written, tries the personal namespace prefix and delimiter (e.g. `INBOX.Boxed In.Updates`). Rule files stay provider independent._
+> - [ ] 2\. Fix the rule only
+>   - _Change the rule's folder to the server's real name (e.g. `INBOX.Boxed In/Updates`) and make the error message say which folders exist. No client logic._
+> - [x] 3\. _Type something:_
+>   - > The slashes in my path are ment to be subfolders, too. So fix both in code. In the email viewer it's `INBOX.Boxed%20in.Promotions`, but I assume that `%20` is just because it's part of the URL?
+>
+> </details>
+>
+
+❯ Plan accepted, auto mode.
 

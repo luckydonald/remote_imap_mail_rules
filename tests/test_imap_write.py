@@ -151,3 +151,40 @@ async def test_find_message_id() -> None:
         assert await client.find_message_id("INBOX", "<abc@example.com>") == 3
         assert await client.find_message_id("INBOX", "<other@example.com>") is None
 # end def
+
+
+def make_dovecot() -> FakeServer:
+    """Folders live under `INBOX.` with `.` as delimiter, like Dovecot with a namespace prefix."""
+    server = FakeServer({"IMAP4REV1", "MOVE", "UIDPLUS"})
+    server.delimiter = "."
+    server.add("INBOX", 1, "one")
+    server.folders["INBOX.Boxed in.Updates"] = FakeFolder()
+    return server
+# end def
+
+
+async def test_resolve_folder_maps_slashes_prefix_and_case() -> None:
+    server = make_dovecot()
+    async with ImapClient(make_settings(), server.connect) as client:
+        assert await client.resolve_folder("Boxed In/Updates") == "INBOX.Boxed in.Updates"
+        assert await client.resolve_folder("INBOX.Boxed in.Updates") == "INBOX.Boxed in.Updates"
+        assert await client.resolve_folder("INBOX") == "INBOX"
+        assert await client.resolve_folder("Boxed In/New") == "INBOX.Boxed In.New"
+# end def
+
+
+async def test_resolve_folder_keeps_slash_servers() -> None:
+    server = make_server({"IMAP4REV1"})
+    async with ImapClient(make_settings(), server.connect) as client:
+        assert await client.resolve_folder("Archive") == "Archive"
+        assert await client.resolve_folder("Boxed In/Updates") == "Boxed In/Updates"
+# end def
+
+
+async def test_move_uses_the_resolved_name() -> None:
+    server = make_dovecot()
+    async with ImapClient(make_settings(), server.connect) as client:
+        await client.move("INBOX", 1, "Boxed In/Updates")
+    assert [m.uid for m in server.folders["INBOX.Boxed in.Updates"].messages] == [1]
+    assert 'UID MOVE 1 "INBOX.Boxed in.Updates"' in server.commands
+# end def

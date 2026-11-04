@@ -1,0 +1,3 @@
+# config like `<project-root>/rules/rules.example.yml`
+
+Failed to move to Boxed In/Updates: move to Boxed In/Updates failed: NO [b'Client tried to access nonexistent namespace. (Mailbox name should probably be prefixed with: INBOX.) (0.001 + 0.000 secs).'] by the rule "Move from INBOX to "Boxed In/Updates""
