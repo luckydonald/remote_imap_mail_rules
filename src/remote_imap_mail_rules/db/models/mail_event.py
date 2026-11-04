@@ -13,7 +13,7 @@ from .account import utcnow
 
 
 class EventKind(StrEnum):
-    """`action` and `user_action` are reserved: rule actions and writes to IMAP are not executed yet."""
+    """`action` is written when rules run their actions, `user_action` is reserved: nothing writes it yet."""
 
     first_seen = "first_seen"
     rule_match = "rule_match"
