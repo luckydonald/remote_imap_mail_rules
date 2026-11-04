@@ -7,6 +7,7 @@ import AppShell from '@/components/AppShell.vue'
 import ConditionNode from '@/components/ConditionNode.vue'
 import FieldValue from '@/components/FieldValue.vue'
 import MailLog from '@/components/MailLog.vue'
+import SourceMenu from '@/components/SourceMenu.vue'
 import { provideStore } from '@/model/context'
 import { createStore } from '@/model/store'
 import { defineComponent, h, reactive } from 'vue'
@@ -129,5 +130,50 @@ describe('MailLog', () => {
         .find('.mail-log')
         .exists(),
     ).toBe(false)
+  })
+})
+
+describe('SourceMenu', () => {
+  const mountMenu = () => withStore(() => h(SourceMenu))
+
+  it('is a plain label for the scratch file, without a server', () => {
+    const { wrapper } = mountMenu()
+    expect(wrapper.find('details').exists()).toBe(false)
+    expect(wrapper.text()).toBe('🕳️ In Memory')
+  })
+
+  it('names the file on the server, the database and the ad-hoc files', async () => {
+    const { store, wrapper } = mountMenu()
+    store.backend.value = { kind: 'file', name: 'somefile.yml' }
+    store.markSaved('somefile.yml')
+    await flushPromises()
+    expect(wrapper.text()).toBe('📄 somefile.yml')
+
+    store.backend.value = { kind: 'database', name: null }
+    await flushPromises()
+    expect(wrapper.text()).toBe('🗄️ Database')
+
+    store.openDocument('rules: []\n', 'mine.yml')
+    await flushPromises()
+    expect(wrapper.get('summary').text()).toBe('🕳️ In Memory · mine.yml')
+    expect(wrapper.findAll('li button').map((item) => item.text())).toEqual([
+      '🗄️ Database',
+      '🕳️ In Memory · mine.yml',
+    ])
+  })
+
+  it('switches back to the server and shows the edited dot', async () => {
+    const { store, wrapper } = mountMenu()
+    store.backend.value = { kind: 'file', name: 'somefile.yml' }
+    store.markSaved('somefile.yml')
+    store.addRule()
+    store.openDocument('rules: []\n', 'mine.yml')
+    await flushPromises()
+    const [server] = wrapper.findAll('li button')
+    expect(server!.text()).toBe('📄 somefile.yml ●')
+    await server!.trigger('click')
+    expect(store.serverFile.value).toBe('somefile.yml')
+    expect(store.file.rules).toHaveLength(1)
+    expect(wrapper.get('summary').text()).toBe('📄 somefile.yml')
   })
 })

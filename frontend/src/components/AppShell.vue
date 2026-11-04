@@ -9,6 +9,7 @@ import MailView from './MailView.vue'
 import RuleEditor from './RuleEditor.vue'
 import RuleList from './RuleList.vue'
 import SampleErrorView from './SampleErrorView.vue'
+import SourceMenu from './SourceMenu.vue'
 import TemplatesView from './TemplatesView.vue'
 import YamlPanel from './YamlPanel.vue'
 import { fetchConfig, fetchRules, saveRules, SaveError } from '@/model/api'
@@ -75,11 +76,12 @@ async function connect(): Promise<void> {
   mail.active = true
   mail.actionsEnabled = config.actions_enabled === true
   const label = config.file_name ?? 'the database'
+  store.backend.value = { kind: config.source, name: config.file_name }
   try {
     const text = await fetchRules()
     if (text !== null) store.load(text, label)
     else store.fileName.value = label
-    store.markSaved(label)
+    store.markSaved(label, undefined, text ?? undefined)
     notice.value =
       text !== null
         ? `Loaded ${label} from the server.`
@@ -108,7 +110,7 @@ async function save(): Promise<void> {
   try {
     const text = store.yaml.value
     await saveRules(text)
-    store.markSaved(undefined, text)
+    store.markSaved(undefined, text, text)
     notice.value = `Saved ${store.serverFile.value}.`
   } catch (error) {
     notice.value =
@@ -122,8 +124,8 @@ async function save(): Promise<void> {
 
 async function openFile(file: File): Promise<void> {
   try {
-    store.load(await file.text(), file.name)
-    notice.value = `Opened ${file.name}.`
+    store.openDocument(await file.text(), file.name)
+    notice.value = `Opened ${file.name} in memory${store.backend.value ? ', it is not written to the server' : ''}.`
   } catch (error) {
     notice.value = `Could not open ${file.name}: ${error instanceof Error ? error.message : String(error)}`
   }
@@ -167,7 +169,7 @@ async function copy(): Promise<void> {
 }
 
 function reset(): void {
-  store.load('rules: []\n')
+  store.openDocument('rules: []\n')
   store.view.value = { kind: 'yaml' }
 }
 
@@ -191,7 +193,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   <div class="app" @dragover="onDragOver" @dragleave="dragging = false" @drop="onDrop">
     <header class="topbar">
       <h1>Mail rules</h1>
-      <span class="file">{{ store.fileName.value }}</span>
+      <SourceMenu />
       <span class="spacer" />
       <nav v-if="online" class="screens" aria-label="Screens">
         <RouterLink :to="rulesLink" class="ghost" :class="{ current: screen === 'rules' }">
@@ -256,7 +258,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           :title="`Write ${store.serverFile.value} on the server`"
           @click="save"
         >
-          Save{{ store.dirty.value ? ' ●' : '' }}
+          Save to {{ store.backend.value?.kind === 'database' ? 'Database' : store.serverFile.value
+          }}{{ store.dirty.value ? ' ●' : '' }}
         </button>
         <span
           v-if="store.problems.value.length > 0"

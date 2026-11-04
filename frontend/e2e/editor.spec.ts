@@ -17,7 +17,7 @@ test.beforeEach(async ({ page }) => {
 for (const name of EXAMPLES) {
   test(`opens ${name} and shows it as valid`, async ({ page }) => {
     await openFile(page, name)
-    await expect(page.locator('.topbar .file')).toHaveText(name)
+    await expect(page.locator('.topbar .source-menu summary')).toHaveText(`🕳️ In Memory · ${name}`)
     await expect(page.locator('.topbar .badge.ok')).toHaveText('valid')
     await expect(page.locator('.rule-list ul').first().locator('li .select').first()).toBeVisible()
   })
@@ -33,7 +33,9 @@ test('opens a file dropped onto the page', async ({ page }) => {
   await page.dispatchEvent('.app', 'dragover', { dataTransfer: data })
   await expect(page.locator('.drop')).toBeVisible()
   await page.dispatchEvent('.app', 'drop', { dataTransfer: data })
-  await expect(page.locator('.topbar .file')).toHaveText('dropped.yml')
+  await expect(page.locator('.topbar .source-menu summary')).toHaveText(
+    '🕳️ In Memory · dropped.yml',
+  )
   await expect(page.locator('.drop')).toBeHidden()
 })
 
@@ -62,8 +64,8 @@ test('edits a rule, validates live, and undoes and redoes', async ({ page }) => 
   await undo.click()
   await undo.click()
   await expect(name).toHaveValue(original)
-  // Opening the file is an undo step of its own, so the history is not empty yet.
-  await expect(undo).toBeEnabled()
+  // The history starts with the opened file, the document before it is kept in the source menu.
+  await expect(undo).toBeDisabled()
 })
 
 test('adds, duplicates, moves and removes rules', async ({ page }) => {
