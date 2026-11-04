@@ -12,10 +12,16 @@ const RULES = `rules:
       value: ""
 `
 
+/** Logs in and waits until the server's rules replaced the editor's default file, else a click on the rule list can hit a rule that is about to vanish. */
+const logInAndLoad = async (page: Page): Promise<void> => {
+  await logIn(page)
+  await expect(page.locator('.notice')).toContainText('Loaded')
+}
+
 const openRule = async (page: Page): Promise<void> => {
   await mockServer(page, false, RULES)
   await page.goto('/')
-  await logIn(page)
+  await logInAndLoad(page)
   await page.locator('.rule-list li .select').first().click()
   await expect(page.locator('.rule-editor')).toBeVisible()
 }
@@ -58,6 +64,7 @@ test('keeps the open mail after a reload', async ({ page }) => {
   await openRule(page)
   await openMail(page)
   await page.reload()
+  await expect(page.locator('.notice')).toContainText('Loaded')
   await page.locator('.rule-list li .select').first().click()
   await page.locator('.rule-editor .fill-from-mail').first().click()
   await expect.poll(() => inputValues(page)).toContain('Subject 3')
@@ -90,7 +97,7 @@ test('suggests the header names of the open mail on a header condition', async (
 `,
   )
   await page.goto('/')
-  await logIn(page)
+  await logInAndLoad(page)
   await page.locator('.rule-list li .select').first().click()
   await openMail(page)
   // The mail's own headers come first, then the common ones; none is repeated.
