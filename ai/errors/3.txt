@@ -1,0 +1,30 @@
+026-11-04 01:53:40,683 INFO     uvicorn.access: 127.0.0.1:64770 - "POST /api/dry-run HTTP/1.1" 200
+2026-11-04 01:56:57,447 INFO     aioimaplib.aioimaplib: ignored untagged response : b'OK [HIGHESTMODSEQ 58918] Highest'
+2026-11-04 01:57:28,254 INFO     uvicorn.access: 127.0.0.1:64806 - "PUT /api/editor/rules HTTP/1.1" 204
+2026-11-04 01:57:28,546 ERROR    asyncio: Fatal error on SSL protocol
+protocol: <asyncio.sslproto.SSLProtocol object at 0x10c227cb0>
+transport: <_SelectorSocketTransport closing fd=10 read=idle write=<idle, bufsize=0>>
+Traceback (most recent call last):
+  File "/Users/user/.local/share/uv/python/cpython-3.14.3-macos-aarch64-none/lib/python3.14/asyncio/sslproto.py", line 740, in _do_read
+    self._do_read__copied()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/user/.local/share/uv/python/cpython-3.14.3-macos-aarch64-none/lib/python3.14/asyncio/sslproto.py", line 802, in _do_read__copied
+    self._app_protocol.data_received(b''.join(data))
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/.venv/lib/python3.14/site-packages/aioimaplib/aioimaplib.py", line 355, in data_received
+    self._handle_responses(self.incomplete_line + d, self._handle_line, self.current_command)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/.venv/lib/python3.14/site-packages/aioimaplib/aioimaplib.py", line 396, in _handle_responses
+    self._handle_responses(tail, line_handler)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/.venv/lib/python3.14/site-packages/aioimaplib/aioimaplib.py", line 396, in _handle_responses
+    self._handle_responses(tail, line_handler)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/.venv/lib/python3.14/site-packages/aioimaplib/aioimaplib.py", line 384, in _handle_responses
+    cmd = line_handler(line, current_cmd)
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/.venv/lib/python3.14/site-packages/aioimaplib/aioimaplib.py", line 407, in _handle_line
+    self._response_done(line)
+    ~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/user/Documents/programming/Python/remote_imap_mail_rules/.venv/lib/python3.14/site-packages/aioimaplib/aioimaplib.py", line 676, in _response_done
+    raise Abort('unexpected tagged (%s) response: %s' % (tag, response))
+aioimaplib.aioimaplib.Abort: unexpected tagged (b'DONE') response: b'BAD Error in IMAP command: Invalid command name (0.001 + 0.000 secs).'
