@@ -3,6 +3,7 @@ import {
   appendCondition,
   conditionFor,
   fillExpression,
+  headerSuggestions,
   type MailContext,
 } from '@/model/fill-from-mail'
 import { newExpression } from '@/model/catalog'
@@ -155,5 +156,22 @@ describe('fill from mail', () => {
       conditions: [first, added],
     })
     expect(appendCondition(first, added)).toEqual({ type: 'all', conditions: [first, added] })
+  })
+})
+
+describe('headerSuggestions', () => {
+  it('offers the headers of the open mail first, then the common ones, each once', () => {
+    expect(headerSuggestions(ctx, ['list-id', 'X-Mailer'])).toEqual([
+      'Subject',
+      'List-Id',
+      'X-Custom',
+      'Authentication-Results',
+      'X-Spam-Status',
+      'X-Mailer',
+    ])
+  })
+
+  it('offers only the common ones without an open mail', () => {
+    expect(headerSuggestions(null, ['X-Mailer'])).toEqual(['X-Mailer'])
   })
 })

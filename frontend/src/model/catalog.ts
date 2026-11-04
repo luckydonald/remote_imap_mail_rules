@@ -80,6 +80,22 @@ export const operatorLabels: Record<string, string> = {
   empty: 'is empty',
 }
 
+/** Header names worth offering for a `header` condition, besides the ones of the open mail. */
+export const commonHeaders = [
+  'Authentication-Results',
+  'Content-Type',
+  'List-Id',
+  'List-Unsubscribe',
+  'Received',
+  'Received-SPF',
+  'X-Mailer',
+  'X-Original-To',
+  'X-Priority',
+  'X-Spam-Flag',
+  'X-Spam-Score',
+  'X-Spam-Status',
+]
+
 export function newExpression(type: ExpressionType, templateNames: string[] = []): Expression {
   switch (type) {
     case 'all':

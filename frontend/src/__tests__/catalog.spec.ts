@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   addressFields,
   boolFields,
+  commonHeaders,
   compareOperators,
   dateFields,
   newExpression,
@@ -13,6 +14,11 @@ import {
 import { validateRules } from '@/model/validate'
 
 describe('catalog', () => {
+  it('suggests common header names without duplicates', () => {
+    expect(commonHeaders).toContain('List-Id')
+    expect(new Set(commonHeaders.map((name) => name.toLowerCase())).size).toBe(commonHeaders.length)
+  })
+
   it('reads the enums from the schema', () => {
     expect(textFields).toContain('subject')
     expect(addressFields).toContain('from')

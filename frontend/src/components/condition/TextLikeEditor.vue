@@ -1,13 +1,17 @@
 <script setup lang="ts">
+import { computed, useId } from 'vue'
 import FieldValue from '../FieldValue.vue'
 import {
   addressFields,
   addressParts,
+  commonHeaders,
   operatorLabels,
   quantifiers,
   textFields,
   textOperators,
 } from '@/model/catalog'
+import { headerSuggestions } from '@/model/fill-from-mail'
+import { useMailStore } from '@/model/mail-store'
 import {
   isVar,
   type AddressCondition,
@@ -18,6 +22,10 @@ import {
 const model = defineModel<TextCondition | HeaderCondition | AddressCondition>('node', {
   required: true,
 })
+
+const mail = useMailStore()
+const headerListId = useId()
+const headerNames = computed(() => headerSuggestions(mail.context, commonHeaders))
 
 function setOperator(operator: string): void {
   const node = model.value
@@ -42,7 +50,10 @@ function setList(event: Event): void {
 <template>
   <div class="leaf">
     <FieldValue v-if="model.type === 'header'" v-model="model.name" fallback="X-Header">
-      <input v-model="model.name" placeholder="Header name" />
+      <input v-model="model.name" placeholder="Header name" :list="headerListId" />
+      <datalist :id="headerListId">
+        <option v-for="name in headerNames" :key="name" :value="name" />
+      </datalist>
     </FieldValue>
     <FieldValue v-else v-model="model.field" :fallback="model.type === 'text' ? 'subject' : 'from'">
       <select v-model="model.field">
