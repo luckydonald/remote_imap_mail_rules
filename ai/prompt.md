@@ -709,3 +709,44 @@ This includes the directory for rules and the SQLight database
 
 ❯ Plan accepted, auto mode.
 
+❯ Improve the mail view:
+1. No separate scroll for message body and the header above, scroll headers + email body in one (so no extra scroll for body)
+2. Button in the header to mark mail as read/unread.
+3. Button to create a rule for this email (or add to an existing rule at any choosen level).
+4. Button to move, with the configured destinations of the rules being the default, but you can also choose with a macOS-like tree view thingy under `More …`
+
+❯ Add the important facts from the exploration to claude.
+
+❯ Task Notification:
+> - Task `a0c5d9d4f6e0f2c2b` <kbd>completed</kbd>
+> - Tool `toolu_01UVRVQwcWHSbg4NdwfCqXa9`
+> - > Agent "Explore mail view frontend" finished
+> - [Query (`1797` chars, `1.75 KB`)](output/agents/024.a0c5d9d4f6e0f2c2b/prompt.md)
+> - [Answer (`16457` chars, `16.1 KB`)](output/agents/024.a0c5d9d4f6e0f2c2b/result.md)
+> - [Raw log (`515178` chars, `504 KB`)](/private/tmp/claude-501/-Users-user-Documents-programming-Python-remote-imap-mail-rules/24854bb1-25a0-4576-9b3e-7fe156df1ffa/tasks/a0c5d9d4f6e0f2c2b.output)
+> - `12` tools, `79848` tokens, `1.2575 s`
+
+❯ Updating `CLAUDE.md` via plan is fine.
+
+❯ Plan denied:
+> - Can't we properly use the pinia store in a pinia way, which is - I believe - not inject, but using `useStore()` properly in every file it is needed? So no need to push it up into the app shell either.
+> - New 5th feature:
+>   - Display text message instead of HTML
+>   - Settings to change the default (initial default: HTML)
+>   - this has a 2-button-segment toggle
+>     - e.g. `[ Text | HTML ]`, with the current state highlighted
+>     - as a new custom component
+> - New 6th feature: 
+>   - If there are internal embeds in HTML mode, render them in the viewer.
+> - New 7th feature:
+>   - If there are external embeds in HTML mode
+>   - Button to allow loading remote images.
+>   - With the current implementation it's blocked via CORS (good)
+>     - but this feels like an accident rather than intended, better clean the Mail content directly
+>   - but should also be listed as an expandlable "Blocked images: (2)" with a list of links to the files in raw form (in frontend terms, `a.innerText == a.href`) under the headers and before the mail if there are external embeds
+>   - User setting to not allow remote images (default), always allow them, or custom rule (*later)
+> - New 8th feature
+>   - custom rule for HTML auto-allow-external embeds
+>   - is just another rule like the rule builder already does
+>   - so you can specify your specifics very granularly
+
