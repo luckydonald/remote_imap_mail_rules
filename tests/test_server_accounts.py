@@ -126,3 +126,73 @@ def test_seeding_skipped_without_key(tmp_path: Path) -> None:
         assert client.get("/api/accounts").json() == []
     # end with
 # end def
+
+
+NEW_ID = "11111111-2222-4333-8444-555555555555"
+
+RULES = f"""\
+rules:
+  - name: Move it  # keep this comment
+    locations:
+      - account_id: {ACCOUNT_ID}
+    when:
+      type: text
+      field: account_id
+      operator: equals
+      value: {ACCOUNT_ID}
+    actions:
+      - type: move
+        folder: Archive
+        account_id: {ACCOUNT_ID}
+"""
+
+
+def test_create_with_id_and_duplicate(client: TestClient) -> None:
+    created = client.post("/api/accounts", json={**BODY, "id": NEW_ID})
+    assert created.status_code == 201 and created.json()["id"] == NEW_ID
+    assert client.post("/api/accounts", json={**BODY, "id": NEW_ID}).status_code == 409
+# end def
+
+
+def test_change_id_rewrites_the_rules_file(tmp_path: Path) -> None:
+    (tmp_path / "rules.yml").write_text(RULES)
+    with make_client(tmp_path, env=make_env()) as client:
+        same = {**BODY, "host": "imap.example.com", "username": "me@example.com"}
+        changed = client.put(f"/api/accounts/{ACCOUNT_ID}", json={**same, "id": NEW_ID, "password": None})
+        assert changed.status_code == 200 and changed.json()["id"] == NEW_ID
+        assert client.get(f"/api/accounts/{ACCOUNT_ID}").status_code == 404
+        text = (tmp_path / "rules.yml").read_text()
+        assert text == RULES.replace(str(ACCOUNT_ID), NEW_ID)
+        assert "# keep this comment" in text
+    # end with
+    # A restart does not seed the identical environment account a second time.
+    with make_client(tmp_path, env=make_env()) as client:
+        assert [a["id"] for a in client.get("/api/accounts").json()] == [NEW_ID]
+    # end with
+# end def
+
+
+def test_change_id_to_an_existing_one_is_409(client: TestClient) -> None:
+    first = client.post("/api/accounts", json=BODY).json()["id"]
+    second = client.post("/api/accounts", json={**BODY, "name": "Other"}).json()["id"]
+    assert client.put(f"/api/accounts/{first}", json={**BODY, "id": second, "password": None}).status_code == 409
+# end def
+
+
+def test_mail_events_follow_the_id(tmp_path: Path) -> None:
+    with make_client(tmp_path) as client:
+        old = client.post("/api/accounts", json=BODY).json()["id"]
+        engine = create_engine(f"sqlite:///{tmp_path / 'db.sqlite3'}")
+        with engine.begin() as connection:
+            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+            connection.execute(
+                text("INSERT INTO mail_events (id, account_id, folder, uid, kind, detail, created_at) VALUES (:i, :a, 'INBOX', 1, 'first_seen', '{}', '2026-01-01')"),
+                {"i": "a" * 32, "a": old.replace("-", "")},
+            )
+        # end with
+        assert client.put(f"/api/accounts/{old}", json={**BODY, "id": NEW_ID, "password": None}).status_code == 200
+        with engine.begin() as connection:
+            assert connection.execute(text("SELECT account_id FROM mail_events")).scalar_one() == NEW_ID.replace("-", "")
+        # end with
+    # end with
+# end def

@@ -18,6 +18,7 @@ const editing = ref<string | 'new' | null>(null)
 const confirming = ref<string | null>(null)
 
 const emptyForm = (): AccountInput => ({
+  id: '',
   name: '',
   host: '',
   port: 993,
@@ -55,6 +56,7 @@ function add(): void {
 
 function edit(account: Account): void {
   form.value = {
+    id: account.id,
     name: account.name,
     host: account.host,
     port: account.port,
@@ -67,6 +69,8 @@ function edit(account: Account): void {
   editing.value = account.id
   message.value = ''
 }
+
+const UUID_PATTERN = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 
 async function submit(): Promise<void> {
   try {
@@ -128,6 +132,20 @@ onMounted(() => void load())
     </article>
     <form v-if="editing" class="account-form" @submit.prevent="submit">
       <h3>{{ editing === 'new' ? 'New account' : 'Edit account' }}</h3>
+      <label
+        >ID (UUID)
+        <input
+          v-model="form.id"
+          name="id"
+          class="mono"
+          :pattern="UUID_PATTERN"
+          :placeholder="editing === 'new' ? 'generated' : ''"
+          title="The same id on two systems lets them share rules."
+        />
+      </label>
+      <p v-if="editing !== 'new'" class="hint">
+        Changing the id rewrites it in the rules (locations, move actions and conditions) too.
+      </p>
       <label>Name <input v-model="form.name" name="name" required /></label>
       <label>Host <input v-model="form.host" name="host" required /></label>
       <label

@@ -29,7 +29,7 @@ class MailEvent(Base):
     __table_args__ = (Index("ix_mail_events_mail", "account_id", "folder", "uid"),)
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
-    account_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("accounts.id", ondelete="CASCADE"))
+    account_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("accounts.id", ondelete="CASCADE", onupdate="CASCADE"))
     folder: Mapped[str] = mapped_column(String(1024))
     uidvalidity: Mapped[int | None] = mapped_column(Integer, nullable=True)
     uid: Mapped[int] = mapped_column(Integer)
