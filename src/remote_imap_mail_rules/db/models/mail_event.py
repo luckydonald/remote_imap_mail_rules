@@ -13,7 +13,7 @@ from .account import utcnow
 
 
 class EventKind(StrEnum):
-    """`action` is written when rules run their actions, `user_action` is reserved: nothing writes it yet."""
+    """`action` is written when rules run their actions, `user_action` when the watcher sees a change on the server that no rule made."""
 
     first_seen = "first_seen"
     rule_match = "rule_match"
