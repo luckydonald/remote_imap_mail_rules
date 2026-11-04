@@ -12,6 +12,7 @@ from aioimaplib import AioImapException
 from pydantic import SecretStr, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from ..config import ImapSettings
 from ..db import accounts as account_repository
 from ..db import mail_events
 from ..db.crypto import CryptoError
@@ -116,6 +117,21 @@ class Watcher:
         # end while
     # end def
 
+    async def lookup_settings(self, account_id: UUID) -> ImapSettings | None:
+        """The connection settings of a stored account, `None` if it does not exist or its password cannot be decrypted."""
+        async with self.session_factory() as session:
+            account = await account_repository.get_account(session, account_id)
+        # end with
+        if account is None:
+            return None
+        # end if
+        try:
+            return account_repository.imap_settings(account, self.secret_key)
+        except CryptoError:
+            return None
+        # end try
+    # end def
+
     async def follow(self, account_id: UUID) -> None:
         async with self.session_factory() as session:
             account = await account_repository.get_account(session, account_id)
@@ -142,7 +158,7 @@ class Watcher:
         # end try
         queue: asyncio.Queue[Entry] = asyncio.Queue()
         pending: set[tuple[str, int, int | None]] = set()
-        runner = ActionRunner(settings, rule_file, self.imap_factory) if self.actions_enabled else None
+        runner = ActionRunner(settings, rule_file, self.imap_factory, self.lookup_settings) if self.actions_enabled else None
         recorder = asyncio.create_task(self.record(queue, runner, pending))
         try:
             async for found in matches(settings, rule_file, self.imap_factory, on_inspect=lambda mail: queue.put_nowait(Seen(mail))):

@@ -255,7 +255,7 @@ async def post_run(request: Request, body: RunIn, session: AsyncSession = Depend
     applied = 0
     for imap_settings in used:
         entries = [entry for entry in result.entries if entry.mail.account_id == imap_settings.imap_account_id and own_rounds(entry, body.rule)]
-        async with ActionRunner(imap_settings, rule_file, factory) as runner:
+        async with ActionRunner(imap_settings, rule_file, factory, watcher.lookup_settings) as runner:
             for entry in entries:
                 try:
                     chain: ChainResult | None = await runner.run(entry.mail)
