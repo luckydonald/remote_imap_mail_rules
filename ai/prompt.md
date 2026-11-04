@@ -612,3 +612,5 @@ Have an admin user via environment variables, using coolify to set them. This me
 
 ❯ Plan accepted, auto mode.
 
+❯ Remember that edit tool sed issue
+
