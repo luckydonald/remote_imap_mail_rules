@@ -31,12 +31,15 @@ const mockServer = async (page: Page, deleteError?: string[]): Promise<Mock> => 
     const body = request.postData() ? JSON.parse(request.postData()!) : null
     if (method !== 'GET') mock.requests.push({ method, body })
     if (method === 'POST') {
-      accounts = [...accounts, { ...ACCOUNT, ...body, id: 'new-id', env_differs: [] }]
+      accounts = [...accounts, { ...ACCOUNT, ...body, id: '22222222-2222-4333-8444-555555555555', env_differs: [] }]
       return route.fulfill({ status: 201, json: accounts.at(-1) })
     }
     if (method === 'PUT') {
-      accounts = accounts.map((a) => ({ ...a, ...body, password: undefined, env_differs: [] }))
-      return route.fulfill({ json: accounts[0] })
+      const target = request.url().split('/').pop()
+      accounts = accounts.map((a) =>
+        a.id === target ? { ...a, ...body, id: body.id ?? a.id, password: undefined, env_differs: [] } : a,
+      )
+      return route.fulfill({ json: accounts.find((a) => a.id === (body.id ?? target)) })
     }
     if (method === 'DELETE') {
       if (deleteError) return route.fulfill({ status: 409, json: { detail: deleteError } })
@@ -69,13 +72,14 @@ test('adds, edits and deletes an account', async ({ page }) => {
   await page.locator('input[name=password]').fill('secret')
   await page.locator('.account-form').getByRole('button', { name: 'Save' }).click()
   await expect(page.locator('.account')).toHaveCount(2)
-  expect(mock.requests[0]).toMatchObject({ method: 'POST', body: { name: 'Work', password: 'secret' } })
+  expect(mock.requests[0]).toMatchObject({ method: 'POST', body: { name: 'Work', id: null, password: 'secret' } })
 
   await page.locator('.account').nth(1).getByRole('button', { name: 'Edit' }).click()
   await expect(page.locator('input[name=password]')).toHaveAttribute('placeholder', 'unchanged')
   await page.locator('input[name=name]').fill('Work 2')
+  await page.locator('input[name=id]').fill('11111111-2222-4333-8444-555555555555')
   await page.locator('.account-form').getByRole('button', { name: 'Save' }).click()
-  expect(mock.requests[1]).toMatchObject({ method: 'PUT', body: { name: 'Work 2', password: null } })
+  expect(mock.requests[1]).toMatchObject({ method: 'PUT', body: { name: 'Work 2', id: '11111111-2222-4333-8444-555555555555', password: null } })
 
   await page.locator('.account').first().getByRole('button', { name: 'Delete' }).click()
   await page.getByRole('button', { name: 'Really delete' }).click()

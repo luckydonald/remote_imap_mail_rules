@@ -68,8 +68,15 @@ async def update_account(
     password: str | None,
     page_size: int,
     poll_interval: float,
+    new_id: UUID | None = None,
 ) -> Account:
-    """The id never changes. A `None` password keeps the stored one."""
+    """A `None` password keeps the stored one, a `None` `new_id` keeps the id.
+
+    Changing the id is only safe for the database (`mail_events` follow by `ON UPDATE CASCADE`); the caller rewrites the rules.
+    """
+    if new_id is not None and new_id != account.id:
+        account.id = new_id
+    # end if
     if password is not None:
         account.password_encrypted = encrypt(secret_key, password)
     # end if
@@ -124,6 +131,15 @@ async def seed_from_env(session: AsyncSession, env: ImapSettings | None, secret_
         return []
     # end if
     account = await get_account(session, env.imap_account_id)
+    if account is None:
+        # The id may have been changed in the UI: an account identical to the environment's is the same account.
+        for other in await list_accounts(session):
+            if not env_differences(other, env, secret_key):
+                logger.info("Account %s is identical to the environment's account %s, not seeding it again.", other.id, env.imap_account_id)
+                return []
+            # end if
+        # end for
+    # end if
     if account is not None:
         differing = env_differences(account, env, secret_key)
         if differing:
