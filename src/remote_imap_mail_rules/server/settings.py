@@ -27,4 +27,16 @@ class ServerSettings(BaseSettings):
         description="Apply the actions of matching rules to the mailboxes. Off, the server only logs matches and the dry run shows what would happen.",
     )
     frontend_dist: Path = Field(default=Path("frontend/dist"), description="Built editor; served at `/` when the folder exists.")
+    sentry_dsn: str = Field(default="", description="Backend DSN of Sentry or Bugsink; empty disables the reporting.")
+    sentry_environment: str = Field(default="", description="Environment tag of the events, e.g. `production`.")
+    sentry_release: str = Field(default="", description="Release of the events; defaults to the commit (`SOURCE_COMMIT`, else git).")
+    sentry_traces_sample_rate: float = Field(default=0, ge=0, le=1, description="Share of the requests that get a tracing span; 0 disables tracing.")
+    vite_sentry_dsn: str = Field(
+        default="",
+        description="Frontend DSN, usually another project than the backend's. Handed to the browser at runtime by `/api/public/client-config`, despite the name no build is involved.",
+    )
+    vite_sentry_environment: str = Field(default="", description="Frontend environment tag; falls back to `SENTRY_ENVIRONMENT`.")
+    vite_sentry_release: str = Field(default="", description="Frontend release; falls back to the backend's release.")
+    vite_sentry_traces_sample_rate: float = Field(default=0, ge=0, le=1, description="Share of the page loads and navigations that get a tracing span.")
+    source_commit: str = Field(default="", description="Commit of the deployed source, set by Coolify; the fallback for the release.")
 # end class

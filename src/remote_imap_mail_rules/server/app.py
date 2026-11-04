@@ -13,9 +13,10 @@ from ..db import accounts as account_repository
 from ..db.engine import create_engine, create_session_factory
 from ..db.migrate import upgrade
 from ..imap.client import ConnectionFactory, connect_aioimaplib
-from .api import accounts, auth, dry_run, editor, events, mail
+from .api import accounts, auth, dry_run, editor, events, mail, public, sample_error
 from .auth import require_login
 from .rules_store import DatabaseRulesStore, FileRulesStore, RulesStore
+from .sentry import report_startup_failure
 from .settings import ServerSettings
 from .watcher import Watcher
 
@@ -50,11 +51,16 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        await upgrade(settings.database_url)
-        async with session_factory() as session:
-            await account_repository.seed_from_env(session, env_account, settings.secret_key)
-            await session.commit()
-        # end with
+        try:
+            await upgrade(settings.database_url)
+            async with session_factory() as session:
+                await account_repository.seed_from_env(session, env_account, settings.secret_key)
+                await session.commit()
+            # end with
+        except Exception as e:
+            report_startup_failure(e)
+            raise
+        # end try
         app.state.watcher.start()
         yield
         await app.state.watcher.stop()
@@ -70,12 +76,14 @@ def create_app(
     app.state.rules_store = store
     app.state.watcher = Watcher(session_factory, store, settings.secret_key, imap_factory, enabled=settings.watch_enabled, actions_enabled=settings.actions_enabled)
     app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+    app.include_router(public.router, prefix="/api/public", tags=["public"])
     # Everything else under `/api` needs the login, set here so that a new router cannot forget it.
     protected = [Depends(require_login)]
     app.include_router(editor.router, prefix="/api/editor", tags=["editor"], dependencies=protected)
     app.include_router(accounts.router, prefix="/api/accounts", tags=["accounts"], dependencies=protected)
     app.include_router(mail.router, prefix="/api/mail", tags=["mail"], dependencies=protected)
     app.include_router(dry_run.router, prefix="/api/dry-run", tags=["dry-run"], dependencies=protected)
+    app.include_router(sample_error.router, prefix="/api/sample-error", tags=["sample-error"], dependencies=protected)
     app.include_router(events.router, prefix="/api/mail", tags=["mail"], dependencies=protected)
     if settings.frontend_dist.is_dir():
         # Mounted last, so `/api` wins; `html=True` serves `index.html` for `/`.

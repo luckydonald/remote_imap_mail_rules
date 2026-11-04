@@ -22,3 +22,12 @@ WATCH_ENABLED=true
 ACTIONS_ENABLED=false
 SERVER_HOST=127.0.0.1
 SERVER_PORT=8000
+# Error reporting to Sentry or Bugsink, empty (the default) switches it off.
+SENTRY_DSN=
+# The frontend usually is another project; the server hands this DSN to the browser at runtime, no build is involved.
+VITE_SENTRY_DSN=
+SENTRY_ENVIRONMENT=development
+# Defaults to the commit: SOURCE_COMMIT (set by Coolify), else git.
+SENTRY_RELEASE=
+# 0 to 1, 0 (default) turns tracing off.
+SENTRY_TRACES_SAMPLE_RATE=0

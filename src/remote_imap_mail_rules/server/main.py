@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from ..config import ImapSettings
 from .app import create_app
 from .logs import get_log_config
+from .sentry import init_sentry
 from .settings import ServerSettings
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ def load_env_account() -> ImapSettings | None:
 def main() -> None:
     logging.config.dictConfig(get_log_config())
     settings = ServerSettings()
+    init_sentry(settings)
     logger.info("Rules in %s", f"file {settings.rules_path}" if settings.rules_path else "the database")
     uvicorn.run(
         create_app(settings, load_env_account()),

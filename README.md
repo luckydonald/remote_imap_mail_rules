@@ -33,6 +33,11 @@ Read from the environment and from `.env` in the working directory (see `.exampl
 | `SERVER_HOST` | `127.0.0.1` | Interface of the server. It has no login yet, so only expose it on a trusted network. |
 | `SERVER_PORT` | `8000` | Port of the server. |
 | `FRONTEND_DIST` | `frontend/dist` | Built editor that the server serves at `/`. |
+| `SENTRY_DSN` | none | DSN of the backend project in Sentry or Bugsink. Empty switches the error reporting off. |
+| `VITE_SENTRY_DSN` | none | DSN of the frontend project, usually another one. The server hands it to the browser at runtime (`/api/public/client-config`), so the name is only the convention of the `bugsink-setup` skill. |
+| `SENTRY_ENVIRONMENT` | none | Environment tag, e.g. `production`. `VITE_SENTRY_ENVIRONMENT` overrides it for the frontend. |
+| `SENTRY_RELEASE` | the commit | Release tag. Defaults to `SOURCE_COMMIT` (set by Coolify), else the git commit of the checkout. `VITE_SENTRY_RELEASE` overrides it for the frontend. |
+| `SENTRY_TRACES_SAMPLE_RATE` | `0` | 0 to 1, the share of requests that get a tracing span; 0 turns tracing off. `VITE_SENTRY_TRACES_SAMPLE_RATE` is the frontend's. |
 
 The automated tests read the same names with a `TEST_` prefix (e.g. `TEST_IMAP_HOST`) and never read `.env`.
 
@@ -75,7 +80,7 @@ Generate a `SECRET_KEY` once with `uv run python -c "from cryptography.fernet im
   The account from the `IMAP_*` variables is added once at start-up, and never overwritten afterwards.
   If it differs from the variables later (e.g. a changed password), the log warns and the accounts screen shows a badge.
 - Deleting an account that rules still refer to is refused.
-- Everything under `/api` except `/api/auth` needs a login (static files stay open).
+- Everything under `/api` except `/api/auth` and `/api/public` (health check and the browser's error reporting config) needs a login (static files stay open).
   Log in with the username and password of any registered account, it is a single user service.
   The session is a signed cookie, valid for 30 days.
   Without `SECRET_KEY` nobody can log in, the API then answers `503`.
@@ -94,6 +99,14 @@ uv run python -m remote_imap_mail_rules.server.main
 ```
 
 Then open `http://127.0.0.1:8000`.
+
+#### Error reporting
+
+Set `SENTRY_DSN` and `VITE_SENTRY_DSN` to report errors of the server and of the browser to Sentry or Bugsink, both stay off while empty.
+The browser talks to the DSN host directly, there is no tunnel, so the host needs HTTPS (if the app is served over HTTPS) and CORS headers, which Bugsink sends.
+Check both sides by logging in and opening `/sample-error`, which raises a recognizable error in the backend (`GET /api/sample-error`) and in the page.
+A failing start-up, such as a broken migration, is reported too.
+
 Save writes the file after the server validated it, and a rejected file is reported in the editor and not written.
 Opening or dropping a file in the editor leaves the server file alone, those only ever download.
 For development run the server and `yarn dev` side by side, the dev server proxies `/api` to port 8000.

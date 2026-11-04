@@ -6,6 +6,7 @@ import MailLogin from './MailLogin.vue'
 import MailView from './MailView.vue'
 import RuleEditor from './RuleEditor.vue'
 import RuleList from './RuleList.vue'
+import SampleErrorView from './SampleErrorView.vue'
 import TemplatesView from './TemplatesView.vue'
 import YamlPanel from './YamlPanel.vue'
 import { fetchConfig, fetchRules, saveRules, SaveError } from '@/model/api'
@@ -260,6 +261,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     </header>
     <p v-if="notice" class="notice" @click="notice = ''">{{ notice }}</p>
     <MailLogin v-if="loginRequired" @logged-in="loggedIn" />
+    <SampleErrorView v-else-if="screen === 'sample-error'" />
     <MailView v-else-if="screen === 'mail'" @unauthorized="logOut" />
     <AccountsView v-else-if="screen === 'accounts'" />
     <div v-else class="body" :class="{ 'with-mail': online && mail.panelOpen }">

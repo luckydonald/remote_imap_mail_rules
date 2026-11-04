@@ -597,3 +597,8 @@ Hoist mail into a shared pinia store, persisted/cached by localstorage.
 
 ❯ "Looking at the mails…" should have the email spinner we created for the mail page, too.
 
+❯ Check if there's outstanding work in [@`ai/initial.md`](./initial.md),
+The next two tasks then will be to:
+1. Add sentry/bigsink integration. A js proxy is not needed.
+2. Add a coolify docker-compose deployment, including magic env vars etc.
+

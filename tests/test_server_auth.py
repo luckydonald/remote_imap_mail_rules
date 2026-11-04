@@ -46,7 +46,7 @@ def test_every_route_but_auth_is_protected(client: TestClient) -> None:
     paths: dict[str, dict[str, object]] = client.app.openapi()["paths"]  # type: ignore[attr-defined]
     checked = 0
     for path, methods in paths.items():
-        if path.startswith("/api/auth/"):
+        if path.startswith(("/api/auth/", "/api/public/")):
             continue
         # end if
         for method in methods:
