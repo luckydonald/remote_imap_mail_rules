@@ -54,7 +54,7 @@ def client(tmp_path: Path, server: FakeServer) -> Iterator[TestClient]:
         rules_path=None,
         database_url=f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}",
         frontend_dist=tmp_path / "missing",
-        secret_key=SecretStr(KEY),
+        secret_key=SecretStr(KEY), admin_username="admin", admin_password=SecretStr("admin-secret"),
     )
     with TestClient(create_app(settings, None, lambda imap_settings: server.connect(imap_settings))) as test_client:
         test_client.cookies.set(SESSION_COOKIE, make_session_token(settings))
@@ -156,7 +156,7 @@ def test_everything_is_read_only(client: TestClient, server: FakeServer, account
 @pytest.mark.parametrize(("error", "status"), [(OSError("down"), 502), (TimeoutError(), 504)])
 def test_imap_failures(tmp_path: Path, error: Exception, status: int) -> None:
     settings = ServerSettings(
-        _env_file=None, rules_path=None, database_url=f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}", frontend_dist=tmp_path / "missing", secret_key=SecretStr(KEY)
+        _env_file=None, rules_path=None, database_url=f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}", frontend_dist=tmp_path / "missing", secret_key=SecretStr(KEY), admin_username="admin", admin_password=SecretStr("admin-secret")
     )
 
     def broken(imap_settings: ImapSettings) -> ImapConnection:

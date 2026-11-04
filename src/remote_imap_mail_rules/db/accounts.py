@@ -1,6 +1,5 @@
 """Account repository: CRUD, seeding from the environment and the drift check."""
 
-import hmac
 import logging
 from uuid import UUID, uuid4
 
@@ -9,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import ImapSettings
-from .crypto import CryptoError, decrypt, encrypt
+from .crypto import decrypt, encrypt
 from .models import Account
 
 logger = logging.getLogger(__name__)
@@ -170,20 +169,3 @@ def imap_settings(account: Account, secret_key: SecretStr | None) -> ImapSetting
     )
 # end def
 
-
-async def find_by_credentials(session: AsyncSession, secret_key: SecretStr | None, username: str, password: str) -> Account | None:
-    """The first account whose username and password both match, compared in constant time. Accounts that cannot be decrypted are skipped."""
-    found: Account | None = None
-    for account in await list_accounts(session):
-        try:
-            stored = decrypt(secret_key, account.password_encrypted)
-        except CryptoError:
-            continue
-        # end try
-        matches = hmac.compare_digest(account.username.encode(), username.encode()) & hmac.compare_digest(stored.encode(), password.encode())
-        if matches and found is None:
-            found = account
-        # end if
-    # end for
-    return found
-# end def

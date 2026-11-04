@@ -50,7 +50,7 @@ def make_server() -> FakeServer:
 def run_client(tmp_path: Path, server: FakeServer, actions_enabled: bool) -> Iterator[TestClient]:
     settings = ServerSettings(
         _env_file=None, rules_path=None, database_url=f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}", frontend_dist=tmp_path / "missing",
-        secret_key=SecretStr(KEY), watch_enabled=False, actions_enabled=actions_enabled,
+        secret_key=SecretStr(KEY), admin_username="admin", admin_password=SecretStr("admin-secret"), watch_enabled=False, actions_enabled=actions_enabled,
     )
     with TestClient(create_app(settings, None, lambda imap_settings: server.connect(imap_settings))) as test_client:
         test_client.cookies.set(SESSION_COOKIE, make_session_token(settings))

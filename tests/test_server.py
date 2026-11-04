@@ -37,7 +37,7 @@ def rules_path(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def client(rules_path: Path, tmp_path: Path) -> Iterator[TestClient]:
-    settings = ServerSettings(_env_file=None, rules_path=rules_path, database_url=f"sqlite+aiosqlite:///{tmp_path.parent / (tmp_path.name + '-db.sqlite3')}", frontend_dist=tmp_path / "missing", secret_key=SecretStr(KEY))
+    settings = ServerSettings(_env_file=None, rules_path=rules_path, database_url=f"sqlite+aiosqlite:///{tmp_path.parent / (tmp_path.name + '-db.sqlite3')}", frontend_dist=tmp_path / "missing", secret_key=SecretStr(KEY), admin_username="admin", admin_password=SecretStr("admin-secret"))
     with TestClient(create_app(settings)) as test_client:
         test_client.cookies.set(SESSION_COOKIE, make_session_token(settings))
         yield test_client
@@ -88,7 +88,7 @@ def test_serves_built_frontend(rules_path: Path, tmp_path: Path) -> None:
     dist = tmp_path / "dist"
     dist.mkdir()
     (dist / "index.html").write_text("<html>editor</html>", encoding="utf-8")
-    settings = ServerSettings(_env_file=None, rules_path=rules_path, database_url=f"sqlite+aiosqlite:///{tmp_path.parent / (tmp_path.name + '-db.sqlite3')}", frontend_dist=dist, secret_key=SecretStr(KEY))
+    settings = ServerSettings(_env_file=None, rules_path=rules_path, database_url=f"sqlite+aiosqlite:///{tmp_path.parent / (tmp_path.name + '-db.sqlite3')}", frontend_dist=dist, secret_key=SecretStr(KEY), admin_username="admin", admin_password=SecretStr("admin-secret"))
     with TestClient(create_app(settings)) as test_client:
         test_client.cookies.set(SESSION_COOKIE, make_session_token(settings))
         assert "editor" in test_client.get("/").text

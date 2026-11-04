@@ -20,7 +20,7 @@ from .test_server_accounts import BODY, KEY
 def client(tmp_path: Path) -> Iterator[TestClient]:
     settings = ServerSettings(
         _env_file=None, rules_path=None, database_url=f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}",
-        frontend_dist=tmp_path / "missing", secret_key=SecretStr(KEY),
+        frontend_dist=tmp_path / "missing", secret_key=SecretStr(KEY), admin_username="admin", admin_password=SecretStr("admin-secret"),
     )
     with TestClient(create_app(settings)) as test_client:
         test_client.cookies.set(SESSION_COOKIE, make_session_token(settings))

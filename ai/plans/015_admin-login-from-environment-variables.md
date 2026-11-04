@@ -4,7 +4,7 @@
 
 Today the login accepts the username and password of any stored IMAP account, and the Coolify deploy is blocked until a first `IMAP_*` account is set, because without one nobody could log in.
 That couples "who may use the service" to "which mailboxes exist".
-This change adds a real admin user configured through `ADMIN_USERNAME` and `ADMIN_PASSWORD` (set in Coolify), makes it the only way to log in, and makes the `IMAP_*` seed account optional.
+This change adds a real admin user configured through `ADMIN_USERNAME` and `ADMIN_PASSWORD`, which in Coolify are filled by its magic variables `SERVICE_USER_ADMIN` and `SERVICE_PASSWORD_ADMIN`, makes it the only way to log in, and makes the `IMAP_*` seed account optional.
 Mail accounts are then added in the accounts screen after the first login.
 
 ## Decisions (defaults I chose, say if you want otherwise)
@@ -43,7 +43,11 @@ Mail accounts are then added in the accounts screen after the first login.
 
 ### Deployment and docs
 
-- `docker-compose.coolify.yml`: `ADMIN_USERNAME=${ADMIN_USERNAME:?}`, `ADMIN_PASSWORD=${ADMIN_PASSWORD:?}`; the `IMAP_*` lines become optional (`${VAR:-}`, `IMAP_PORT` / `IMAP_SSL` / sizes keep their defaults), comment says the first account can also be added in the UI.
+- `docker-compose.coolify.yml`: use Coolify's magic variables, so Coolify generates the login and shows it in the resource's environment variables (editable there):
+  `ADMIN_USERNAME=${SERVICE_USER_ADMIN}` and `ADMIN_PASSWORD=${SERVICE_PASSWORD_ADMIN}`.
+  Nothing has to be filled in before the first deploy, and the generated values are stable across redeploys.
+  `SECRET_KEY` stays a required `${SECRET_KEY:?}`, since it must be a valid Fernet key and Coolify cannot generate one.
+  The `IMAP_*` lines become optional (`${VAR:-}`, `IMAP_PORT` / `IMAP_SSL` / sizes keep their defaults), comment says the first account can also be added in the UI.
 - `.example-env`, `README.md` (variable table, Server section, Deployment section, local docker example), `CLAUDE.md` (Decisions: login line, Layout settings mention), `ai/initial.md` (new stage entry and status line).
 
 ### Tests
@@ -51,7 +55,7 @@ Mail accounts are then added in the accounts screen after the first login.
 - `tests/test_server_auth.py`: fixture sets admin settings; cases: right login, wrong user, wrong password, any mail account's credentials rejected, `503` without admin variables, changing the password invalidates an existing cookie, failed login still `401`.
 - Shared helpers in `test_server_accounts.py` (`make_client`) and the other server tests that call `make_session_token(settings)`: give their `ServerSettings` admin values.
   Files: `test_server.py`, `test_server_events.py`, `test_server_watcher.py`, `test_server_dry_run.py`, `test_server_mail.py`, `test_server_rules_db.py`, `test_server_sentry.py`.
-- `tests/test_coolify_compose.py`: required list becomes `SECRET_KEY`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`; new test that no `IMAP_*` variable is required.
+- `tests/test_coolify_compose.py`: required list becomes only `SECRET_KEY`; new tests that `ADMIN_USERNAME` / `ADMIN_PASSWORD` are wired to `SERVICE_USER_ADMIN` / `SERVICE_PASSWORD_ADMIN`, and that no `IMAP_*` variable is required.
 - A test that the server starts and logs in with no `IMAP_*` account at all.
 
 ## Commits (lplp style, in this order)
@@ -64,4 +68,6 @@ Mail accounts are then added in the accounts screen after the first login.
 
 - `uv run pytest`, `uv run python -m remote_imap_mail_rules.server.main` on a separate port with `TEST_`-style throwaway settings only (never the live account).
 - `cd frontend && yarn test && yarn lint && yarn build`, then `yarn test:e2e` for the login flow (Playwright, no Chrome tools).
-- `docker compose --env-file /dev/null -f docker-compose.coolify.yml config` fails without the three required variables and passes with them and no `IMAP_*`.
+- `docker compose --env-file /dev/null -f docker-compose.coolify.yml config` fails without `SECRET_KEY` and passes with only it, no `IMAP_*`.
+  Plain compose does not know the `SERVICE_*` magic variables, so pass them by hand there (empty values warn only).
+  The README Deployment section tells where to read the generated login in Coolify.

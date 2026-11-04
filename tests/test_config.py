@@ -3,6 +3,8 @@ from pathlib import Path
 import pytest
 from pydantic import SecretStr, ValidationError
 
+from remote_imap_mail_rules.config import ImapSettings
+
 from .settings import TestImapSettings
 
 
@@ -72,4 +74,21 @@ def test_unprefixed_vars_ignored_in_tests(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setenv("IMAP_HOST", "real.example.com")
     set_env(monkeypatch)
     assert TestImapSettings().imap_host == "imap.example.com"
+# end def
+
+
+def test_empty_variables_count_as_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The Coolify compose file passes optional variables as empty strings."""
+    for name in ("IMAP_ACCOUNT_ID", "IMAP_HOST", "IMAP_USERNAME", "IMAP_PASSWORD"):
+        monkeypatch.setenv(name, "")
+    # end for
+    monkeypatch.setenv("IMAP_PORT", "")
+    with pytest.raises(ValidationError):
+        ImapSettings(_env_file=None)  # type: ignore[call-arg]
+    # end with
+    monkeypatch.setenv("IMAP_ACCOUNT_ID", "6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11")
+    monkeypatch.setenv("IMAP_HOST", "imap.example.com")
+    monkeypatch.setenv("IMAP_USERNAME", "me")
+    monkeypatch.setenv("IMAP_PASSWORD", "pw")
+    assert ImapSettings(_env_file=None).imap_port == 993  # type: ignore[call-arg]
 # end def

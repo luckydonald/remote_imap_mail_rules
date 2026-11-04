@@ -26,7 +26,7 @@ def make_client(tmp_path: Path, key: str | None = KEY, env: TestImapSettings | N
         rules_path=tmp_path / "rules.yml",
         database_url=f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}",
         frontend_dist=tmp_path / "missing",
-        secret_key=SecretStr(key) if key else None,
+        secret_key=SecretStr(key) if key else None, admin_username="admin", admin_password=SecretStr("admin-secret"),
     )
     client = TestClient(create_app(settings, env))
     if key:

@@ -19,6 +19,8 @@ class ServerSettings(BaseSettings):
     rules_path: Path | None = Field(default=None, description="Rules file; when unset the rules live in the database.")
     database_url: str = Field(default=DEFAULT_DATABASE_URL, description="Any async SQLAlchemy URL.")
     secret_key: SecretStr | None = Field(default=None, description="Fernet key that encrypts the account passwords.")
+    admin_username: str | None = Field(default=None, description="Login of the one admin; without it and the password nobody can log in.")
+    admin_password: SecretStr | None = Field(default=None, description="Password of the admin. On Coolify this is `SERVICE_PASSWORD_ADMIN`.")
     server_host: str = "127.0.0.1"
     server_port: int = Field(default=8000, ge=1, le=65535)
     watch_enabled: bool = Field(default=True, description="Run the rules in the background and write the action log of each mail.")

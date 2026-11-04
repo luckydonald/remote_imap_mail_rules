@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from ..config import ImapSettings
 from .app import create_app
+from .auth import not_configured
 from .logs import get_log_config
 from .sentry import init_sentry
 from .settings import ServerSettings
@@ -30,6 +31,12 @@ def main() -> None:
     logging.config.dictConfig(get_log_config())
     settings = ServerSettings()
     init_sentry(settings)
+    reason = not_configured(settings)
+    if reason is None:
+        logger.info("Login enabled for the admin %r.", settings.admin_username)
+    else:
+        logger.warning(reason)
+    # end if
     logger.info("Rules in %s", f"file {settings.rules_path}" if settings.rules_path else "the database")
     uvicorn.run(
         create_app(settings, load_env_account()),

@@ -14,7 +14,7 @@ class ImapSettings(BaseSettings):
     The automated tests subclass this with `env_prefix="TEST_"` and no `.env` file, so they never touch the real account.
     """
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore", case_sensitive=False)
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore", case_sensitive=False, env_ignore_empty=True)
 
     imap_account_id: UUID = Field(description="Immutable id that rules refer to; names can change.")
     imap_account_name: str | None = Field(default=None, description="Display label only, never used as a reference.")

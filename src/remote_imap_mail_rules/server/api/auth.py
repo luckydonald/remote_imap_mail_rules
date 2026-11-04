@@ -1,13 +1,18 @@
 """Login, logout and session check, mounted at `/api/auth`. Everything else under `/api` needs the session."""
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...db import accounts as repository
-from ...db.crypto import CryptoError
-from ..auth import clear_session_cookie, is_logged_in, make_session_token, set_session_cookie
-from .accounts import get_session, get_settings, no_key
+from ..auth import (
+    check_admin_credentials,
+    clear_session_cookie,
+    failed_login_pause,
+    is_logged_in,
+    make_session_token,
+    not_configured,
+    set_session_cookie,
+)
+from .accounts import get_settings
 
 router = APIRouter()
 
@@ -18,19 +23,18 @@ class LoginIn(BaseModel):
 
 
 @router.post("/login", status_code=204)
-async def login(request: Request, response: Response, body: LoginIn, session: AsyncSession = Depends(get_session)) -> None:
-    """Any registered account's username and password unlock the service, it is single user."""
+async def login(request: Request, response: Response, body: LoginIn) -> None:
+    """Only the admin from `ADMIN_USERNAME` and `ADMIN_PASSWORD` can log in, the mail accounts' credentials do not count."""
     settings = get_settings(request)
-    try:
-        token = make_session_token(settings)
-    except CryptoError as e:
-        raise no_key() from e
-    # end try
-    account = await repository.find_by_credentials(session, settings.secret_key, body.username, body.password)
-    if account is None:
+    reason = not_configured(settings)
+    if reason is not None:
+        raise HTTPException(status_code=503, detail=reason)
+    # end if
+    if not check_admin_credentials(settings, body.username, body.password):
+        await failed_login_pause()
         raise HTTPException(status_code=401, detail="Wrong username or password.")
     # end if
-    set_session_cookie(request, response, token)
+    set_session_cookie(request, response, make_session_token(settings))
 # end def
 
 

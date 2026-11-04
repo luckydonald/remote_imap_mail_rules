@@ -57,7 +57,7 @@ def client(tmp_path: Path) -> Iterator[TestClient]:
         rules_path=None,
         database_url=f"sqlite+aiosqlite:///{tmp_path / 'db.sqlite3'}",
         frontend_dist=tmp_path / "missing",
-        secret_key=SecretStr(Fernet.generate_key().decode()),
+        secret_key=SecretStr(Fernet.generate_key().decode()), admin_username="admin", admin_password=SecretStr("admin-secret"),
     )
     with TestClient(create_app(settings)) as test_client:
         test_client.cookies.set(SESSION_COOKIE, make_session_token(settings))
