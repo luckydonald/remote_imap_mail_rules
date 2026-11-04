@@ -3,6 +3,7 @@
 import asyncio
 import re
 from dataclasses import dataclass, field
+from datetime import datetime
 
 import aioimaplib
 from aioimaplib import Response
@@ -49,9 +50,10 @@ class FakeServer:
         self.push_queues: list[asyncio.Queue[Response]] = []
     # end def
 
-    def add(self, folder: str, uid: int, subject: str, flags: str = "", sender: str = "a@example.com") -> FakeMessage:
+    def add(self, folder: str, uid: int, subject: str, flags: str = "", sender: str = "a@example.com", message_id: str | None = None) -> FakeMessage:
         target = self.folders.setdefault(folder, FakeFolder())
-        raw = f"From: {sender}\r\nSubject: {subject}\r\n\r\n".encode()
+        extra = f"Message-ID: {message_id}\r\n" if message_id else ""
+        raw = f"From: {sender}\r\nSubject: {subject}\r\n{extra}\r\n".encode()
         target.modseq += 1
         message = FakeMessage(uid=uid, raw=raw, flags=flags, modseq=target.modseq)
         target.messages.append(message)
@@ -90,7 +92,10 @@ def fetch_lines(message: FakeMessage, fields: str) -> list[bytes | bytearray]:
     if "BODYSTRUCTURE" in fields:
         head += f" BODYSTRUCTURE {message.structure}" if message.structure else f' BODYSTRUCTURE ("text" "plain" ("charset" "utf-8") NIL NIL "7bit" {len(message.body)} 1 NIL NIL NIL)'
     # end if
-    if "BODY.PEEK[HEADER]" in fields:
+    if "BODY.PEEK[]" in fields:
+        whole = message.raw + message.body
+        lines += [f"{head} BODY[] {{{len(whole)}}}".encode(), bytearray(whole), b")"]
+    elif "BODY.PEEK[HEADER]" in fields:
         lines += [f"{head} BODY[HEADER] {{{len(message.raw)}}}".encode(), bytearray(message.raw), b")"]
     elif match := re.search(r"BODY\.PEEK\[([\d.]+)\]", fields):
         data = message.parts.get(match.group(1), message.body)
@@ -189,7 +194,10 @@ class FakeConnection:
         self.require_selected("SEARCH")
         assert self.selected is not None
         messages = self.folder(self.selected).messages
-        if criteria and criteria[0].startswith("UID "):
+        if criteria and criteria[0] == "HEADER":
+            wanted = f"{criteria[1]}: {criteria[2].strip(chr(34))}".lower().encode()
+            found = [m.uid for m in messages if wanted in m.raw.lower()]
+        elif criteria and criteria[0].startswith("UID "):
             start = int(criteria[0].removeprefix("UID ").split(":")[0])
             found = [m.uid for m in messages if m.uid >= start] or ([max(m.uid for m in messages)] if messages else [])
         else:
@@ -234,8 +242,26 @@ class FakeConnection:
             if name == "move":
                 source.messages.remove(message)
             # end if
+            if "UIDPLUS" in self.server.capabilities:
+                return Response("OK", [f"[COPYUID {target.uidvalidity} {uid} {copy.uid}] done".encode()])
+            # end if
         # end if
         return Response("OK", [b"done"])
+    # end def
+
+    async def append(self, message_bytes: bytes, mailbox: str = "INBOX", flags: str | None = None, date: datetime | None = None, timeout: float | None = None) -> Response:
+        self.log(f"APPEND {mailbox}")
+        target = self.folder(mailbox)
+        head, separator, body = message_bytes.partition(b"\r\n\r\n")
+        internaldate = date.strftime("%d-%b-%Y %H:%M:%S %z") if date else "26-Oct-2026 08:01:00 +0000"
+        stored = FakeMessage(uid=max([m.uid for m in target.messages], default=0) + 1, raw=head + separator, flags=flags or "", body=body, internaldate=internaldate)
+        target.modseq += 1
+        stored.modseq = target.modseq
+        target.messages.append(stored)
+        if "UIDPLUS" in self.server.capabilities:
+            return Response("OK", [f"[APPENDUID {target.uidvalidity} {stored.uid}] APPEND completed".encode()])
+        # end if
+        return Response("OK", [b"APPEND completed"])
     # end def
 
     def store(self, folder: FakeFolder, message: FakeMessage, mode: str, flags: str) -> None:

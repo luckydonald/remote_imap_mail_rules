@@ -1,5 +1,7 @@
 # Stage 6b: moving mails between accounts
 
+**Commit style:** Skill `/commit-with-lplp-style` is active — auto-commit following it for this implementation.
+
 ## Context
 
 Stage 6a executes rule actions inside one account.
