@@ -7,3 +7,4 @@
 - [Scripts in Python+uv](feedback_scripts_python_uv.md) — new scripts and hooks: Python with a `uv run --script` shebang, not bash
 - [Never touch the live account](feedback_never_touch_live_account.md) — action/write features: only `TEST_*`, FakeServer, separate-port servers
 - [Playwright, not Chrome](feedback_playwright_not_chrome.md) — verify the frontend with Playwright e2e tests, never the claude-in-chrome tools
+- [Edit, not sed](feedback_use_edit_not_sed.md) — macOS BSD `sed -i` fails; use the Edit tool (or Python) for file changes

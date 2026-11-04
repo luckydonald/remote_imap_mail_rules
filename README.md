@@ -16,13 +16,15 @@ Read from the environment and from `.env` in the working directory (see `.exampl
 
 | Variable | Default | Description |
 |---|---|---|
-| `IMAP_ACCOUNT_ID` | required | An immutable UUID of your choosing (`uuidgen`). Rules reference the account by this id, because names can change. |
+| `ADMIN_USERNAME` | none | Login of the server's admin. Without it and `ADMIN_PASSWORD` nobody can log in. |
+| `ADMIN_PASSWORD` | none | Password of the admin. |
+| `IMAP_ACCOUNT_ID` | optional, with the other required `IMAP_*` | An immutable UUID of your choosing (`uuidgen`). Rules reference the account by this id, because names can change. |
 | `IMAP_ACCOUNT_NAME` | none | Display label only, never used as a reference. |
-| `IMAP_HOST` | required | IMAP server host name. |
+| `IMAP_HOST` | optional, see above | IMAP server host name. |
 | `IMAP_PORT` | `993` | IMAP server port. |
 | `IMAP_SSL` | `true` | Use TLS from the start. |
-| `IMAP_USERNAME` | required | Login name. |
-| `IMAP_PASSWORD` | required | Login password. |
+| `IMAP_USERNAME` | optional, see above | Login name. |
+| `IMAP_PASSWORD` | optional, see above | Login password. |
 | `IMAP_PAGE_SIZE` | `50` | Mails per page when loading a folder. |
 | `IMAP_POLL_INTERVAL` | `60` | Seconds between polls when the server has no IDLE. |
 | `RULES_PATH` | `rules/example.yml` for the demo, unset for the server | The YAML rules file. When set, the server edits this file; when unset, the rules live in the database. |
@@ -30,7 +32,7 @@ Read from the environment and from `.env` in the working directory (see `.exampl
 | `SECRET_KEY` | none | Fernet key that encrypts the account passwords in the database. Without it no password can be stored. |
 | `WATCH_ENABLED` | `true` | Whether the server runs the rules in the background and writes the action log of each mail. |
 | `ACTIONS_ENABLED` | `false` | Whether the watcher applies the actions of matching rules (the first matching rule wins) and logs them. Off, nothing is ever written to a mailbox. |
-| `SERVER_HOST` | `127.0.0.1` | Interface of the server. It has no login yet, so only expose it on a trusted network. |
+| `SERVER_HOST` | `127.0.0.1` | Interface of the server. Behind the admin login, but serve it over HTTPS when it is reachable from outside. |
 | `SERVER_PORT` | `8000` | Port of the server. |
 | `FRONTEND_DIST` | `frontend/dist` | Built editor that the server serves at `/`. |
 | `SENTRY_DSN` | none | DSN of the backend project in Sentry or Bugsink. Empty switches the error reporting off. |
@@ -77,13 +79,14 @@ Generate a `SECRET_KEY` once with `uv run python -c "from cryptography.fernet im
 - The rules are stored in the file at `RULES_PATH` when that is set, otherwise in the database, one row per rule.
   A file keeps comments and YAML anchors, the database does not, because it stores the parsed rules.
 - The accounts live in the database, passwords encrypted with `SECRET_KEY`.
-  The account from the `IMAP_*` variables is added once at start-up, and never overwritten afterwards.
+  The account from the `IMAP_*` variables is optional: if all required ones are set it is added once at start-up and never overwritten afterwards, otherwise add accounts on the Accounts screen.
   If it differs from the variables later (e.g. a changed password), the log warns and the accounts screen shows a badge.
 - Deleting an account that rules still refer to is refused.
 - Everything under `/api` except `/api/auth` and `/api/public` (health check and the browser's error reporting config) needs a login (static files stay open).
-  Log in with the username and password of any registered account, it is a single user service.
+  Log in with `ADMIN_USERNAME` and `ADMIN_PASSWORD`, it is a single user service and the mail accounts' credentials do not work.
+  Changing either variable ends all sessions, and a wrong login is answered after a short pause.
   The session is a signed cookie, valid for 30 days.
-  Without `SECRET_KEY` nobody can log in, the API then answers `503`.
+  Without `SECRET_KEY` or the admin variables nobody can log in, the API then answers `503`.
 - The Mail screen is a read-only mail client for the registered accounts: folders, the message list (newest first, paged), and the message with its attachments.
   HTML mail is sanitized (no scripts, no remote images) and shown in a sandboxed frame.
 - The server watches every registered account in the background (`WATCH_ENABLED`) and keeps an action log per mail: when it was first seen, which rules matched it, what they did with it, and changes made outside the rules (read/unread, flags, mail that left the folder).
@@ -117,15 +120,17 @@ For development run the server and `yarn dev` side by side, the dev server proxi
 In Coolify create a Docker Compose resource from this repository, point it at the compose file and assign the domain to the `app` service.
 `SERVICE_FQDN_APP_8000` routes the proxy to port 8000, and `FORWARDED_ALLOW_IPS=*` lets the server see HTTPS behind it, so the session cookie becomes `Secure`.
 
-- Required, the deploy is blocked until they are set: `SECRET_KEY` (a Fernet key, see above; Coolify cannot generate one, and a regenerated key would lock the stored passwords), `IMAP_ACCOUNT_ID`, `IMAP_HOST`, `IMAP_USERNAME` and `IMAP_PASSWORD`.
-  That first account is added to the database on the first start, and its username and password are the login of the service.
+- Required, the deploy is blocked until it is set: `SECRET_KEY` (a Fernet key, see above; Coolify cannot generate one, and a regenerated key would lock the stored passwords).
+- The login is `ADMIN_USERNAME` and `ADMIN_PASSWORD`, which the compose file fills from Coolify's magic variables `SERVICE_USER_ADMIN` and `SERVICE_PASSWORD_ADMIN`.
+  Coolify generates them on the first deploy, read (or change) them in the environment variables of the resource.
+- The `IMAP_*` variables are optional, add the mail accounts on the Accounts screen after logging in.
 - The SQLite database lives in the `data` volume at `/data` (`DATABASE_URL=sqlite+aiosqlite:////data/db.sqlite3`).
 - `ACTIONS_ENABLED` stays `false` until you set it.
 - Run exactly one container, the watcher runs inside the server.
 - `SENTRY_DSN`, `VITE_SENTRY_DSN` and the other `SENTRY_*` variables are optional, `SOURCE_COMMIT` (set by Coolify) becomes the release.
 - The health check is `GET /api/public/health`, which touches neither the database nor IMAP.
 
-To try the image locally: `docker build -t mail-rules .` and `docker run --rm -p 8000:8000 -e SECRET_KEY=… -e IMAP_ACCOUNT_ID=… -e IMAP_HOST=… -e IMAP_USERNAME=… -e IMAP_PASSWORD=… -e WATCH_ENABLED=false mail-rules`.
+To try the image locally: `docker build -t mail-rules .` and `docker run --rm -p 8000:8000 -e SECRET_KEY=… -e ADMIN_USERNAME=… -e ADMIN_PASSWORD=… -e WATCH_ENABLED=false mail-rules`.
 
 ## IMAP
 
