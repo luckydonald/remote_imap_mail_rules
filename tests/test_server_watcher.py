@@ -123,6 +123,27 @@ async def _has(factory: async_sessionmaker[AsyncSession], folder: str, uid: int,
 # end def
 
 
+async def test_last_run_is_set_when_the_watching_wakes_up(factory: async_sessionmaker[AsyncSession]) -> None:
+    server = FakeServer()
+    server.add("INBOX", 1, "invoice one")
+    watcher = make_watcher(factory, server)
+    assert watcher.last_run is None
+    watcher.start()
+    try:
+        await until(lambda: _has(factory, "INBOX", 1, [("first_seen", None), ("rule_match", "invoices")]))
+        await asyncio.sleep(0.1)  # let the folder task reach IDLE
+        server.push()
+        async with asyncio.timeout(3):
+            while watcher.last_run is None:
+                await asyncio.sleep(0.02)
+            # end while
+        # end async with
+    finally:
+        await watcher.stop()
+    # end try
+# end def
+
+
 async def test_restart_does_not_log_existing_mails_twice(factory: async_sessionmaker[AsyncSession]) -> None:
     server = FakeServer()
     server.add("INBOX", 1, "invoice one")

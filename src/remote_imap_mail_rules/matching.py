@@ -51,6 +51,10 @@ The first load of a folder is the baseline and reports nothing.
 """
 
 
+PollCallback = Callable[[], None]
+"""Called every time the watching of a folder wakes up (a push or a poll), whether or not anything changed."""
+
+
 @dataclass
 class Known:
     """What we remember of a mail to notice later changes."""
@@ -161,10 +165,12 @@ async def load_existing(
 async def follow_changes(
     client: ImapClient, settings: ImapSettings, folder: str, rules: list[Rule[Never]], queue: "asyncio.Queue[Queued]", highest_uid: int,
     on_inspect: InspectCallback | None = None, on_change: ChangeCallback | None = None, known: KnownMails | None = None,
+    on_poll: PollCallback | None = None,
 ) -> None:
     """Watches the folder and puts matches of new and changed mails on the queue.
 
     With `on_change`, flag changes and vanished mails are reported too; `known` is the snapshot `load_existing` filled.
+    `on_poll` is called on every wake-up, before the folder is looked at.
     """
     if known is None:
         known = {}
@@ -173,6 +179,9 @@ async def follow_changes(
     assert state is not None
     validity, modseq = state.uidvalidity, state.highestmodseq
     async for _event in watch(client, folder, settings.imap_poll_interval):
+        if on_poll is not None:
+            on_poll()
+        # end if
         current = await client.poll_state(folder)
         if current.uidvalidity != validity:
             logger.warning("UIDVALIDITY of %s changed, reloading the folder", folder)
@@ -227,6 +236,7 @@ async def follow_folder(
     follow: bool,
     on_inspect: InspectCallback | None = None,
     on_change: ChangeCallback | None = None,
+    on_poll: PollCallback | None = None,
 ) -> None:
     """Loads the folder page by page, then watches it. Puts the failure on the queue instead of raising it."""
     try:
@@ -234,7 +244,7 @@ async def follow_folder(
             known: KnownMails = {}
             highest_uid = await load_existing(client, settings, folder, rules, queue, on_inspect, known)
             if follow:
-                await follow_changes(client, settings, folder, rules, queue, highest_uid, on_inspect, on_change, known)
+                await follow_changes(client, settings, folder, rules, queue, highest_uid, on_inspect, on_change, known, on_poll)
             # end if
         # end async with
         await queue.put(Finished())
@@ -248,7 +258,7 @@ async def follow_folder(
 
 async def matches(
     settings: ImapSettings, rule_file: RuleFile[Never], factory: ConnectionFactory = connect_aioimaplib, follow: bool = True,
-    on_inspect: InspectCallback | None = None, on_change: ChangeCallback | None = None,
+    on_inspect: InspectCallback | None = None, on_change: ChangeCallback | None = None, on_poll: PollCallback | None = None,
 ) -> AsyncIterator[RuleMatch]:
     """Yields every mail matching a rule: existing mails first (newest first per folder), then new and changed ones as they arrive.
 
@@ -256,6 +266,7 @@ async def matches(
     With `follow=False` only the existing mails are yielded and the generator ends.
     `on_inspect` is called for every mail that gets evaluated, whether or not a rule matches it.
     `on_change` is called with a `FlagChange` or `MailGone` for every change the watching notices after the first load, matching or not.
+    `on_poll` is called whenever the watching of any folder wakes up, so a caller can tell the watching is alive.
     """
     async with ImapClient(settings, factory) as client:
         folders = await rules_by_folder(client, rule_file, settings.imap_account_id)
@@ -272,7 +283,7 @@ async def matches(
     # end for
     logger.debug("Inspecting %d folders: %s", len(folders), list(folders))
     queue: asyncio.Queue[Queued] = asyncio.Queue()
-    tasks = [asyncio.create_task(follow_folder(settings, factory, folder, rules, queue, follow, on_inspect, on_change)) for folder, rules in folders.items()]
+    tasks = [asyncio.create_task(follow_folder(settings, factory, folder, rules, queue, follow, on_inspect, on_change, on_poll)) for folder, rules in folders.items()]
     running = len(tasks)
     try:
         while running:

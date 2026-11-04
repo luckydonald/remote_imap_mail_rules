@@ -45,9 +45,19 @@ Backend needs no change: `PUT /api/editor/rules` already takes the raw text and 
 - **Save raw:** a "Save" button in `YamlPanel.vue` that sends the draft verbatim through `saveRules` (`model/api.ts`), without a round trip through the model, so comments, anchors and formatting stay as typed in file mode.
   On success it re-fetches (`fetchRules`) and `markSaved`s, so database mode shows what the server stored; on a 422 the `SaveError.messages` show inline under the textarea (the same `.message.error` as parse errors).
   Parse and schema problems of the draft show live (`parseRulesWithComments` + `validateRules`, reusing the problem list markup of `YamlPanel.vue`) and do not block Save, the server is the judge.
+- **Always-visible source (same commit, shown in every view):** a source menu in the topbar (new `SourceMenu.vue`, in `AppShell.vue` replacing the bare file name) that names what is edited and what Save/PUT would touch:
+  - `📄 somefile.yml` — the file on the server (`EditorConfig.source === 'file'`, `file_name`).
+  - `🗄️ Database` — the server's database (`source === 'database'`).
+  - `🕳️ In Memory` — an ad-hoc file, opened, dropped or created with New; never written to the server, only downloaded or copied. Shown with its own name when it has one, e.g. `🕳️ In Memory · mine.yml`.
+  - Offline (no server) only `🕳️ In Memory` exists, and the menu is a plain label.
+- **Switching:** the menu lists the backend entry first, then every ad-hoc document of this session (name + dirty dot), plus "Open…" and "New".
+  - A new `documents` part of `model/store.ts` keeps, per entry, its YAML text, name, `savedYaml` and kind (`server` | `memory`), in memory only; the active one is the live model.
+  - Switching stashes the current document (text, dirty state), then restores the target with `load()` + `markSaved(...)`, so a dirty server document comes back dirty. Undo history is per switch and starts fresh.
+  - Opening or dropping a file now adds an ad-hoc entry instead of replacing the backend document, so it can never be saved onto the server by accident (this is the existing behavior: opened files never write to disk).
+  - The Save button and the raw-mode Save only exist while the server entry is active, and the button label names the target (`Save to somefile.yml` / `Save to Database`).
 - **Database mode hint:** a note that comments there end up in the rule descriptions and anchors are not kept (`DatabaseRulesStore.save_text` and `append_comments`); the hint reads `EditorConfig.source`.
 - **Paste:** works through the textarea; the panel needs no extra drop handling, the shell's drop handler still opens files.
-- **Tests:** Vitest for `applyText` (`store.spec.ts`, keeps `serverFile`) and the panel (`components.spec.ts`); Playwright in `e2e/server.spec.ts` style (`mockServer` records the PUT body: raw text with a comment is sent unchanged, a 422 is shown inline).
+- **Tests:** Vitest for `applyText` (`store.spec.ts`, keeps `serverFile`), for switching documents (stash, dirty restore) and for `SourceMenu` labels in file, database, memory and offline cases (`components.spec.ts`); e2e also checks the label and that a dropped file never PUTs; Playwright in `e2e/server.spec.ts` style (`mockServer` records the PUT body: raw text with a comment is sent unchanged, a 422 is shown inline).
 
 ## Verification
 

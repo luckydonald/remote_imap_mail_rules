@@ -161,6 +161,13 @@ Status: done, see this checklist; additionally "Status so far" below.
   - Replaces the mail accounts' credentials as the login, so no initial mail account is needed any more; the `IMAP_*` seed is optional.
   - Changing the admin login ends all sessions.
 
+## 9. Action Log
+Status: pending implementation.
+
+- A dedicated screen for the action log, with filters and search.
+- Up top is an info box, which shows the last time the watcher ran, and the last time it found a change in any of the accounts, and the last time an action ran.
+
+
 # Status so far
 #### Done
 
@@ -204,4 +211,4 @@ Status: done, see this checklist; additionally "Status so far" below.
 
 #### Not built yet
 
-- Nothing from the plan; ideas are e.g. telling a user move from a delete, or a picker for custom fields beyond headers.
+- Stage 9
