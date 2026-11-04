@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import logging
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -131,6 +132,7 @@ class Watcher:
         self.retry_delay = retry_delay
         self.actions_enabled = actions_enabled
         self.task: asyncio.Task[None] | None = None
+        self.last_run: datetime | None = None
     # end def
 
     def start(self) -> None:
@@ -207,6 +209,11 @@ class Watcher:
         return len(moves) < MAX_MOVES
     # end def
 
+    def ticked(self) -> None:
+        """The watching of some folder woke up (a push or a poll). Kept in memory only, so it is `None` after a restart."""
+        self.last_run = datetime.now(UTC)
+    # end def
+
     async def follow(self, account_id: UUID) -> None:
         async with self.session_factory() as session:
             account = await account_repository.get_account(session, account_id)
@@ -239,7 +246,7 @@ class Watcher:
         try:
             async for found in matches(
                 settings, rule_file, self.imap_factory, on_inspect=lambda mail: queue.put_nowait(Seen(mail)),
-                on_change=lambda change: own.report(change, queue),
+                on_change=lambda change: own.report(change, queue), on_poll=self.ticked,
             ):
                 queue.put_nowait(found)
                 key = (found.mail.folder, found.mail.uid, found.mail.uidvalidity)
