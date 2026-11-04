@@ -15,6 +15,10 @@ IMAP_PAGE_SIZE=50
 IMAP_POLL_INTERVAL=60
 # Keep the rules in this file instead of the database. Leave it out to use the database.
 RULES_PATH=rules/example.yml
+# Everything besides the database that the server stores: the rules mirror (rules/) and the git credentials (git/). The container uses /data.
+DATA_DIR=data
+# The rules folder that git tracks, default DATA_DIR/rules. With RULES_PATH set, the folder of that file is used instead.
+RULES_DIR=
 # Any async SQLAlchemy URL, the default is shown.
 DATABASE_URL=sqlite+aiosqlite:///./db.sqlite3
 # Fernet key that encrypts account passwords in the database, generate one with:
