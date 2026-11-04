@@ -20,7 +20,7 @@ from ..db.models import EventKind
 from ..actions import MAX_MOVES, ActionRunner, ChainResult, StepStatus
 from ..imap.client import ConnectionFactory, ImapError
 from ..mail import Mail
-from ..matching import MatchKind, RuleMatch, matches
+from ..matching import Change, FlagChange, MailGone, MatchKind, RuleMatch, matches
 from ..rules.loader import parse_rules
 from .rules_store import RulesStore
 
@@ -41,7 +41,21 @@ class Act:
 # end class
 
 
-Entry = Seen | RuleMatch | Act
+@dataclass(frozen=True)
+class UserChange:
+    """A change on the server that our own actions did not make, so the user (or another client) did."""
+
+    change: Change
+# end class
+
+
+Entry = Seen | RuleMatch | Act | UserChange
+
+IGNORED_FLAGS = frozenset({"\\Recent"})
+"""Set by the server, never by anybody on purpose."""
+
+Key = tuple[str, int]
+"""`(folder, uid)` of a mail within the account a `follow()` is for."""
 
 LOGGED_STATUSES = {StepStatus.done, StepStatus.error, StepStatus.skipped}
 """A `noop` step changed nothing, so it is not worth a log entry (and a rerun after a restart stays silent)."""
@@ -51,6 +65,48 @@ def message_id_of(mail: Mail) -> str | None:
     value = mail.headers.get("Message-ID")
     return str(value) if value else None
 # end def
+
+
+class OwnChanges:
+    """Which flag changes and disappearances of mails came from our own actions, to keep them out of the `user_action` log.
+
+    The decision is taken when the change is noticed, not when it is written: while a mail's rules run, everything on it is ours.
+    Afterwards the flags the chain ended with, and a move, are remembered once, so the change noticed late is still recognised.
+    """
+
+    def __init__(self) -> None:
+        self.acting: set[Key] = set()
+        self.flags: dict[Key, frozenset[str]] = {}
+        self.moved: set[Key] = set()
+    # end def
+
+    def finished(self, key: Key, before: frozenset[str], result: ChainResult) -> None:
+        if result.moved is not None:
+            self.moved.add(key)
+        elif frozenset(result.mail.flags) != before:
+            self.flags[key] = frozenset(result.mail.flags)
+        # end if
+    # end def
+
+    def is_own(self, change: Change) -> bool:
+        if isinstance(change, MailGone):
+            key = (change.folder, change.uid)
+            return key in self.acting or key in self.moved
+        # end if
+        key = (change.mail.folder, change.mail.uid)
+        if key in self.acting:
+            return True
+        # end if
+        expected = self.flags.pop(key, None)
+        return expected is not None and expected == frozenset(change.mail.flags)
+    # end def
+
+    def report(self, change: Change, queue: "asyncio.Queue[Entry]") -> None:
+        if not self.is_own(change):
+            queue.put_nowait(UserChange(change))
+        # end if
+    # end def
+# end class
 
 
 class Watcher:
@@ -177,10 +233,14 @@ class Watcher:
         # end try
         queue: asyncio.Queue[Entry] = asyncio.Queue()
         pending: set[tuple[str, int, int | None]] = set()
+        own = OwnChanges()
         runner = ActionRunner(settings, rule_file, self.imap_factory, self.lookup_settings, self.allow_move) if self.actions_enabled else None
-        recorder = asyncio.create_task(self.record(queue, runner, pending))
+        recorder = asyncio.create_task(self.record(queue, runner, pending, own))
         try:
-            async for found in matches(settings, rule_file, self.imap_factory, on_inspect=lambda mail: queue.put_nowait(Seen(mail))):
+            async for found in matches(
+                settings, rule_file, self.imap_factory, on_inspect=lambda mail: queue.put_nowait(Seen(mail)),
+                on_change=lambda change: own.report(change, queue),
+            ):
                 queue.put_nowait(found)
                 key = (found.mail.folder, found.mail.uid, found.mail.uidvalidity)
                 if runner is not None and key not in pending:
@@ -200,7 +260,10 @@ class Watcher:
         # end try
     # end def
 
-    async def record(self, queue: asyncio.Queue[Entry], runner: ActionRunner | None = None, pending: set[tuple[str, int, int | None]] | None = None) -> None:
+    async def record(
+        self, queue: asyncio.Queue[Entry], runner: ActionRunner | None = None, pending: set[tuple[str, int, int | None]] | None = None,
+        own: "OwnChanges | None" = None,
+    ) -> None:
         """Writes the entries in the order they were queued, so a mail's first seen precedes its matches."""
         while True:
             entry = await queue.get()
@@ -211,7 +274,7 @@ class Watcher:
                             pending.discard((entry.mail.folder, entry.mail.uid, entry.mail.uidvalidity))
                         # end if
                         if runner is not None:
-                            await self.write_actions(session, await runner.run(entry.mail))
+                            await self.write_actions(session, await self.run_actions(runner, entry.mail, own))
                         # end if
                     else:
                         await self.write(session, entry)
@@ -224,6 +287,24 @@ class Watcher:
                 queue.task_done()
             # end try
         # end while
+    # end def
+
+    async def run_actions(self, runner: ActionRunner, mail: Mail, own: "OwnChanges | None") -> ChainResult | None:
+        """Runs the rules over the mail and tells `own` what that changed, so the watching does not take it for the user's doing."""
+        if own is None:
+            return await runner.run(mail)
+        # end if
+        key, before = (mail.folder, mail.uid), frozenset(mail.flags)
+        own.acting.add(key)
+        try:
+            result = await runner.run(mail)
+        finally:
+            own.acting.discard(key)
+        # end try
+        if result is not None:
+            own.finished(key, before, result)
+        # end if
+        return result
     # end def
 
     async def write_actions(self, session: AsyncSession, result: ChainResult | None) -> None:
@@ -268,6 +349,10 @@ class Watcher:
     # end def
 
     async def write(self, session: AsyncSession, entry: Entry) -> None:
+        if isinstance(entry, UserChange):
+            await self.write_user_change(session, entry.change)
+            return
+        # end if
         if isinstance(entry, Seen):
             mail = entry.mail
             if not await mail_events.has_event(session, mail.account_id, mail.folder, mail.uid, EventKind.first_seen, uidvalidity=mail.uidvalidity):
@@ -283,6 +368,23 @@ class Watcher:
             return
         # end if
         await self.add(session, mail, EventKind.rule_match, rule_name=name, detail={"match_kind": entry.kind.value})
+    # end def
+
+    async def write_user_change(self, session: AsyncSession, change: Change) -> None:
+        if isinstance(change, FlagChange):
+            now = frozenset(change.mail.flags) - IGNORED_FLAGS
+            before = change.old_flags - IGNORED_FLAGS
+            detail: dict[str, Any] = {"type": "flags", "added": sorted(now - before), "removed": sorted(before - now)}
+            if not detail["added"] and not detail["removed"]:
+                return
+            # end if
+            await self.add(session, change.mail, EventKind.user_action, detail=detail)
+            return
+        # end if
+        await mail_events.record_event(
+            session, change.account_id, change.folder, change.uid, EventKind.user_action,
+            uidvalidity=change.uidvalidity, message_id=change.message_id, detail={"type": "gone"},
+        )
     # end def
 
     async def add(self, session: AsyncSession, mail: Mail, kind: EventKind, *, rule_name: str | None = None, detail: dict[str, Any] | None = None) -> None:

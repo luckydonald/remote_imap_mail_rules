@@ -390,3 +390,67 @@ async def test_a_mail_that_was_moved_too_often_is_not_moved_again(factory: async
     assert [m.uid for m in server.folders["INBOX"].messages] == [1, 2]
     assert server.folders["Archive"].messages == []
 # end def
+
+
+async def user_actions(factory: async_sessionmaker[AsyncSession]) -> list[tuple[str, int, dict[str, object]]]:
+    async with factory() as session:
+        events = (await session.scalars(select(MailEvent).where(MailEvent.kind == "user_action").order_by(MailEvent.created_at))).all()
+        return [(event.folder, event.uid, event.detail) for event in events]
+    # end with
+# end def
+
+
+async def test_changes_made_by_the_user_are_logged_but_the_first_load_is_not(factory: async_sessionmaker[AsyncSession]) -> None:
+    server = FakeServer()
+    server.add("INBOX", 1, "invoice one", message_id="<one@example.com>")
+    server.add("INBOX", 2, "hello", flags="\\Flagged", message_id="<two@example.com>")
+    watcher = make_watcher(factory, server)
+    watcher.start()
+    try:
+        await until(lambda: _has(factory, "INBOX", 2, [("first_seen", None)]))
+        await asyncio.sleep(0.1)
+        assert await user_actions(factory) == []
+
+        server.set_flags("INBOX", 2, "\\Seen")
+        server.push()
+
+        async def logged() -> bool:
+            return len(await user_actions(factory)) == 1
+        # end def
+        await until(logged)
+        assert await user_actions(factory) == [("INBOX", 2, {"type": "flags", "added": ["\\Seen"], "removed": ["\\Flagged"]})]
+
+        server.delete("INBOX", 1)
+        server.push()
+
+        async def gone() -> bool:
+            return len(await user_actions(factory)) == 2
+        # end def
+        await until(gone)
+        assert (await user_actions(factory))[1] == ("INBOX", 1, {"type": "gone"})
+        async with factory() as session:
+            [event] = (await session.scalars(select(MailEvent).where(MailEvent.kind == "user_action", MailEvent.uid == 1))).all()
+        # end with
+        assert (event.message_id, event.uidvalidity) == ("<one@example.com>", 1)
+    finally:
+        await watcher.stop()
+    # end try
+# end def
+
+
+async def test_changes_made_by_rule_actions_are_not_user_actions(factory: async_sessionmaker[AsyncSession]) -> None:
+    server = action_server()
+    watcher = make_acting_watcher(factory, server, actions_enabled=True)
+    watcher.start()
+    try:
+        async def moved() -> bool:
+            return [m.uid for m in server.folders["Archive"].messages] != [] and len(await action_events(factory)) >= 3
+        # end def
+        await until(moved)
+        await asyncio.sleep(0.2)
+        # The flags we set and the move away from INBOX both raised the mod-sequence, and neither is the user's doing.
+        assert await user_actions(factory) == []
+    finally:
+        await watcher.stop()
+    # end try
+# end def
