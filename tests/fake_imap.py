@@ -70,6 +70,13 @@ class FakeServer:
         # end for
     # end def
 
+    def delete(self, folder: str, uid: int) -> None:
+        """Removes a mail the way another client expunging it would."""
+        target = self.folders[folder]
+        target.modseq += 1
+        target.messages = [message for message in target.messages if message.uid != uid]
+    # end def
+
     def push(self) -> None:
         """Simulates the server announcing a change to everybody in IDLE."""
         for queue in self.push_queues:

@@ -5,7 +5,7 @@ from uuid import UUID
 
 import pytest
 
-from remote_imap_mail_rules.matching import MatchKind, RuleMatch, matches
+from remote_imap_mail_rules.matching import Change, FlagChange, MailGone, MatchKind, RuleMatch, matches
 from remote_imap_mail_rules.rules.loader import parse_rules
 
 from .fake_imap import FakeServer
@@ -158,4 +158,48 @@ async def test_warns_when_no_rule_location_matches_the_account(caplog: pytest.Lo
     assert found == []
     assert "No folder to watch" in caplog.text
     assert str(OTHER) in caplog.text
+# end def
+
+
+async def test_on_change_reports_flag_changes_and_vanished_mails_but_not_the_first_load() -> None:
+    server = FakeServer()
+    server.add("INBOX", 1, "invoice first")
+    server.add("INBOX", 2, "unrelated", message_id="<two@example.com>")
+    changes: list[Change] = []
+    generator = matches(make_settings(), parse_rules(RULES), server.connect, on_change=changes.append)
+    await take(generator, 1)
+    await asyncio.sleep(0.05)
+    assert changes == []
+
+    # Mail 2 matches no rule, its change must be reported all the same.
+    server.set_flags("INBOX", 2, "\\Seen")
+    server.push()
+    await asyncio.sleep(0.1)
+    [flagged] = changes
+    assert isinstance(flagged, FlagChange)
+    assert (flagged.mail.uid, flagged.old_flags, flagged.mail.flags) == (2, frozenset(), frozenset({"\\Seen"}))
+
+    server.delete("INBOX", 2)
+    server.push()
+    await asyncio.sleep(0.1)
+    assert isinstance(changes[-1], MailGone)
+    assert (changes[-1].uid, changes[-1].message_id, changes[-1].folder) == (2, "<two@example.com>", "INBOX")
+    assert len(changes) == 2
+    await generator.aclose()
+# end def
+
+
+async def test_on_change_sees_vanished_mails_without_condstore() -> None:
+    server = FakeServer(capabilities={"IMAP4REV1"})
+    server.add("INBOX", 1, "nothing")
+    changes: list[Change] = []
+    generator = matches(make_settings(), parse_rules(RULES), server.connect, on_change=changes.append)
+    pending = asyncio.create_task(take(generator, 1))
+    await asyncio.sleep(0.05)
+    server.delete("INBOX", 1)
+    await asyncio.sleep(0.2)
+    pending.cancel()
+    await asyncio.gather(pending, return_exceptions=True)
+    assert [type(change) for change in changes] == [MailGone]
+    await generator.aclose()
 # end def
