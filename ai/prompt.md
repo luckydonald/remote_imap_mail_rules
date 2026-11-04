@@ -757,3 +757,6 @@ This includes the directory for rules and the SQLight database
 > Blocked script execution in 'about:srcdoc' because the document's frame is sandboxed and the 'allow-scripts' permission is not set.
 > ```
 
+❯ Plan denied:
+> Images in the `html` field of the `…/messages/…` endpoint came without src, e.g. `<img alt=\"Capture Visualisation\" width=\"90\" height=\"90\">`. It is unknown however if that example is external or embedded.
+

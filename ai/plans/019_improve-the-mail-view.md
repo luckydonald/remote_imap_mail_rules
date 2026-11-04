@@ -69,9 +69,28 @@ Reads use `EXAMINE` and `BODY.PEEK`, and writes only happen when `ACTIONS_ENABLE
 - Setting `prefs.remoteImages`: `'block'` (default), `'allow'` (always send the query), and `'rules'` (section 8).
 - Tests: sanitizer unit tests for both modes, and an e2e for the list, the button and the setting.
 
-## 8. Custom rule for auto-allowing remote images (last stage)
+### 7b. Mail styles (CSS) and the iframe CSP
 
-- A rule like the existing ones, built in the same rule builder: a new root key `remote_image_rules` in the rule file, a list of `{name, enabled, locations, when}` (same `when` expression, so sender, folder, list id and so on work), meaning "allow remote images for mails this matches".
+- Today `nh3` drops `<style>` blocks and `style` attributes, so mails render unstyled.
+  Reproduce first whether the app's own response headers (a CSP on the server) also affect the `srcdoc` iframe, since a `srcdoc` frame inherits the parent's CSP.
+- Add `prefs.mailStyles` (`'block'` default or `'allow'`, and `'rules'` once stage 8 exists), shown in the Mail view settings, plus a `Load styles` button next to `Load remote images` for one mail.
+- Backend: a `allow_styles` mode of the sanitizer keeps `<style>` and `style` attributes, but runs the CSS through a filter first (a small `tinycss2` pass): drop `@import`, `@font-face` with remote `src`, `url(...)` pointing off-site, `expression()` / `behavior`, and `position: fixed` / `sticky` so a mail cannot cover the app.
+  If the CSS filter is too much for this change, ship `allow` as "keep as is, enforced by the CSP below", but the filter is the recommended path.
+- Enforce the policy in the browser too, so blocking stops being accidental: `frameDocument()` in `model/mail-format.ts` adds `<meta http-equiv="Content-Security-Policy">` with `default-src 'none'; img-src data: <own origin>` (plus `https:` only when remote images are allowed) and `style-src 'unsafe-inline'` (only when styles are allowed).
+  The sanitizer stays the first layer, the CSP is the second.
+- Remote `url()` in allowed CSS is covered by the same `img-src`, so blocking remote images also blocks CSS backgrounds, and the blocked list in section 7 includes URLs the CSS filter removed.
+
+### Console warning `Blocked script execution in 'about:srcdoc'`
+
+- The iframe is deliberately sandboxed without `allow-scripts`, and `nh3` removes `<script>` including its content, so the app itself puts no script into the frame (`frameDocument` has only a `<style>`).
+  The 24 hits with an unknown source plus `Script Element 1:25` and `1:53` look like a browser extension injecting into every frame, which is why they say "unknown source".
+- Verify instead of assuming: a Playwright run with the extension absent must show no such console message, and a vitest or pytest assertion checks that sanitized output contains no `<script`.
+- Do not add `allow-scripts` to silence it.
+  If it turns out a script does come from the mail path, fix the sanitizer.
+
+## 8. Custom rule for auto-allowing remote images and styles (last stage)
+
+- A rule like the existing ones, built in the same rule builder: a new root key `remote_image_rules` in the rule file, a list of `{name, enabled, locations, when, allow}` (same `when` expression, so sender, folder, list id and so on work), where `allow` is a list of `images` and / or `styles`, meaning "allow these for mails this matches".
 - Model in `rules/models.py` (regenerate `schemas/rules.schema.json`), database rows follow the existing one-row-per-rule storage with a new table and migration, and the editor gets a section next to the rules and templates, reusing `RuleEditor` pieces without an actions editor.
 - The mail detail endpoint evaluates them with `rules/evaluate.py` on the mail it already fetched, and answers `remote_images_allowed`, so the policy `'rules'` needs no extra client call.
 - This stage is large and independent, so it is planned last and can land as its own change after sections 0 to 7.
