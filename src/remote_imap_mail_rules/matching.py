@@ -21,6 +21,58 @@ InspectCallback = Callable[[Mail], None]
 """Called once for every mail a rule evaluation looks at, matching or not."""
 
 
+@dataclass(frozen=True)
+class FlagChange:
+    """The flags of a mail already known to us changed on the server."""
+
+    mail: Mail
+    old_flags: frozenset[str]
+# end class
+
+
+@dataclass(frozen=True)
+class MailGone:
+    """A mail we knew is no longer in the folder (deleted, expunged or moved away)."""
+
+    account_id: UUID
+    folder: str
+    uidvalidity: int | None
+    uid: int
+    message_id: str | None
+# end class
+
+
+Change = FlagChange | MailGone
+
+ChangeCallback = Callable[[Change], None]
+"""Called for every flag change and every vanished mail the watching sees, whether or not a rule matches the mail.
+
+The first load of a folder is the baseline and reports nothing.
+"""
+
+
+@dataclass
+class Known:
+    """What we remember of a mail to notice later changes."""
+
+    flags: frozenset[str]
+    message_id: str | None
+    uidvalidity: int | None
+# end class
+
+
+KnownMails = dict[int, Known]
+"""The mails of one folder by UID."""
+
+
+def remember(known: KnownMails, mails: list[Mail]) -> None:
+    for mail in mails:
+        value = mail.headers.get("Message-ID")
+        known[mail.uid] = Known(flags=frozenset(mail.flags), message_id=str(value) if value else None, uidvalidity=mail.uidvalidity)
+    # end for
+# end def
+
+
 class MatchKind(StrEnum):
     existing = "existing"
     new = "new"
@@ -85,12 +137,19 @@ Queued = RuleMatch | BaseException | Finished
 
 
 async def load_existing(
-    client: ImapClient, settings: ImapSettings, folder: str, rules: list[Rule[Never]], queue: "asyncio.Queue[Queued]", on_inspect: InspectCallback | None = None
+    client: ImapClient, settings: ImapSettings, folder: str, rules: list[Rule[Never]], queue: "asyncio.Queue[Queued]", on_inspect: InspectCallback | None = None,
+    known: KnownMails | None = None,
 ) -> int:
     """Puts the matches of all mails currently in the folder on the queue. Returns the highest UID seen."""
     highest_uid = 0
+    if known is not None:
+        known.clear()
+    # end if
     async for page in client.iter_pages(settings.imap_account_id, folder, settings.imap_page_size):
         highest_uid = max([highest_uid, *(mail.uid for mail in page)])
+        if known is not None:
+            remember(known, page)
+        # end if
         for item in await match_mails(rules, page, MatchKind.existing, on_inspect):
             await queue.put(item)
         # end for
@@ -101,9 +160,15 @@ async def load_existing(
 
 async def follow_changes(
     client: ImapClient, settings: ImapSettings, folder: str, rules: list[Rule[Never]], queue: "asyncio.Queue[Queued]", highest_uid: int,
-    on_inspect: InspectCallback | None = None,
+    on_inspect: InspectCallback | None = None, on_change: ChangeCallback | None = None, known: KnownMails | None = None,
 ) -> None:
-    """Watches the folder and puts matches of new and changed mails on the queue."""
+    """Watches the folder and puts matches of new and changed mails on the queue.
+
+    With `on_change`, flag changes and vanished mails are reported too; `known` is the snapshot `load_existing` filled.
+    """
+    if known is None:
+        known = {}
+    # end if
     state = client.state
     assert state is not None
     validity, modseq = state.uidvalidity, state.highestmodseq
@@ -112,7 +177,7 @@ async def follow_changes(
         if current.uidvalidity != validity:
             logger.warning("UIDVALIDITY of %s changed, reloading the folder", folder)
             validity, modseq = current.uidvalidity, current.highestmodseq
-            highest_uid = await load_existing(client, settings, folder, rules, queue, on_inspect)
+            highest_uid = await load_existing(client, settings, folder, rules, queue, on_inspect, known)
             continue
         # end if
         known_uid = highest_uid
@@ -120,6 +185,7 @@ async def follow_changes(
             await client.examine(folder)
             fresh = await client.fetch_new(settings.imap_account_id, folder, highest_uid)
             highest_uid = max([highest_uid, *(mail.uid for mail in fresh)])
+            remember(known, fresh)
             for item in await match_mails(rules, fresh, MatchKind.new, on_inspect):
                 await queue.put(item)
             # end for
@@ -127,11 +193,27 @@ async def follow_changes(
         if modseq is not None and current.highestmodseq is not None and current.highestmodseq > modseq:
             await client.examine(folder)
             changed = await client.fetch_changed(settings.imap_account_id, folder, modseq)
+            if on_change is not None:
+                for mail in changed:
+                    before = known.get(mail.uid)
+                    if before is not None and before.flags != frozenset(mail.flags):
+                        on_change(FlagChange(mail=mail, old_flags=before.flags))
+                        before.flags = frozenset(mail.flags)
+                    # end if
+                # end for
+            # end if
             for item in await match_mails(rules, [mail for mail in changed if mail.uid <= known_uid], MatchKind.changed, on_inspect):
                 await queue.put(item)
             # end for
-            modseq = current.highestmodseq
+        # Without CONDSTORE nothing tells us a mail was expunged, so every poll has to look.
+        if on_change is not None and (modseq is None or current.highestmodseq is None or current.highestmodseq > modseq):
+            present = set(await client.list_uids(folder))
+            for uid in sorted(set(known) - present):
+                gone = known.pop(uid)
+                on_change(MailGone(account_id=settings.imap_account_id, folder=folder, uidvalidity=gone.uidvalidity, uid=uid, message_id=gone.message_id))
+            # end for
         # end if
+        modseq = current.highestmodseq if current.highestmodseq is not None else modseq
     # end async for
 # end def
 
@@ -144,13 +226,15 @@ async def follow_folder(
     queue: "asyncio.Queue[Queued]",
     follow: bool,
     on_inspect: InspectCallback | None = None,
+    on_change: ChangeCallback | None = None,
 ) -> None:
     """Loads the folder page by page, then watches it. Puts the failure on the queue instead of raising it."""
     try:
         async with ImapClient(settings, factory) as client:
-            highest_uid = await load_existing(client, settings, folder, rules, queue, on_inspect)
+            known: KnownMails = {}
+            highest_uid = await load_existing(client, settings, folder, rules, queue, on_inspect, known)
             if follow:
-                await follow_changes(client, settings, folder, rules, queue, highest_uid, on_inspect)
+                await follow_changes(client, settings, folder, rules, queue, highest_uid, on_inspect, on_change, known)
             # end if
         # end async with
         await queue.put(Finished())
@@ -164,13 +248,14 @@ async def follow_folder(
 
 async def matches(
     settings: ImapSettings, rule_file: RuleFile[Never], factory: ConnectionFactory = connect_aioimaplib, follow: bool = True,
-    on_inspect: InspectCallback | None = None,
+    on_inspect: InspectCallback | None = None, on_change: ChangeCallback | None = None,
 ) -> AsyncIterator[RuleMatch]:
     """Yields every mail matching a rule: existing mails first (newest first per folder), then new and changed ones as they arrive.
 
     Each folder gets its own connection and task, because `IDLE` blocks the connection it runs on.
     With `follow=False` only the existing mails are yielded and the generator ends.
     `on_inspect` is called for every mail that gets evaluated, whether or not a rule matches it.
+    `on_change` is called with a `FlagChange` or `MailGone` for every change the watching notices after the first load, matching or not.
     """
     async with ImapClient(settings, factory) as client:
         folders = await rules_by_folder(client, rule_file, settings.imap_account_id)
@@ -187,7 +272,7 @@ async def matches(
     # end for
     logger.debug("Inspecting %d folders: %s", len(folders), list(folders))
     queue: asyncio.Queue[Queued] = asyncio.Queue()
-    tasks = [asyncio.create_task(follow_folder(settings, factory, folder, rules, queue, follow, on_inspect)) for folder, rules in folders.items()]
+    tasks = [asyncio.create_task(follow_folder(settings, factory, folder, rules, queue, follow, on_inspect, on_change)) for folder, rules in folders.items()]
     running = len(tasks)
     try:
         while running:
