@@ -40,15 +40,14 @@ const RESULT = {
   rule: 'Invoices',
   actions_enabled: false,
   inspected: 40,
-  truncated: false,
   affected: 2,
-  listed: 2,
   summary: [
     { type: 'mark_read', status: 'planned', count: 2, folder: null, keyword: null, reason: null },
     { type: 'move', status: 'planned', count: 2, folder: 'Archive', keyword: null, reason: null },
   ],
   mails: [mail(1, 'invoice March'), mail(2, 'invoice April')],
   errors: [],
+  next: null,
 }
 
 interface Mock {
@@ -114,4 +113,34 @@ test('Run now asks for confirmation and applies the rule', async ({ page }) => {
   await page.getByRole('button', { name: 'Apply' }).click()
   await expect(page.locator('.notice-run')).toContainText('Applied to 2 mails (4 done)')
   expect(mock.runs).toEqual(['{"rule":"Invoices"}'])
+})
+
+test('loads the dry run in pages, skipping pages without mails', async ({ page }) => {
+  const cursor = (before: number) => ({ account_id: ACCOUNT, folder: 'INBOX', before_uid: before })
+  const one = RESULT.summary.map((row) => ({ ...row, count: 1 }))
+  const pages = [
+    { ...RESULT, inspected: 200, affected: 0, summary: [], mails: [], next: cursor(300) },
+    { ...RESULT, inspected: 200, affected: 1, summary: one, mails: [mail(1, 'invoice March')], next: cursor(100) },
+    { ...RESULT, inspected: 50, affected: 1, summary: one, mails: [mail(2, 'invoice April')], next: null },
+  ]
+  const bodies: string[] = []
+  await mockServer(page, false)
+  await page.route('**/api/dry-run', (route) => {
+    bodies.push(route.request().postData() ?? '')
+    return route.fulfill({ json: pages[bodies.length - 1] })
+  })
+  await page.goto('/rules/0')
+  await page.getByRole('button', { name: 'Dry run', exact: true }).click()
+  // The first page has no mail, so the second one comes without a click.
+  await expect(page.locator('.affected > li')).toHaveCount(1)
+  expect(bodies).toHaveLength(2)
+  expect(bodies[0]).not.toContain('cursor')
+  expect(bodies[1]).toContain('"before_uid":300')
+  await expect(page.locator('.totals')).toContainText('Looked at 400 mails so far')
+  await page.getByRole('button', { name: 'Load more…' }).click()
+  await expect(page.locator('.affected > li')).toHaveCount(2)
+  expect(bodies[2]).toContain('"before_uid":100')
+  await expect(page.getByRole('button', { name: 'Load more…' })).toHaveCount(0)
+  await expect(page.locator('.totals')).toContainText('Looked at 450 mails, 2 would be affected')
+  await expect(page.locator('.summary')).toContainText('2×move to Archive')
 })

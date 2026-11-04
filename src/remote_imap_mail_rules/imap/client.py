@@ -258,6 +258,13 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
         # end for
     # end def
 
+    async def list_uids(self, folder: str, before_uid: int | None = None) -> list[int]:
+        """The UIDs of a folder, newest first, only those below `before_uid` if given."""
+        await self.examine(folder)
+        uids = sorted(await self.search_uids("ALL"), reverse=True)
+        return [uid for uid in uids if before_uid is None or uid < before_uid]
+    # end def
+
     async def folder_counts(self, folder: str) -> FolderCounts:
         """Total and unseen mails of a folder without selecting it."""
         response = check(await self.conn.status(quote_folder(folder), "(MESSAGES UNSEEN)"), f"status {folder}")

@@ -36,16 +36,41 @@ export interface AffectedMail {
   moved_to: string | null
 }
 
-export interface DryRunResult {
+/** Where the next page starts; opaque for the client, pass it back as it is. */
+export interface DryRunCursor {
+  account_id: string
+  folder: string | null
+  before_uid: number | null
+}
+
+/** One page of the dry run: the counts and mails are for the mails looked at in this page only. */
+export interface DryRunPage {
   rule: string
   actions_enabled: boolean
   inspected: number
-  truncated: boolean
   affected: number
-  listed: number
   summary: SummaryRow[]
   mails: AffectedMail[]
   errors: string[]
+  next: DryRunCursor | null
+}
+
+/** Adds the counts of a page to the summary so far, rows with the same step are one row. */
+export function mergeSummary(rows: SummaryRow[], more: SummaryRow[]): SummaryRow[] {
+  const merged = rows.map((row) => ({ ...row }))
+  for (const row of more) {
+    const same = merged.find(
+      (item) =>
+        item.type === row.type &&
+        item.status === row.status &&
+        item.folder === row.folder &&
+        item.keyword === row.keyword &&
+        item.reason === row.reason,
+    )
+    if (same) same.count += row.count
+    else merged.push({ ...row })
+  }
+  return merged.sort((a, b) => b.count - a.count)
 }
 
 export interface RunResult {
@@ -64,9 +89,13 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return (await response.json()) as T
 }
 
-/** What the rule would do. `yaml` is the editor's (maybe unsaved) text, nothing is written anywhere. */
-export function dryRun(rule: string, yaml: string): Promise<DryRunResult> {
-  return post('', { rule, yaml })
+/** One page of what the rule would do. `yaml` is the editor's (maybe unsaved) text, nothing is written anywhere. */
+export function dryRun(
+  rule: string,
+  yaml: string,
+  cursor: DryRunCursor | null = null,
+): Promise<DryRunPage> {
+  return post('', cursor ? { rule, yaml, cursor } : { rule, yaml })
 }
 
 /** Applies the stored rule for real; the server refuses with 409 while it is not applying rules. */

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { describeLoggedAction, describeStep, dryRun, runNow } from '@/model/dry-run'
+import { describeLoggedAction, describeStep, dryRun, mergeSummary, runNow } from '@/model/dry-run'
 import { ApiError } from '@/model/http'
 import { eventLabel } from '@/model/mail-format'
 import type { MailEvent } from '@/model/mail-api'
@@ -62,6 +62,32 @@ describe('the action log', () => {
   })
 })
 
+describe('mergeSummary', () => {
+  const row = (count: number, folder: string | null = null) => ({
+    type: 'move',
+    status: 'planned' as const,
+    count,
+    folder,
+    keyword: null,
+    reason: null,
+  })
+
+  it('adds up equal rows and keeps the biggest first', () => {
+    const merged = mergeSummary([row(1, 'A'), row(5, 'B')], [row(2, 'A'), row(1, 'C')])
+    expect(merged.map((item) => [item.folder, item.count])).toEqual([
+      ['B', 5],
+      ['A', 3],
+      ['C', 1],
+    ])
+  })
+
+  it('does not change its input', () => {
+    const rows = [row(1, 'A')]
+    mergeSummary(rows, [row(2, 'A')])
+    expect(rows[0]?.count).toBe(1)
+  })
+})
+
 describe('dry run api', () => {
   it('posts the rule and the unsaved text', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(reply({ rule: 'r', summary: [] }))
@@ -73,6 +99,17 @@ describe('dry run api', () => {
         method: 'POST',
         body: JSON.stringify({ rule: 'r', yaml: 'rules: []' }),
       }),
+    )
+  })
+
+  it('passes the cursor of the next page on', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(reply({ rule: 'r', summary: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+    const cursor = { account_id: 'a', folder: 'INBOX', before_uid: 7 }
+    await dryRun('r', 'rules: []', cursor)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/dry-run',
+      expect.objectContaining({ body: JSON.stringify({ rule: 'r', yaml: 'rules: []', cursor }) }),
     )
   })
 
