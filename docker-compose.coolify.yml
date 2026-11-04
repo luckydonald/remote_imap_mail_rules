@@ -13,18 +13,23 @@ services:
       # Behind the proxy the session cookie needs `X-Forwarded-Proto` to become `Secure`.
       - FORWARDED_ALLOW_IPS=*
 
-      # Required, the deploy is blocked until they are set. A Fernet key, generate it once and never change it, or the stored
+      # Required, the deploy is blocked until it is set. A Fernet key, generate it once and never change it, or the stored
       # passwords cannot be decrypted: uv run python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
       - SECRET_KEY=${SECRET_KEY:?}
-      # The first account, added to the database on the first start; its username and password are the login of the service.
-      # Pick the id once (`uuidgen`), rules refer to it.
-      - IMAP_ACCOUNT_ID=${IMAP_ACCOUNT_ID:?}
+      # The login of the service. Coolify generates both (magic variables) and shows them among the environment variables, where they can be edited.
+      # Changing either one logs everybody out.
+      - ADMIN_USERNAME=${SERVICE_USER_ADMIN}
+      - ADMIN_PASSWORD=${SERVICE_PASSWORD_ADMIN}
+
+      # Optional: a first mail account, added to the database on the first start and never overwritten. Leave them empty and add accounts
+      # on the Accounts screen instead. Pick the id once (`uuidgen`), rules refer to it.
+      - IMAP_ACCOUNT_ID=${IMAP_ACCOUNT_ID:-}
       - IMAP_ACCOUNT_NAME=${IMAP_ACCOUNT_NAME:-}
-      - IMAP_HOST=${IMAP_HOST:?}
+      - IMAP_HOST=${IMAP_HOST:-}
       - IMAP_PORT=${IMAP_PORT:-993}
       - IMAP_SSL=${IMAP_SSL:-true}
-      - IMAP_USERNAME=${IMAP_USERNAME:?}
-      - IMAP_PASSWORD=${IMAP_PASSWORD:?}
+      - IMAP_USERNAME=${IMAP_USERNAME:-}
+      - IMAP_PASSWORD=${IMAP_PASSWORD:-}
       - IMAP_PAGE_SIZE=${IMAP_PAGE_SIZE:-50}
       - IMAP_POLL_INTERVAL=${IMAP_POLL_INTERVAL:-60}
 
