@@ -595,3 +595,5 @@ Hoist mail into a shared pinia store, persisted/cached by localstorage.
 
 ❯ In the dry run button have a checkbox to keep loading the next page automatically until the end.
 
+❯ "Looking at the mails…" should have the email spinner we created for the mail page, too.
+
