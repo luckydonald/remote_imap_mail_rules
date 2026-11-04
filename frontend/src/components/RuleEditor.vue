@@ -5,7 +5,7 @@ import ConditionNode from './ConditionNode.vue'
 import FieldValue from './FieldValue.vue'
 import DryRunPanel from './DryRunPanel.vue'
 import LocationsEditor from './LocationsEditor.vue'
-import { useStore } from '@/model/context'
+import { useStore } from '@/model/store'
 import { useMailStore } from '@/model/mail-store'
 import type { Rule } from '@/model/types'
 
@@ -14,9 +14,7 @@ const props = defineProps<{ index: number }>()
 const store = useStore()
 const mail = useMailStore()
 
-const problems = computed(() =>
-  store.problems.value.filter((problem) => problem.rule === props.index),
-)
+const problems = computed(() => store.problems.filter((problem) => problem.rule === props.index))
 
 function actions() {
   model.value.actions ??= []

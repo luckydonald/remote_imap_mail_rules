@@ -10,7 +10,7 @@ import type { Place } from '@/model/mail-store'
 import type { View } from '@/model/store'
 
 /** The top level screens of the app; a route names the one it shows in `meta.screen`. */
-export type Screen = 'rules' | 'accounts' | 'git' | 'mail' | 'log' | 'sample-error'
+export type Screen = 'rules' | 'accounts' | 'git' | 'mail' | 'log' | 'settings' | 'sample-error'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -56,6 +56,7 @@ export const routes: RouteRecordRaw[] = [
     ],
   },
   { path: '/log', name: 'log', component: empty, meta: { screen: 'log' } },
+  { path: '/settings', name: 'settings', component: empty, meta: { screen: 'settings' } },
   {
     path: '/sample-error',
     name: 'sample-error',

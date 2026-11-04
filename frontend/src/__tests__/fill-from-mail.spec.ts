@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   appendCondition,
+  groupsOf,
   conditionFor,
   fillExpression,
   headerSuggestions,
@@ -46,6 +47,11 @@ const detail: Detail = {
   message_id: '<id@x>',
   text: 'hi',
   html: null,
+  blocked_images: [],
+  broken_embeds: [],
+  styles_blocked: false,
+  remote_images_allowed: false,
+  styles_allowed: false,
   attachments: [
     {
       part: '2',
@@ -156,6 +162,32 @@ describe('fill from mail', () => {
       conditions: [first, added],
     })
     expect(appendCondition(first, added)).toEqual({ type: 'all', conditions: [first, added] })
+  })
+
+  it('appends into the group a path names', () => {
+    const added = newExpression('bool')
+    const leaf = newExpression('text')
+    const when: Expression = {
+      type: 'all',
+      conditions: [leaf, { type: 'any', conditions: [leaf] }, { type: 'not', condition: leaf }],
+    }
+    expect(groupsOf(when).map((group) => [group.path, group.type])).toEqual([
+      [[], 'all'],
+      [[1], 'any'],
+      [[2], 'not'],
+    ])
+    const inAny = appendCondition(when, added, [1]) as { conditions: Expression[] }
+    expect(inAny.conditions[1]).toEqual({ type: 'any', conditions: [leaf, added] })
+    const inNot = appendCondition(when, added, [2]) as { conditions: Expression[] }
+    expect(inNot.conditions[2]).toEqual({
+      type: 'not',
+      condition: { type: 'all', conditions: [leaf, added] },
+    })
+    expect(appendCondition({ type: 'any', conditions: [leaf] }, added, [])).toEqual({
+      type: 'any',
+      conditions: [leaf, added],
+    })
+    expect(appendCondition(when, added, [9]).type).toBe('all')
   })
 })
 

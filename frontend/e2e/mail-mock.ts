@@ -56,6 +56,11 @@ export const DETAIL = {
   message_id: '<m@x>',
   text: 'plain text',
   html: '<p>Hello <b>rich</b> world</p>',
+  blocked_images: ['https://t.example/a.gif', 'https://t.example/b.gif'],
+  broken_embeds: [],
+  styles_blocked: false,
+  remote_images_allowed: false,
+  styles_allowed: false,
   attachments: [
     {
       part: '2',
@@ -81,7 +86,13 @@ export const mockServer = async (
   await page.route('**/api/editor/config', (route) =>
     loggedIn
       ? route.fulfill({
-          json: { mode: 'server', source: 'database', file_name: null, exists: false },
+          json: {
+            mode: 'server',
+            source: 'database',
+            file_name: null,
+            exists: false,
+            actions_enabled: true,
+          },
         })
       : route.fulfill({ status: 401, json: { detail: 'Not logged in.' } }),
   )
@@ -132,6 +143,16 @@ export const mockServer = async (
     if (url.pathname.endsWith('/messages'))
       return route.fulfill({
         json: { messages: [summary(3), summary(2, true)], total: 3, next_before_uid: 2 },
+      })
+    if (url.pathname.endsWith('/flags') || url.pathname.endsWith('/move')) {
+      calls.push(`body ${route.request().postData()}`)
+      return url.pathname.endsWith('/move')
+        ? route.fulfill({ json: { folder: 'Sent', uid: 1 } })
+        : route.fulfill({ status: 204 })
+    }
+    if (url.searchParams.get('remote_images') === 'true')
+      return route.fulfill({
+        json: { ...DETAIL, blocked_images: [], remote_images_allowed: true },
       })
     return route.fulfill({ json: DETAIL })
   })

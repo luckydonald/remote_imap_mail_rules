@@ -63,12 +63,19 @@ export function fileSize(bytes: number | null): string {
 }
 
 const FRAME_STYLE =
-  'body{font:14px/1.5 -apple-system,system-ui,sans-serif;margin:0;word-wrap:break-word;color:#1d1d1f;background:#fff}' +
+  'html{overflow:hidden}body{font:14px/1.5 -apple-system,system-ui,sans-serif;margin:0;word-wrap:break-word;color:#1d1d1f;background:#fff}' +
   'img{max-width:100%;height:auto}a{color:#0a66d6}blockquote{margin:0 0 0 8px;padding-left:12px;border-left:3px solid #ddd;color:#555}'
 
-/** The sandboxed iframe's document: the server's sanitized HTML with a base style and links that open in a new tab. */
-export function frameDocument(html: string): string {
-  return `<!doctype html><meta charset="utf-8"><base target="_blank"><style>${FRAME_STYLE}</style><body>${html}</body>`
+/** The policy of the mail iframe: nothing loads except our own parts, embedded images and, when allowed, remote images. The server's sanitizer is the first layer, this the second. */
+export function framePolicy(remoteImages: boolean): string {
+  const images = remoteImages ? "img-src 'self' data: https: http:" : "img-src 'self' data:"
+  return `default-src 'none'; ${images}; style-src 'unsafe-inline'`
+}
+
+/** The sandboxed iframe's document: the server's sanitized HTML with a base style, a content security policy and links that open in a new tab. */
+export function frameDocument(html: string, remoteImages = false): string {
+  const policy = framePolicy(remoteImages)
+  return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${policy}"><base target="_blank"><style>${FRAME_STYLE}</style><body>${html}</body>`
 }
 
 const FLAG_ADDED: Record<string, string> = {

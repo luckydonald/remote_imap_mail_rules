@@ -5,11 +5,15 @@ import { computed, ref, watch } from 'vue'
 import { listAccounts, type Account } from './accounts-api'
 import type { MailContext } from './fill-from-mail'
 import { ApiError, describeError } from './http'
+import { usePrefsStore } from './prefs'
 import {
   getMessage,
   listEvents,
   listFolders,
   listMessages,
+  moveMessage,
+  setFlags,
+  type BodyOptions,
   type Detail,
   type Folder,
   type MailEvent,
@@ -54,6 +58,7 @@ function writeSaved(saved: Saved): void {
 }
 
 export const useMailStore = defineStore('mail', () => {
+  const prefs = usePrefsStore()
   let onUnauthorized: () => void = () => {}
   // The place of the last session, used once by the first loadAccounts().
   let restore = readSaved()
@@ -78,6 +83,8 @@ export const useMailStore = defineStore('mail', () => {
   const active = ref(false)
   // Whether the server applies the actions of matching rules (`ACTIONS_ENABLED`); the dry run works either way.
   const actionsEnabled = ref(false)
+  // What the HTML of the open mail may load; starts from the settings and is raised per mail by "Load remote images" / "Load styles".
+  const bodyOptions = ref<BodyOptions>({})
   // Answers of requests that were overtaken by a newer choice are dropped.
   let listTicket = 0
   let detailTicket = 0
@@ -240,12 +247,92 @@ export const useMailStore = defineStore('mail', () => {
     events.value = []
     error.value = ''
     pane.value = 'message'
+    bodyOptions.value = {
+      remoteImages: prefs.remoteImages === 'allow',
+      styles: prefs.mailStyles === 'allow',
+    }
     void loadEvents(id, name, uid)
     try {
-      const found = await getMessage(id, name, uid)
+      const found = await getMessage(id, name, uid, bodyOptions.value)
       if (ticket === detailTicket) detail.value = found
     } catch (caught) {
       if (ticket === detailTicket) fail('Could not load the message', caught)
+    }
+  }
+
+  /** Loads the open mail again with more allowed, e.g. its remote images; the old body stays until the new one is in. */
+  async function allow(options: BodyOptions): Promise<void> {
+    const id = accountId.value
+    const name = folder.value
+    const uid = selectedUid.value
+    if (id === null || name === null || uid === null) return
+    const ticket = ++detailTicket
+    bodyOptions.value = { ...bodyOptions.value, ...options }
+    try {
+      const found = await getMessage(id, name, uid, bodyOptions.value)
+      if (ticket === detailTicket) detail.value = found
+    } catch (caught) {
+      if (ticket === detailTicket) fail('Could not load the message', caught)
+    }
+  }
+
+  /** Keeps the number badges of the folder list right after a mail was read, unread or moved. */
+  function countUnseen(name: string | null, by: number): void {
+    const entry = folders.value.find((item) => item.name === name)
+    if (entry && entry.unseen !== null) entry.unseen = Math.max(0, entry.unseen + by)
+  }
+
+  /** Marks the open mail read or unread on the server. */
+  async function setSeen(seen: boolean): Promise<void> {
+    const id = accountId.value
+    const name = folder.value
+    const open = detail.value
+    if (id === null || name === null || open === null || open.seen === seen) return
+    try {
+      const flag = '\\Seen'
+      await setFlags(id, name, open.uid, seen ? { add: [flag] } : { remove: [flag] })
+    } catch (caught) {
+      fail('Could not change the mail', caught)
+      return
+    }
+    open.seen = seen
+    open.flags = seen ? [...open.flags, '\\Seen'] : open.flags.filter((flag) => flag !== '\\Seen')
+    const row = messages.value.find((item) => item.uid === open.uid)
+    if (row) row.seen = seen
+    countUnseen(name, seen ? -1 : 1)
+  }
+
+  /** Moves the open mail to another folder of the account and opens the next one, or goes back to the list. */
+  async function moveTo(target: string): Promise<void> {
+    const id = accountId.value
+    const name = folder.value
+    const open = detail.value
+    if (id === null || name === null || open === null || target === name) return
+    try {
+      await moveMessage(id, name, open.uid, target)
+    } catch (caught) {
+      fail('Could not move the mail', caught)
+      return
+    }
+    const index = messages.value.findIndex((item) => item.uid === open.uid)
+    const next = messages.value[index + 1] ?? messages.value[index - 1]
+    messages.value = messages.value.filter((item) => item.uid !== open.uid)
+    total.value = Math.max(0, total.value - 1)
+    const source = folders.value.find((item) => item.name === name)
+    const destination = folders.value.find((item) => item.name === target)
+    if (source && source.messages !== null) source.messages -= 1
+    if (destination && destination.messages !== null) destination.messages += 1
+    if (!open.seen) {
+      countUnseen(name, -1)
+      countUnseen(target, 1)
+    }
+    if (next) {
+      await openMessage(next.uid)
+    } else {
+      selectedUid.value = null
+      detail.value = null
+      events.value = []
+      pane.value = 'list'
     }
   }
 
@@ -312,6 +399,10 @@ export const useMailStore = defineStore('mail', () => {
     selectFolder,
     loadMore,
     openMessage,
+    allow,
+    bodyOptions,
+    setSeen,
+    moveTo,
     goTo,
     back,
     clear,
