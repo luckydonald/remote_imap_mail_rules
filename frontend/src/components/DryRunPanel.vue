@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useStore } from '@/model/context'
 import {
@@ -40,6 +40,8 @@ const error = ref('')
 const loading = ref(false)
 const confirming = ref(false)
 const only = ref<SummaryRow | null>(null)
+/** Keep fetching the next page until the end. */
+const autoLoad = ref(false)
 
 const planned = computed(() =>
   (result.value?.summary ?? []).filter((row) => row.status === 'planned'),
@@ -117,7 +119,7 @@ async function fetchPages(first: boolean): Promise<void> {
         errors: [...(before?.errors ?? []), ...page.errors],
         next: page.next,
       }
-      if (page.next === null || page.mails.length > 0) return
+      if (page.next === null || (page.mails.length > 0 && !autoLoad.value)) return
       cursor = page.next
     }
   } catch (e) {
@@ -127,6 +129,10 @@ async function fetchPages(first: boolean): Promise<void> {
     if (mine === generation) loading.value = false
   }
 }
+
+watch(autoLoad, (on) => {
+  if (on && result.value?.next && !loading.value) void loadMore()
+})
 
 async function start(): Promise<void> {
   ran.value = null
@@ -174,6 +180,9 @@ async function apply(): Promise<void> {
       >
         Run now
       </button>
+      <label class="auto-load" title="Keep loading the next page until the end">
+        <input v-model="autoLoad" type="checkbox" /> Load all pages
+      </label>
       <span v-if="loading" class="hint">Looking at the mails…</span>
     </div>
     <p v-if="result && blocked" class="hint blocked">{{ blocked }}</p>

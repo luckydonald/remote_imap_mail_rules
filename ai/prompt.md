@@ -593,3 +593,5 @@ Hoist mail into a shared pinia store, persisted/cached by localstorage.
 
 ❯ Plan accepted, auto mode.
 
+❯ In the dry run button have a checkbox to keep loading the next page automatically until the end.
+
