@@ -762,3 +762,5 @@ This includes the directory for rules and the SQLight database
 
 ❯ Plan accepted, auto mode.
 
+❯ Commit per task as outlined.
+

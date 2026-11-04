@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useStore } from '@/model/context'
+import { useStore } from '@/model/store'
 import { parseValue as parse, showValue as show } from '@/model/values'
 import { templateVariables } from '@/model/validate'
 import type { TemplateUse } from '@/model/types'

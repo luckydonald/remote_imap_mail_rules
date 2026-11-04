@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import MailSpinner from './MailSpinner.vue'
-import { useStore } from '@/model/context'
+import { useStore } from '@/model/store'
 import {
   describeStep,
   dryRun,
@@ -58,7 +58,7 @@ const noopCount = computed(() =>
 const blocked = computed(() => {
   if (!mail.actionsEnabled)
     return 'The server is currently not applying rules (ACTIONS_ENABLED is off). This is a dry run only.'
-  if (store.dirty.value) return 'Save the rule first, "Run now" works on the saved rules.'
+  if (store.dirty) return 'Save the rule first, "Run now" works on the saved rules.'
   return ''
 })
 
@@ -108,7 +108,7 @@ async function fetchPages(first: boolean): Promise<void> {
   try {
     let cursor = first ? null : (result.value?.next ?? null)
     for (;;) {
-      const page = await dryRun(props.rule.name, store.yaml.value, cursor)
+      const page = await dryRun(props.rule.name, store.yaml, cursor)
       if (mine !== generation) return
       const before = first && cursor === null ? null : result.value
       result.value = {

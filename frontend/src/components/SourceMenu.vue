@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useStore } from '@/model/context'
+import { useStore } from '@/model/store'
 import { SERVER } from '@/model/store'
 
 const store = useStore()
@@ -13,9 +13,9 @@ interface Entry {
 }
 
 function serverLabel(): string {
-  const backend = store.backend.value
+  const backend = store.backend
   if (backend?.kind === 'database') return '🗄️ Database'
-  return `📄 ${backend?.name ?? store.serverFile.value ?? ''}`
+  return `📄 ${backend?.name ?? store.serverFile ?? ''}`
 }
 
 function memoryLabel(name: string | null, index: number, short = false): string {
@@ -25,18 +25,18 @@ function memoryLabel(name: string | null, index: number, short = false): string 
 
 /** What is being edited, and so what Save would write; shown in every view. */
 const current = computed(() => {
-  if (store.serverFile.value !== null) return serverLabel()
-  const index = store.documents.findIndex((item) => item.id === store.memoryId.value)
+  if (store.serverFile !== null) return serverLabel()
+  const index = store.documents.findIndex((item) => item.id === store.memoryId)
   const document = store.documents[index]
   return memoryLabel(document?.name ?? null, index, document === undefined)
 })
 
-const liveId = computed(() => (store.serverFile.value !== null ? SERVER : store.memoryId.value))
+const liveId = computed(() => (store.serverFile !== null ? SERVER : store.memoryId))
 
 /** The server's rules first, then every ad-hoc file of the session. */
 const entries = computed<Entry[]>(() => {
   const list: Entry[] = []
-  if (store.backend.value !== null && (store.serverFile.value !== null || store.serverStash.value))
+  if (store.backend !== null && (store.serverFile !== null || store.serverStash))
     list.push({ id: SERVER, label: serverLabel(), edited: store.isEdited(SERVER) })
   store.documents.forEach((document, index) =>
     list.push({

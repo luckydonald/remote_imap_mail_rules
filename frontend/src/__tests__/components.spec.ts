@@ -8,8 +8,7 @@ import ConditionNode from '@/components/ConditionNode.vue'
 import FieldValue from '@/components/FieldValue.vue'
 import MailLog from '@/components/MailLog.vue'
 import SourceMenu from '@/components/SourceMenu.vue'
-import { provideStore } from '@/model/context'
-import { createStore } from '@/model/store'
+import { useStore } from '@/model/store'
 import { defineComponent, h, reactive } from 'vue'
 import { ALLOW_VARS } from '@/model/context'
 import type { Expression } from '@/model/types'
@@ -17,14 +16,11 @@ import type { Expression } from '@/model/types'
 beforeEach(() => setActivePinia(createPinia()))
 
 function withStore(child: () => ReturnType<typeof h>) {
-  const store = createStore()
-  const Host = defineComponent({
-    setup() {
-      provideStore(store)
-      return child
-    },
-  })
-  return { store, wrapper: mount(Host, { global: { plugins: [createPinia()] } }) }
+  const pinia = createPinia()
+  setActivePinia(pinia)
+  const store = useStore()
+  const Host = defineComponent({ setup: () => child })
+  return { store, wrapper: mount(Host, { global: { plugins: [pinia] } }) }
 }
 
 describe('ConditionNode', () => {
@@ -144,12 +140,12 @@ describe('SourceMenu', () => {
 
   it('names the file on the server, the database and the ad-hoc files', async () => {
     const { store, wrapper } = mountMenu()
-    store.backend.value = { kind: 'file', name: 'somefile.yml' }
+    store.backend = { kind: 'file', name: 'somefile.yml' }
     store.markSaved('somefile.yml')
     await flushPromises()
     expect(wrapper.text()).toBe('📄 somefile.yml')
 
-    store.backend.value = { kind: 'database', name: null }
+    store.backend = { kind: 'database', name: null }
     await flushPromises()
     expect(wrapper.text()).toBe('🗄️ Database')
 
@@ -164,7 +160,7 @@ describe('SourceMenu', () => {
 
   it('switches back to the server and shows the edited dot', async () => {
     const { store, wrapper } = mountMenu()
-    store.backend.value = { kind: 'file', name: 'somefile.yml' }
+    store.backend = { kind: 'file', name: 'somefile.yml' }
     store.markSaved('somefile.yml')
     store.addRule()
     store.openDocument('rules: []\n', 'mine.yml')
@@ -172,7 +168,7 @@ describe('SourceMenu', () => {
     const [server] = wrapper.findAll('li button')
     expect(server!.text()).toBe('📄 somefile.yml ●')
     await server!.trigger('click')
-    expect(store.serverFile.value).toBe('somefile.yml')
+    expect(store.serverFile).toBe('somefile.yml')
     expect(store.file.rules).toHaveLength(1)
     expect(wrapper.get('summary').text()).toBe('📄 somefile.yml')
   })
