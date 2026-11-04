@@ -169,3 +169,14 @@ def test_imap_failures(tmp_path: Path, error: Exception, status: int) -> None:
         assert client.get(f"/api/mail/accounts/{account}/folders").status_code == status
     # end with
 # end def
+
+
+def test_remote_images_are_listed_and_can_be_allowed(client: TestClient, account_id: str) -> None:
+    url = f"/api/mail/accounts/{account_id}/messages/6"
+    blocked = client.get(url).json()
+    assert blocked["blocked_images"] == ["https://tracker.example/p.gif"]
+    assert (blocked["remote_images_allowed"], "tracker.example" in blocked["html"]) == (False, False)
+    allowed = client.get(url, params={"remote_images": "true"}).json()
+    assert (allowed["blocked_images"], allowed["remote_images_allowed"]) == ([], True)
+    assert 'src="https://tracker.example/p.gif"' in allowed["html"]
+# end def

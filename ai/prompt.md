@@ -760,3 +760,5 @@ This includes the directory for rules and the SQLight database
 ❯ Plan denied:
 > Images in the `html` field of the `…/messages/…` endpoint came without src, e.g. `<img alt=\"Capture Visualisation\" width=\"90\" height=\"90\">`. It is unknown however if that example is external or embedded.
 
+❯ Plan accepted, auto mode.
+
