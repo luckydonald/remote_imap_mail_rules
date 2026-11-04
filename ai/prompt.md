@@ -602,3 +602,5 @@ The next two tasks then will be to:
 1. Add sentry/bigsink integration. A js proxy is not needed.
 2. Add a coolify docker-compose deployment, including magic env vars etc.
 
+❯ Properly stop Docker here. Use podman instead after docker and all it’s servises are cleanly shut down.
+

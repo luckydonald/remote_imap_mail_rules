@@ -111,6 +111,22 @@ Save writes the file after the server validated it, and a rejected file is repor
 Opening or dropping a file in the editor leaves the server file alone, those only ever download.
 For development run the server and `yarn dev` side by side, the dev server proxies `/api` to port 8000.
 
+## Deployment (Coolify)
+
+`docker-compose.coolify.yml` and the `Dockerfile` build the editor and the server into one image.
+In Coolify create a Docker Compose resource from this repository, point it at the compose file and assign the domain to the `app` service.
+`SERVICE_FQDN_APP_8000` routes the proxy to port 8000, and `FORWARDED_ALLOW_IPS=*` lets the server see HTTPS behind it, so the session cookie becomes `Secure`.
+
+- Required, the deploy is blocked until they are set: `SECRET_KEY` (a Fernet key, see above; Coolify cannot generate one, and a regenerated key would lock the stored passwords), `IMAP_ACCOUNT_ID`, `IMAP_HOST`, `IMAP_USERNAME` and `IMAP_PASSWORD`.
+  That first account is added to the database on the first start, and its username and password are the login of the service.
+- The SQLite database lives in the `data` volume at `/data` (`DATABASE_URL=sqlite+aiosqlite:////data/db.sqlite3`).
+- `ACTIONS_ENABLED` stays `false` until you set it.
+- Run exactly one container, the watcher runs inside the server.
+- `SENTRY_DSN`, `VITE_SENTRY_DSN` and the other `SENTRY_*` variables are optional, `SOURCE_COMMIT` (set by Coolify) becomes the release.
+- The health check is `GET /api/public/health`, which touches neither the database nor IMAP.
+
+To try the image locally: `docker build -t mail-rules .` and `docker run --rm -p 8000:8000 -e SECRET_KEY=… -e IMAP_ACCOUNT_ID=… -e IMAP_HOST=… -e IMAP_USERNAME=… -e IMAP_PASSWORD=… -e WATCH_ENABLED=false mail-rules`.
+
 ## IMAP
 
 Reading is async and read-only: folders are opened with `EXAMINE` and mails are fetched with `BODY.PEEK`.
