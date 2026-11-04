@@ -315,3 +315,15 @@ export function appendCondition(when: Expression, added: Expression): Expression
   if (when.type === 'all') return { ...when, conditions: [...when.conditions, added] }
   return { type: 'all', conditions: [when, added] }
 }
+
+/** Header names to suggest for a `header` condition: those of the open mail first, then the common ones, each once. */
+export function headerSuggestions(ctx: MailContext | null, common: readonly string[]): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const name of [...(ctx?.detail.headers.map((header) => header.name) ?? []), ...common]) {
+    if (seen.has(name.toLowerCase())) continue
+    seen.add(name.toLowerCase())
+    result.push(name)
+  }
+  return result
+}

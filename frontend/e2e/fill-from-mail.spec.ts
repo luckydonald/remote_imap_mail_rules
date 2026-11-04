@@ -21,7 +21,9 @@ const openRule = async (page: Page): Promise<void> => {
 }
 
 const inputValues = (page: Page) =>
-  page.locator('.rule-editor input').evaluateAll((items) => items.map((i) => (i as HTMLInputElement).value))
+  page
+    .locator('.rule-editor input')
+    .evaluateAll((items) => items.map((i) => (i as HTMLInputElement).value))
 
 const openMail = async (page: Page): Promise<void> => {
   await page.getByRole('button', { name: 'Example mail' }).click()
@@ -70,4 +72,31 @@ test('shows the mail as a subpage on a phone', async ({ page }) => {
   await page.getByRole('button', { name: '‹ Rules' }).click()
   await expect(page.locator('.rule-list')).toBeVisible()
   await expect(page.locator('.mail-panel')).toHaveCount(0)
+})
+
+test('suggests the header names of the open mail on a header condition', async ({ page }) => {
+  await mockServer(
+    page,
+    false,
+    `rules:
+  - name: Lists
+    locations:
+      - account_id: ${ACCOUNT_ID}
+    when:
+      type: header
+      name: X-Header
+      operator: contains
+      value: ""
+`,
+  )
+  await page.goto('/')
+  await logIn(page)
+  await page.locator('.rule-list li .select').first().click()
+  await openMail(page)
+  // The mail's own headers come first, then the common ones; none is repeated.
+  const options = page.locator('.rule-editor datalist option')
+  await expect(options.first()).toHaveAttribute('value', 'Subject')
+  await expect(options.nth(1)).toHaveAttribute('value', 'List-Id')
+  const values = await options.evaluateAll((items) => items.map((i) => i.getAttribute('value')))
+  expect(new Set(values).size).toBe(values.length)
 })
