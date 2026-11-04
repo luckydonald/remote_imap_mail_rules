@@ -1,0 +1,56 @@
+# Coolify: new resource -> Docker Compose (Git source, this file as the compose location).
+# The domain is set on the `app` service in the Coolify UI; `SERVICE_FQDN_APP_8000` below tells the proxy to route to port 8000.
+# Run exactly one container: the watcher that applies the rules lives inside the server.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # Magic variables: Coolify generates the domain and routes it to port 8000.
+      - SERVICE_FQDN_APP_8000
+      # Behind the proxy the session cookie needs `X-Forwarded-Proto` to become `Secure`.
+      - FORWARDED_ALLOW_IPS=*
+
+      # Required, the deploy is blocked until they are set. A Fernet key, generate it once and never change it, or the stored
+      # passwords cannot be decrypted: uv run python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+      - SECRET_KEY=${SECRET_KEY:?}
+      # The first account, added to the database on the first start; its username and password are the login of the service.
+      # Pick the id once (`uuidgen`), rules refer to it.
+      - IMAP_ACCOUNT_ID=${IMAP_ACCOUNT_ID:?}
+      - IMAP_ACCOUNT_NAME=${IMAP_ACCOUNT_NAME:-}
+      - IMAP_HOST=${IMAP_HOST:?}
+      - IMAP_PORT=${IMAP_PORT:-993}
+      - IMAP_SSL=${IMAP_SSL:-true}
+      - IMAP_USERNAME=${IMAP_USERNAME:?}
+      - IMAP_PASSWORD=${IMAP_PASSWORD:?}
+      - IMAP_PAGE_SIZE=${IMAP_PAGE_SIZE:-50}
+      - IMAP_POLL_INTERVAL=${IMAP_POLL_INTERVAL:-60}
+
+      # Keep false until the rules are trusted: true moves, flags and marks mails for real.
+      - ACTIONS_ENABLED=${ACTIONS_ENABLED:-false}
+      - WATCH_ENABLED=${WATCH_ENABLED:-true}
+
+      # Error reporting to Sentry or Bugsink, both off while empty. The frontend is usually its own project.
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - VITE_SENTRY_DSN=${VITE_SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      # Coolify's commit hash is the release unless `SENTRY_RELEASE` says otherwise.
+      - SOURCE_COMMIT=${SOURCE_COMMIT:-}
+      - SENTRY_RELEASE=${SENTRY_RELEASE:-}
+      - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0}
+      - VITE_SENTRY_TRACES_SAMPLE_RATE=${VITE_SENTRY_TRACES_SAMPLE_RATE:-0}
+    volumes:
+      # The SQLite database (accounts, rules, action log).
+      - data:/data
+    healthcheck:
+      # The slim image has no curl; `urlopen` raises on anything but a 2xx.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/public/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  data:
