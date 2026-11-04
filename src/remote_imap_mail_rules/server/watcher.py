@@ -17,7 +17,7 @@ from ..db import accounts as account_repository
 from ..db import mail_events
 from ..db.crypto import CryptoError
 from ..db.models import EventKind
-from ..actions import ActionRunner, ChainResult, StepStatus
+from ..actions import MAX_MOVES, ActionRunner, ChainResult, StepStatus
 from ..imap.client import ConnectionFactory, ImapError
 from ..mail import Mail
 from ..matching import MatchKind, RuleMatch, matches
@@ -45,6 +45,12 @@ Entry = Seen | RuleMatch | Act
 
 LOGGED_STATUSES = {StepStatus.done, StepStatus.error, StepStatus.skipped}
 """A `noop` step changed nothing, so it is not worth a log entry (and a rerun after a restart stays silent)."""
+
+
+def message_id_of(mail: Mail) -> str | None:
+    value = mail.headers.get("Message-ID")
+    return str(value) if value else None
+# end def
 
 
 class Watcher:
@@ -132,6 +138,19 @@ class Watcher:
         # end try
     # end def
 
+    async def allow_move(self, mail: Mail) -> bool:
+        """Refuses a mail that rules already moved `MAX_MOVES` times, found by its `Message-ID` across all folders and accounts."""
+        message_id = message_id_of(mail)
+        if message_id is None:
+            return True
+        # end if
+        async with self.session_factory() as session:
+            events = await mail_events.list_events_by_message_id(session, message_id, EventKind.action)
+        # end with
+        moves = [event for event in events if event.detail.get("type") == "move" and event.detail.get("status") == "done"]
+        return len(moves) < MAX_MOVES
+    # end def
+
     async def follow(self, account_id: UUID) -> None:
         async with self.session_factory() as session:
             account = await account_repository.get_account(session, account_id)
@@ -158,7 +177,7 @@ class Watcher:
         # end try
         queue: asyncio.Queue[Entry] = asyncio.Queue()
         pending: set[tuple[str, int, int | None]] = set()
-        runner = ActionRunner(settings, rule_file, self.imap_factory, self.lookup_settings) if self.actions_enabled else None
+        runner = ActionRunner(settings, rule_file, self.imap_factory, self.lookup_settings, self.allow_move) if self.actions_enabled else None
         recorder = asyncio.create_task(self.record(queue, runner, pending))
         try:
             async for found in matches(settings, rule_file, self.imap_factory, on_inspect=lambda mail: queue.put_nowait(Seen(mail))):
@@ -223,6 +242,29 @@ class Watcher:
                 # end if
             # end for
         # end for
+        if result.moved is not None and result.moved.uid is not None and result.rounds:
+            await self.continue_log(session, result)
+        # end if
+    # end def
+
+    async def continue_log(self, session: AsyncSession, result: ChainResult) -> None:
+        """Starts the log of a moved mail under its new key, linked to the old one by `message_id` and `from`.
+
+        The target folder's watcher still writes its own `first_seen` there, once it sees the mail.
+        """
+        moved, mail = result.moved, result.mail
+        assert moved is not None and moved.uid is not None
+        await mail_events.record_event(
+            session,
+            moved.account_id,
+            moved.folder,
+            moved.uid,
+            EventKind.action,
+            uidvalidity=moved.uidvalidity,
+            message_id=message_id_of(mail),
+            rule_name=result.rounds[-1].rule.name,
+            detail={"type": "moved_in", "status": "done", "from": {"account_id": str(mail.account_id), "folder": mail.folder, "uid": mail.uid}},
+        )
     # end def
 
     async def write(self, session: AsyncSession, entry: Entry) -> None:
@@ -251,7 +293,7 @@ class Watcher:
             mail.uid,
             kind,
             uidvalidity=mail.uidvalidity,
-            message_id=str(mail.headers.get("Message-ID")) if mail.headers.get("Message-ID") else None,
+            message_id=message_id_of(mail),
             rule_name=rule_name,
             detail=detail,
         )

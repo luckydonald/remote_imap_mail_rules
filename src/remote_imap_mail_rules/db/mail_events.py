@@ -48,6 +48,16 @@ async def list_events(session: AsyncSession, account_id: UUID, folder: str, uid:
 # end def
 
 
+async def list_events_by_message_id(session: AsyncSession, message_id: str, kind: EventKind | None = None) -> list[MailEvent]:
+    """Everything logged for mails with this `Message-ID`, across folders and accounts, oldest first. Links a moved mail's keys."""
+    query = select(MailEvent).where(MailEvent.message_id == message_id)
+    if kind is not None:
+        query = query.where(MailEvent.kind == kind.value)
+    # end if
+    return list((await session.scalars(query.order_by(MailEvent.created_at, MailEvent.id))).all())
+# end def
+
+
 async def has_event(
     session: AsyncSession,
     account_id: UUID,

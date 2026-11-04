@@ -3,20 +3,23 @@
 import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
 from pathlib import Path
+from uuid import UUID
 
 import pytest
 from pydantic import SecretStr
 
 from remote_imap_mail_rules.db.accounts import create_account
 from remote_imap_mail_rules.db.engine import create_engine, create_session_factory
-from remote_imap_mail_rules.db.mail_events import list_events
+from remote_imap_mail_rules.db.mail_events import list_events, record_event
 from remote_imap_mail_rules.db.migrate import upgrade
-from remote_imap_mail_rules.db.models import MailEvent
+from remote_imap_mail_rules.db.models import EventKind, MailEvent
 from remote_imap_mail_rules.server.watcher import Watcher
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from .fake_imap import FakeFolder, FakeServer
+from remote_imap_mail_rules.config import ImapSettings
+
+from .fake_imap import FakeConnection, FakeFolder, FakeServer
 from .test_imap import ACCOUNT
 from .test_server_accounts import KEY
 
@@ -310,4 +313,80 @@ async def test_a_restart_does_not_repeat_actions(factory: async_sessionmaker[Asy
 
 async def _count(factory: async_sessionmaker[AsyncSession], expected: int) -> bool:
     return len(await action_events(factory)) >= expected
+# end def
+
+
+OTHER = UUID("0b8d3f4c-2b6e-4f0e-8f4a-3c8f6f1e9d22")
+
+CROSS_RULES = f"""
+rules:
+  - name: ship
+    locations: [{{account_id: {ACCOUNT}}}]
+    when: {{type: text, field: subject, operator: contains, value: invoice}}
+    actions:
+      - {{type: move, folder: Inbox2, account_id: {OTHER}}}
+"""
+
+
+async def test_a_move_to_another_account_continues_the_log_under_the_new_key(factory: async_sessionmaker[AsyncSession]) -> None:
+    async with factory() as session:
+        await create_account(session, SecretStr(KEY), name="b", host="h2", port=993, ssl=True, username="u2", password="p2", account_id=OTHER)
+        await session.commit()
+    # end with
+    source = FakeServer({"IMAP4REV1", "IDLE", "CONDSTORE", "UIDPLUS"})
+    source.add("INBOX", 1, "invoice one", message_id="<m1@example.com>")
+    target = FakeServer({"IMAP4REV1", "IDLE", "CONDSTORE", "UIDPLUS"})
+    target.folders["Inbox2"] = FakeFolder(uidvalidity=9)
+    target.add("Inbox2", 4, "old")
+
+    def route(settings: ImapSettings) -> FakeConnection:
+        return (source if settings.imap_account_id == ACCOUNT else target).connect(settings)
+    # end def
+
+    watcher = Watcher(factory, StaticRules(CROSS_RULES), SecretStr(KEY), route, retry_delay=0.05, actions_enabled=True)
+    watcher.start()
+    try:
+        async def continued() -> bool:
+            async with factory() as session:
+                return bool(await list_events(session, OTHER, "Inbox2", 5))
+            # end with
+        # end def
+        await until(continued)
+        async with factory() as session:
+            [old_key] = [e for e in await list_events(session, ACCOUNT, "INBOX", 1) if e.kind == "action"]
+            [new_key] = await list_events(session, OTHER, "Inbox2", 5)
+        # end with
+        assert (old_key.detail["type"], old_key.detail["status"], old_key.detail["account_id"]) == ("move", "done", str(OTHER))
+        assert (new_key.kind, new_key.rule_name, new_key.uidvalidity) == ("action", "ship", 9)
+        assert new_key.detail == {"type": "moved_in", "status": "done", "from": {"account_id": str(ACCOUNT), "folder": "INBOX", "uid": 1}}
+        assert old_key.message_id == new_key.message_id == "<m1@example.com>"
+        assert source.folders["INBOX"].messages == []
+        assert [m.uid for m in target.folders["Inbox2"].messages] == [4, 5]
+    finally:
+        await watcher.stop()
+    # end try
+# end def
+
+
+async def test_a_mail_that_was_moved_too_often_is_not_moved_again(factory: async_sessionmaker[AsyncSession]) -> None:
+    async with factory() as session:
+        for number in range(5):
+            await record_event(session, ACCOUNT, f"F{number}", 1, EventKind.action, message_id="<loop@example.com>", detail={"type": "move", "status": "done"})
+        # end for
+        await session.commit()
+    # end with
+    server = action_server()
+    server.folders["INBOX"].messages[0].raw = b"From: a@example.com\r\nSubject: invoice one\r\nMessage-ID: <loop@example.com>\r\n\r\n"
+    watcher = make_acting_watcher(factory, server, actions_enabled=True)
+    watcher.start()
+    try:
+        async def refused() -> bool:
+            return any(detail.get("reason") == "move_loop" for _, _, detail in await action_events(factory))
+        # end def
+        await until(refused)
+    finally:
+        await watcher.stop()
+    # end try
+    assert [m.uid for m in server.folders["INBOX"].messages] == [1, 2]
+    assert server.folders["Archive"].messages == []
 # end def

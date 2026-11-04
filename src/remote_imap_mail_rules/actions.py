@@ -29,6 +29,8 @@ SEEN = "\\Seen"
 FLAGGED = "\\Flagged"
 MAX_ROUNDS = 10
 """Hard cap on how often the rules are evaluated again for one mail."""
+MAX_MOVES = 5
+"""How often one mail (by `Message-ID`) may be moved by rules before further moves are refused as `move_loop`."""
 
 
 class StepStatus(StrEnum):
@@ -106,6 +108,9 @@ class ActionError(ImapError):
 SettingsLookup = Callable[[UUID], Awaitable[ImapSettings | None]]
 """Finds the connection settings of another account by id, `None` if there is none."""
 
+MoveGuard = Callable[[Mail], Awaitable[bool]]
+"""Says whether rules may move this mail again, so rules sending a mail back and forth between folders or accounts stop."""
+
 TargetClients = Callable[[UUID], Awaitable[ImapClient]]
 """Opens (or reuses) a client for another account, raising `ActionError("unknown_account")` if there is none."""
 
@@ -119,9 +124,10 @@ class Writer(Protocol):
 class ImapWriter:
     """Applies steps to the mailbox through its own client, never through the connection of a watcher in `IDLE`."""
 
-    def __init__(self, client: ImapClient, targets: TargetClients | None = None) -> None:
+    def __init__(self, client: ImapClient, targets: TargetClients | None = None, allow_move: MoveGuard | None = None) -> None:
         self.client = client
         self.targets = targets
+        self.allow_move = allow_move
     # end def
 
     async def store_flags(self, mail: Mail, add: tuple[str, ...], remove: tuple[str, ...]) -> None:
@@ -129,6 +135,9 @@ class ImapWriter:
     # end def
 
     async def move(self, mail: Mail, folder: str, account_id: UUID | None = None) -> MovedTo:
+        if self.allow_move is not None and not await self.allow_move(mail):
+            raise ActionError("move_loop")
+        # end if
         if account_id is None or account_id == mail.account_id:
             moved = await self.client.move(mail.folder, mail.uid, folder)
             return MovedTo(mail.account_id, folder, moved.uid, moved.uidvalidity)
@@ -340,11 +349,13 @@ class ActionRunner:
         rule_file: RuleFile[Never],
         factory: ConnectionFactory = connect_aioimaplib,
         lookup: SettingsLookup | None = None,
+        allow_move: MoveGuard | None = None,
     ) -> None:
         self.settings = settings
         self.rule_file = rule_file
         self.factory = factory
         self.lookup = lookup
+        self.allow_move = allow_move
         self.client: ImapClient | None = None
         self.target_clients: dict[UUID, ImapClient] = {}
         self.by_folder: dict[str, list[Rule[Never]]] = {}
@@ -398,7 +409,7 @@ class ActionRunner:
             if fresh is None:
                 return None
             # end if
-            return await run_chain(rules_for_mail(self.by_folder, fresh), fresh, ImapWriter(client, self.target))
+            return await run_chain(rules_for_mail(self.by_folder, fresh), fresh, ImapWriter(client, self.target, self.allow_move))
         except (ImapError, AioImapException, OSError, TimeoutError):
             await self.close()
             raise
