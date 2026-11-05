@@ -2,6 +2,7 @@
 
 import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import UUID
 
@@ -138,6 +139,55 @@ async def test_last_run_is_set_when_the_watching_wakes_up(factory: async_session
                 await asyncio.sleep(0.02)
             # end while
         # end async with
+    finally:
+        await watcher.stop()
+    # end try
+# end def
+
+
+async def test_next_run_is_the_earliest_poll_still_ahead(factory: async_sessionmaker[AsyncSession]) -> None:
+    watcher = make_watcher(factory, FakeServer())
+    first, second = UUID(int=1), UUID(int=2)
+    now = datetime.now(UTC)
+    assert watcher.next_run() is None and not watcher.push_folders()
+    watcher.scheduled(first, "INBOX", now + timedelta(seconds=60))
+    watcher.scheduled(first, "Archive", now + timedelta(seconds=30))
+    watcher.scheduled(second, "INBOX", now - timedelta(seconds=5))  # polling right now
+    assert watcher.next_run() == now + timedelta(seconds=30)
+    assert not watcher.push_folders()
+    watcher.scheduled(second, "Sent", None)
+    assert watcher.push_folders()
+    await watcher.stop()
+    assert watcher.next_run() is None and not watcher.push_folders()
+# end def
+
+
+async def test_a_polling_folder_gets_a_next_run_and_an_idle_one_does_not(factory: async_sessionmaker[AsyncSession]) -> None:
+    polling = FakeServer(capabilities={"IMAP4REV1"})
+    polling.add("INBOX", 1, "invoice one")
+    watcher = make_watcher(factory, polling)
+    watcher.start()
+    try:
+        async with asyncio.timeout(3):
+            while watcher.next_run() is None:
+                await asyncio.sleep(0.02)
+            # end while
+        # end async with
+        assert not watcher.push_folders()
+    finally:
+        await watcher.stop()
+    # end try
+    idle = FakeServer()
+    idle.add("INBOX", 1, "invoice one")
+    watcher = make_watcher(factory, idle)
+    watcher.start()
+    try:
+        async with asyncio.timeout(3):
+            while not watcher.push_folders():
+                await asyncio.sleep(0.02)
+            # end while
+        # end async with
+        assert watcher.next_run() is None
     finally:
         await watcher.stop()
     # end try
