@@ -183,3 +183,16 @@ test.describe('color scheme', () => {
     expect(await background(page)).toBe(light)
   })
 })
+
+test('asks before the page closes only while there are unsaved edits', async ({ page }) => {
+  const prevented = (): Promise<boolean> =>
+    page.evaluate(() => {
+      const event = new Event('beforeunload', { cancelable: true })
+      window.dispatchEvent(event)
+      return event.defaultPrevented
+    })
+  expect(await prevented()).toBe(false)
+  await page.getByRole('button', { name: 'New', exact: true }).click()
+  await page.getByRole('button', { name: '+ New rule' }).click()
+  expect(await prevented()).toBe(true)
+})

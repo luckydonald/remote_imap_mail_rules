@@ -181,11 +181,22 @@ function onKey(event: KeyboardEvent): void {
   else store.undo()
 }
 
+/** Asks the browser to confirm closing the tab or window while a document has unsaved edits. */
+function onBeforeUnload(event: BeforeUnloadEvent): void {
+  if (!store.anyEdited) return
+  event.preventDefault()
+  event.returnValue = ''
+}
+
 onMounted(() => {
   window.addEventListener('keydown', onKey)
+  window.addEventListener('beforeunload', onBeforeUnload)
   void connect()
 })
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKey)
+  window.removeEventListener('beforeunload', onBeforeUnload)
+})
 </script>
 
 <template>
