@@ -67,12 +67,15 @@ async function move(name: string): Promise<void> {
         More …
       </button>
     </div>
-    <div v-if="tree" class="modal-backdrop" @click.self="tree = false">
-      <div class="modal" role="dialog" aria-modal="true" aria-label="Move to folder">
-        <h3>Move to …</h3>
-        <MailFolderTree :folders="store.folders" :current="store.folder" @select="move" />
-        <footer><button type="button" class="ghost" @click="tree = false">Cancel</button></footer>
+    <!-- Out of the scrolling panes: Safari on an iPad clips a fixed dialog to the pane that holds it. -->
+    <Teleport to="body">
+      <div v-if="tree" class="modal-backdrop" @click.self="tree = false">
+        <div class="modal" role="dialog" aria-modal="true" aria-label="Move to folder">
+          <h3>Move to …</h3>
+          <MailFolderTree :folders="store.folders" :current="store.folder" @select="move" />
+          <footer><button type="button" class="ghost" @click="tree = false">Cancel</button></footer>
+        </div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>

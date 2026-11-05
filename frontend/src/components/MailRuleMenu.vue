@@ -92,49 +92,52 @@ function addTo(): void {
         Add to existing rule …
       </button>
     </div>
-    <div v-if="dialog" class="modal-backdrop" @click.self="dialog = false">
-      <div class="modal" role="dialog" aria-modal="true" aria-label="Add to a rule">
-        <h3>Add to a rule</h3>
-        <label>
-          Rule
-          <select v-model.number="ruleIndex">
-            <option v-for="(item, index) in rules.file.rules" :key="index" :value="index">
-              {{ item.name }}
-            </option>
-          </select>
-        </label>
-        <label>
-          Add to
-          <select v-model="groupKey">
-            <option
-              v-for="group in groups"
-              :key="JSON.stringify(group.path)"
-              :value="JSON.stringify(group.path)"
-            >
-              {{ groupLabel(group) }}
-            </option>
-            <option v-if="groups.length === 0" value="[]">whole rule (wrapped in an all)</option>
-          </select>
-        </label>
-        <label>
-          Field
-          <select v-model="field">
-            <option v-for="item in fields" :key="item" :value="item">{{ item }}</option>
-          </select>
-        </label>
-        <label v-if="isAddress">
-          Part of the address
-          <select v-model="granularity">
-            <option v-for="item in granularities" :key="item.value" :value="item.value">
-              {{ item.label }}
-            </option>
-          </select>
-        </label>
-        <footer>
-          <button type="button" class="ghost" @click="dialog = false">Cancel</button>
-          <button type="button" class="add-condition" @click="addTo">Add condition</button>
-        </footer>
+    <!-- Out of the scrolling panes: Safari on an iPad clips a fixed dialog to the pane that holds it. -->
+    <Teleport to="body">
+      <div v-if="dialog" class="modal-backdrop" @click.self="dialog = false">
+        <div class="modal" role="dialog" aria-modal="true" aria-label="Add to a rule">
+          <h3>Add to a rule</h3>
+          <label>
+            Rule
+            <select v-model.number="ruleIndex">
+              <option v-for="(item, index) in rules.file.rules" :key="index" :value="index">
+                {{ item.name }}
+              </option>
+            </select>
+          </label>
+          <label>
+            Add to
+            <select v-model="groupKey">
+              <option
+                v-for="group in groups"
+                :key="JSON.stringify(group.path)"
+                :value="JSON.stringify(group.path)"
+              >
+                {{ groupLabel(group) }}
+              </option>
+              <option v-if="groups.length === 0" value="[]">whole rule (wrapped in an all)</option>
+            </select>
+          </label>
+          <label>
+            Field
+            <select v-model="field">
+              <option v-for="item in fields" :key="item" :value="item">{{ item }}</option>
+            </select>
+          </label>
+          <label v-if="isAddress">
+            Part of the address
+            <select v-model="granularity">
+              <option v-for="item in granularities" :key="item.value" :value="item.value">
+                {{ item.label }}
+              </option>
+            </select>
+          </label>
+          <footer>
+            <button type="button" class="ghost" @click="dialog = false">Cancel</button>
+            <button type="button" class="add-condition" @click="addTo">Add condition</button>
+          </footer>
+        </div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>

@@ -171,7 +171,6 @@ test('opens a mail from its URL', async ({ page }) => {
   await expect(page).toHaveURL(`/mail/${ACCOUNT_ID}/INBOX`)
 })
 
-
 const MOVE_RULES = `rules:
   - name: sent copy
     locations:
@@ -277,10 +276,31 @@ for (const width of [1366, 1280, 900, 700, 390]) {
     expect(inside).toBe(true)
     await page.getByRole('menuitem', { name: 'Add to existing rule …' }).click()
     await expect(page.getByRole('dialog', { name: 'Add to a rule' })).toBeVisible()
+    // Safari on an iPad clips a fixed dialog to the scrolling pane around it, which desktop engines (and so this test) do not.
+    // So check the cause instead: the dialog sits directly in the body and no ancestor of it clips.
+    await expect(page.locator('body > .modal-backdrop')).toHaveCount(1)
+    const clipped = await page.locator('.modal').evaluate((element) => {
+      for (let node = element.parentElement; node !== null; node = node.parentElement) {
+        const style = getComputedStyle(node)
+        if (style.overflowX !== 'visible' || style.overflowY !== 'visible') return true
+      }
+      return false
+    })
+    expect(clipped).toBe(false)
+    // Every corner and the middle, a pane painted over one side would still leave the centre visible.
     const topmost = await page.locator('.modal').evaluate((element) => {
       const box = element.getBoundingClientRect()
-      const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
-      return hit !== null && element.contains(hit)
+      const points = [
+        [box.left + 4, box.top + 4],
+        [box.right - 4, box.top + 4],
+        [box.left + 4, box.bottom - 4],
+        [box.right - 4, box.bottom - 4],
+        [box.left + box.width / 2, box.top + box.height / 2],
+      ] as const
+      return points.every(([x, y]) => {
+        const hit = document.elementFromPoint(x, y)
+        return hit !== null && element.contains(hit)
+      })
     })
     expect(topmost).toBe(true)
   })
