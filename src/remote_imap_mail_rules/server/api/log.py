@@ -44,6 +44,10 @@ class LogStatus(BaseModel):
     watcher_enabled: bool
     last_run: datetime | None
     """In memory only, so `None` after a restart until the watching wakes up the first time."""
+    next_run: datetime | None
+    """The earliest planned poll, `None` when every folder waits for a server push or nothing is scheduled yet. In memory only."""
+    push: bool
+    """Some folder waits for a server push (`IDLE`), so it also wakes up without a planned time."""
     last_change: datetime | None
     last_action: datetime | None
 # end class
@@ -102,6 +106,8 @@ async def status(request: Request, session: AsyncSession = Depends(get_session))
     return LogStatus(
         watcher_enabled=watcher.enabled,
         last_run=watcher.last_run,
+        next_run=watcher.next_run(),
+        push=watcher.push_folders(),
         last_change=await mail_events.last_event_at(session, CHANGE_KINDS),
         last_action=await mail_events.last_event_at(session, (EventKind.action,)),
     )

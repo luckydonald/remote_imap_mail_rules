@@ -42,3 +42,7 @@ To complete one:
   > - when in the rules editor, the current selected Mail should be showed as a tag/chip.
   > - basically looking similar to: `( ✉️ Title of the… | × )`
   > - the chip has a button to remove that mail, disabling all those automatic fill functionality again
+- [x] in the log's last run info box, also show the next scheduled run. — `todo:81134170-a498-495e-b001-7325c8fbce4d`
+- [ ] process the rules from oldest first — `todo:373419c8-c04b-4372-ab82-91652baaaccd`
+  > - at least attempt as good as possible.
+  > - Reason: when moving and then displaying the folder's default sort (last changed?) it currently reverses order

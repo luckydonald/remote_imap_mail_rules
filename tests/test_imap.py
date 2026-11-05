@@ -1,4 +1,5 @@
 import asyncio
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import pytest
@@ -186,6 +187,41 @@ async def test_watch_renews_idle_after_timeout() -> None:
         server.push()
         await asyncio.wait_for(waiting, 1)
         assert server.commands.count("IDLE") >= 2
+        await events.aclose()
+    # end with
+# end def
+
+
+async def test_watch_reports_when_the_next_poll_is_due() -> None:
+    server = FakeServer(capabilities={"IMAP4REV1"})
+    server.add("INBOX", 1, "one")
+    due: list[datetime | None] = []
+    async with ImapClient(make_settings(), lambda settings: server.connect(settings)) as client:
+        await client.examine("INBOX")
+        before = datetime.now(UTC)
+        events = watch(client, "INBOX", poll_interval=0.05, on_schedule=due.append)
+        await asyncio.wait_for(anext(events), 1)
+        await events.aclose()
+    # end with
+    assert len(due) == 1
+    planned = due[0]
+    assert planned is not None
+    assert before + timedelta(seconds=0.05) <= planned <= datetime.now(UTC) + timedelta(seconds=0.05)
+# end def
+
+
+async def test_watch_reports_no_due_time_while_in_idle() -> None:
+    server = FakeServer()
+    server.add("INBOX", 1, "one")
+    due: list[datetime | None] = []
+    async with ImapClient(make_settings(), lambda settings: server.connect(settings)) as client:
+        await client.examine("INBOX")
+        events = watch(client, "INBOX", poll_interval=0.01, idle_timeout=5, on_schedule=due.append)
+        waiting = asyncio.create_task(anext(events))
+        await asyncio.sleep(0.01)
+        assert due == [None]
+        server.push()
+        await asyncio.wait_for(waiting, 1)
         await events.aclose()
     # end with
 # end def

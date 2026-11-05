@@ -133,6 +133,7 @@ class Watcher:
         self.actions_enabled = actions_enabled
         self.task: asyncio.Task[None] | None = None
         self.last_run: datetime | None = None
+        self.due: dict[tuple[UUID, str], datetime | None] = {}
     # end def
 
     def start(self) -> None:
@@ -143,6 +144,7 @@ class Watcher:
 
     async def stop(self) -> None:
         task, self.task = self.task, None
+        self.due.clear()
         if task is None:
             return
         # end if
@@ -214,6 +216,23 @@ class Watcher:
         self.last_run = datetime.now(UTC)
     # end def
 
+    def scheduled(self, account_id: UUID, folder: str, due: datetime | None) -> None:
+        """A folder says when its next poll is due, or `None` while it waits for a server push (`IDLE`)."""
+        self.due[(account_id, folder)] = due
+    # end def
+
+    def next_run(self) -> datetime | None:
+        """The earliest poll still ahead. A due time in the past is a poll that is running right now, so it does not count."""
+        now = datetime.now(UTC)
+        ahead = [due for due in self.due.values() if due is not None and due > now]
+        return min(ahead, default=None)
+    # end def
+
+    def push_folders(self) -> bool:
+        """Whether some folder waits for a server push instead of polling."""
+        return any(due is None for due in self.due.values())
+    # end def
+
     async def follow(self, account_id: UUID) -> None:
         async with self.session_factory() as session:
             account = await account_repository.get_account(session, account_id)
@@ -247,6 +266,7 @@ class Watcher:
             async for found in matches(
                 settings, rule_file, self.imap_factory, on_inspect=lambda mail: queue.put_nowait(Seen(mail)),
                 on_change=lambda change: own.report(change, queue), on_poll=self.ticked,
+                on_schedule=lambda folder, due: self.scheduled(account_id, folder, due),
             ):
                 queue.put_nowait(found)
                 key = (found.mail.folder, found.mail.uid, found.mail.uidvalidity)

@@ -104,7 +104,7 @@ def test_rejects_a_broken_cursor(client: TestClient) -> None:  # noqa: F811
 
 def test_status(client: TestClient, tmp_path: Path) -> None:  # noqa: F811
     empty = client.get("/api/log/status").json()
-    assert empty == {"watcher_enabled": False, "last_run": None, "last_change": None, "last_action": None}
+    assert empty == {"watcher_enabled": False, "last_run": None, "next_run": None, "push": False, "last_change": None, "last_action": None}
     setup(client, tmp_path)
     status = client.get("/api/log/status").json()
     assert status["last_change"].startswith("2026-11-03T10:00:20")

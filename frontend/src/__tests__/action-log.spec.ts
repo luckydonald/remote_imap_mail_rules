@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import ActionLogView from '@/components/ActionLogView.vue'
 import type { LogEntry } from '@/model/log-api'
+import { fullDate } from '@/model/mail-format'
 import { createAppRouter } from '@/router'
 
 const ACCOUNT = '6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11'
@@ -22,6 +23,8 @@ const entry = (uid: number, kind: LogEntry['kind'], rule: string | null = null):
 const STATUS = {
   watcher_enabled: true,
   last_run: '2026-11-03T10:05:00Z',
+  next_run: '2026-11-03T10:10:00Z',
+  push: false,
   last_change: '2026-11-03T10:00:00Z',
   last_action: null,
 }
@@ -84,6 +87,21 @@ describe('ActionLogView', () => {
       last_run: null,
     })
     expect((await mountView()).wrapper.get('[data-test=last-run]').text()).toBe(
+      'The watcher is switched off',
+    )
+  })
+
+  it('says when the next run is, or why there is none', async () => {
+    const text = async (status: unknown) => {
+      stubServer(() => ({ items: [], next: null }), status)
+      return (await mountView()).wrapper.get('[data-test=next-run]').text()
+    }
+    const polling = await text(STATUS)
+    expect(polling).toBe(fullDate(STATUS.next_run))
+    expect(await text({ ...STATUS, push: true })).toBe(`${polling} (and on server push)`)
+    expect(await text({ ...STATUS, next_run: null, push: true })).toBe('on change (server push)')
+    expect(await text({ ...STATUS, next_run: null })).toBe('not scheduled yet')
+    expect(await text({ ...STATUS, watcher_enabled: false, next_run: null })).toBe(
       'The watcher is switched off',
     )
   })
