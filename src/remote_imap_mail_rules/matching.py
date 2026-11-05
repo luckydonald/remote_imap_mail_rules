@@ -265,7 +265,7 @@ async def matches(
     on_inspect: InspectCallback | None = None, on_change: ChangeCallback | None = None, on_poll: PollCallback | None = None,
     on_schedule: ScheduleCallback | None = None,
 ) -> AsyncIterator[RuleMatch]:
-    """Yields every mail matching a rule: existing mails first (newest first per folder), then new and changed ones as they arrive.
+    """Yields every mail matching a rule: existing mails first (oldest first per folder, so moved mails keep their order), then new and changed ones as they arrive.
 
     Each folder gets its own connection and task, because `IDLE` blocks the connection it runs on.
     With `follow=False` only the existing mails are yielded and the generator ends.

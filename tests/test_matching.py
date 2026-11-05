@@ -61,6 +61,16 @@ async def test_existing_matches_across_locations_and_recursion() -> None:
 # end def
 
 
+async def test_existing_mails_are_matched_oldest_first() -> None:
+    server = FakeServer()
+    for uid in range(1, 6):
+        server.add("INBOX", uid, f"invoice {uid}")
+    # end for
+    found = [item async for item in matches(make_settings(), parse_rules(RULES), server.connect, follow=False)]
+    assert [item.mail.uid for item in found] == [1, 2, 3, 4, 5]
+# end def
+
+
 async def test_new_and_changed_mails_arrive_after_existing() -> None:
     server = FakeServer()
     server.add("INBOX", 1, "invoice first")
