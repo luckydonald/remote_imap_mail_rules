@@ -34,7 +34,7 @@ To complete one:
 - [x] _mail_ > _add to existing rule_: Support Address type — `todo:2837fb45-8a22-4c00-bd1e-25a4a65e2be4` _(done)_
   > - the `address` type generally needs to be prefilled when an email is selected as template to fill from.
   >   - so if i select _Address field_ > _`from`_ > _`full`_ / _`name`_ / _`address`_ / _`local_part`_ / _`domain`_, it should fill those, too.
-- [ ] _mail_ > _add to existing rule_: Support templates, too. — `todo:587d8daf-9367-4538-add7-e2a3c1052e36`
+- [x] _mail_ > _add to existing rule_: Support templates, too. — `todo:587d8daf-9367-4538-add7-e2a3c1052e36` _(done)_
   > - Based on the fields, the variables go into, we can make assumptions about which field we need to place there, and hence can fill it in.
   > - The example file under version control in `rules/` has such template.
   >   - for that the `address` type generally needs fill, which should be completed by a prior todo task.
