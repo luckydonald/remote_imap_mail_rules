@@ -845,3 +845,5 @@ This includes the directory for rules and the SQLight database
 
 ❯ [/commit-with-lplp-style](./skills/commit-with-lplp-style/SKILL.md) , push once clean
 
+❯ While the editor has changes, prevent accidental window/tab close
+
