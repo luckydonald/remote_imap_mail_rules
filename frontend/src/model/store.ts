@@ -237,6 +237,9 @@ export const useStore = defineStore('rules', () => {
     return (id === live ? yaml.value : document.text) !== document.baseline
   }
 
+  /** Whether any document, the server's or an ad-hoc one, has edits that closing the page would lose. */
+  const anyEdited = computed(() => isEdited(SERVER) || documents.some((item) => isEdited(item.id)))
+
   function addRule(): void {
     file.rules.push(newRule())
     view.value = { kind: 'rule', index: file.rules.length - 1 }
@@ -320,6 +323,7 @@ export const useStore = defineStore('rules', () => {
     openDocument,
     switchTo,
     isEdited,
+    anyEdited,
     canUndo,
     canRedo,
     problems,
