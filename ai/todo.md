@@ -29,3 +29,5 @@ To complete one:
 - [x] add memory that if we stumble over preexisting errors in unittests or typing, those should be fixed as a separate commit automatically, too. No need to explicitly seach for those though. — `todo:8ae825eb-3ef2-4d84-8180-a937d7e2bb3c` _(done)_
 - [x] Write memory to NEVER EVER run file searches from `/`. — `todo:d23bc543-c583-4dc1-a8ed-1141c92f6822` _(done)_
   > Also disallow `find / …` via [`ai/settings/settings.json`](./settings/settings.json).
+- [x] mail > add to existing rule is behind mail list panel. — `todo:a62dffd2-029e-49b5-a8e6-70826db93104` _(done)_
+  > Probably a z-index issue.
