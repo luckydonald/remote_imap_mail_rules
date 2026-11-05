@@ -808,3 +808,28 @@ This includes the directory for rules and the SQLight database
 
 ❯ Why can’t the mock data reproduce this? It should be able too. Check that all corners of the dialog box is visible, I assume it was cut off because it went out of bounds to the left of the display viewer panel. Why was this working in the tests without being caught?
 
+❯ Question answered.
+> <details><summary>
+>
+>> 1. The "Add to a rule" dialog (Rule ▾ > Add to existing rule …) already shows a "Part of the address" select for address fields (full, name, email, before @, domain), and the condition is filled from the part. What is still missing for "Support Address type"?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Gap** (1/1) <kbd>Single Select</kbd><br>
+>> The "Add to a rule" dialog (Rule ▾ > Add to existing rule …) already shows a "Part of the address" select for address fields (full, name, email, before @, domain), and the condition is filled from the part. What is still missing for "Support Address type"?
+> - [ ] 1\. Silent no-op and wrong lists (Recommended)
+>   - _Fix the real gaps I found: choosing a part the mail lacks (e.g. Name for a sender without a name) silently adds nothing, and the field list ignores the chosen part. Disable or hide such parts and fields, keep a single Field + Part picker, add tests._
+> - [ ] 2\. One combined picker
+>   - _Replace the Field and Part selects with a grouped picker, 'Address field > from > Email / Name / …', as in the todo wording, showing only the parts the mail has._
+> - [ ] 3\. Add address conditions to the existing rule's address condition
+>   - _Not a new condition: fill the value of an address condition that already exists in the rule from the mail's address (part-aware)._
+> - [x] 4\. _Type something:_
+>   - > On the other side; when I am in the normal rule editor, I will not get those default from a previously selected email. (_New rule from this email_)
+>
+> </details>
+>
+
+❯ Plan accepted, auto mode.
+

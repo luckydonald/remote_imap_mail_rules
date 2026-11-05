@@ -238,6 +238,32 @@ function fillAddress(
   return value === null ? expr : { ...expr, part: granularity, value }
 }
 
+const GRANULARITIES = new Set<string>(granularities.map((item) => item.value))
+
+function partOf(node: AddressCondition): Granularity {
+  return typeof node.part === 'string' && GRANULARITIES.has(node.part)
+    ? (node.part as Granularity)
+    : 'address'
+}
+
+/**
+ * Returns the address condition with another field and / or part.
+ * With a mail open the value follows when it was empty or is what the mail gave for the old field and part,
+ * a value typed by hand is kept. Template variables and a mail without the new value leave the value as it was.
+ */
+export function changeAddress(
+  node: AddressCondition,
+  change: { field?: string; part?: string },
+  ctx: MailContext | null,
+): AddressCondition {
+  const next: AddressCondition = { ...node, ...change }
+  if (!ctx || isVar(node.field) || isVar(node.part) || isVar(node.value)) return next
+  const empty = node.value === '' || (Array.isArray(node.value) && node.value.length === 0)
+  const before = fillAddress(node, ctx, partOf(node)).value
+  if (!empty && JSON.stringify(before) !== JSON.stringify(node.value)) return next
+  return fillAddress(next, ctx, partOf(next))
+}
+
 /** The mail's time as an absolute value, naive and UTC like the rule file. */
 function absoluteTime(iso: string): { relative: false; value: string } {
   return { relative: false, value: new Date(iso).toISOString().replace(/\.\d{3}Z$/, '') }
