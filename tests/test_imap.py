@@ -80,7 +80,7 @@ def test_decode_part_transfer_encodings() -> None:
 # end def
 
 
-async def test_pages_newest_first_and_readonly() -> None:
+async def test_pages_oldest_first_and_readonly() -> None:
     server = FakeServer()
     for uid in range(1, 6):
         server.add("INBOX", uid, f"mail {uid}")
@@ -88,8 +88,8 @@ async def test_pages_newest_first_and_readonly() -> None:
     async with ImapClient(make_settings(), lambda settings: server.connect(settings)) as client:
         pages = [page async for page in client.iter_pages(ACCOUNT, "INBOX", 2)]
     # end with
-    assert [[m.uid for m in page] for page in pages] == [[5, 4], [3, 2], [1]]
-    assert pages[0][0].headers["Subject"] == "mail 5"
+    assert [[m.uid for m in page] for page in pages] == [[1, 2], [3, 4], [5]]
+    assert pages[0][0].headers["Subject"] == "mail 1"
     assert pages[0][0].mime_type == "text/plain"
     assert all(not command.startswith(("STORE", "COPY", "MOVE", "EXPUNGE", "SELECT")) for command in server.commands)
     assert any(command.startswith("EXAMINE") for command in server.commands)

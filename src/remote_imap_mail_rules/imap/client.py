@@ -305,13 +305,13 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
     # end def
 
     async def iter_pages(self, account_id: UUID, folder: str, page_size: int) -> AsyncIterator[list[Mail]]:
-        """All mails of the folder, newest first, one page at a time."""
+        """All mails of the folder, oldest first (lowest UID), one page at a time."""
         await self.examine(folder)
-        uids = sorted(await self.search_uids("ALL"), reverse=True)
+        uids = sorted(await self.search_uids("ALL"))
         for start in range(0, len(uids), page_size):
             page = await self.fetch_mails(account_id, folder, uids[start : start + page_size])
             if page:
-                yield page
+                yield page[::-1]
             # end if
         # end for
     # end def
