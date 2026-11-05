@@ -1298,3 +1298,27 @@ button {
     margin: 0 0 6px;
   }
 }
+
+.mail-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  padding: 0.15rem 0.3rem 0.15rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+
+  .subject {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .remove {
+    padding: 0 0.45rem;
+    border-radius: 999px;
+    line-height: 1.4;
+  }
+}

@@ -108,6 +108,22 @@ describe('mail store', () => {
     expect(store.pane).toBe('folders')
   })
 
+  it('stops filling the editor from the mail without closing it, until another mail is opened', async () => {
+    stubServer()
+    const store = useMailStore()
+    store.active = true
+    await store.loadAccounts()
+    await store.openMessage(3)
+    expect(store.fillContext).not.toBeNull()
+    expect(store.fillContext).toEqual(store.context)
+    store.fillDetached = true
+    expect(store.fillContext).toBeNull()
+    expect(store.context).not.toBeNull()
+    await store.openMessage(2)
+    expect(store.fillDetached).toBe(false)
+    expect(store.fillContext).not.toBeNull()
+  })
+
   it('brings back the open mail after a reload', async () => {
     stubServer()
     const first = useMailStore()

@@ -38,7 +38,7 @@ To complete one:
   > - Based on the fields, the variables go into, we can make assumptions about which field we need to place there, and hence can fill it in.
   > - The example file under version control in `rules/` has such template.
   >   - for that the `address` type generally needs fill, which should be completed by a prior todo task.
-- [ ] _mail_ > _New rule from this email_: Display current chosen mail — `todo:7742c27e-221e-4553-90ab-d9cd0029f92f`
+- [x] _mail_ > _New rule from this email_: Display current chosen mail — `todo:7742c27e-221e-4553-90ab-d9cd0029f92f` _(done)_
   > - when in the rules editor, the current selected Mail should be showed as a tag/chip.
   > - basically looking similar to: `( ✉️ Title of the… | × )`
   > - the chip has a button to remove that mail, disabling all those automatic fill functionality again

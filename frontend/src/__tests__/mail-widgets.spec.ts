@@ -1,9 +1,12 @@
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { describe, expect, it } from 'vitest'
+import MailChip from '@/components/MailChip.vue'
 import MailFolderTree from '@/components/MailFolderTree.vue'
 import SegmentedToggle from '@/components/SegmentedToggle.vue'
 import type { Folder } from '@/model/mail-api'
 import { framePolicy } from '@/model/mail-format'
+import { useMailStore } from '@/model/mail-store'
 
 const folder = (name: string, extra: Partial<Folder> = {}): Folder => ({
   name,
@@ -70,5 +73,21 @@ describe('framePolicy', () => {
     expect(framePolicy(false)).not.toContain('https:')
     expect(framePolicy(true)).toContain('https:')
     expect(framePolicy(true)).toContain("default-src 'none'")
+  })
+})
+
+describe('MailChip', () => {
+  it('shows the subject of the mail to fill from and drops it with the ×', async () => {
+    setActivePinia(createPinia())
+    const mail = useMailStore()
+    mail.active = true
+    mail.accountId = 'a'
+    mail.folder = 'INBOX'
+    mail.detail = { subject: 'Hello there' } as never
+    const wrapper = mount(MailChip)
+    expect(wrapper.text()).toContain('Hello there')
+    await wrapper.get('button.remove').trigger('click')
+    expect(mail.fillDetached).toBe(true)
+    expect(wrapper.find('.mail-chip').exists()).toBe(false)
   })
 })

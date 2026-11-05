@@ -835,3 +835,7 @@ This includes the directory for rules and the SQLight database
 
 ❯ Plan accepted, auto mode.
 
+❯ Plan accepted, auto mode.
+
+❯ [/commit-with-lplp-style](./skills/commit-with-lplp-style/SKILL.md)  then push if everything is clean.
+

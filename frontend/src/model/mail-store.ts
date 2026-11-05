@@ -98,6 +98,12 @@ export const useMailStore = defineStore('mail', () => {
     if (!active.value || !detail.value || id === null || name === null) return null
     return { detail: detail.value, accountId: id, folder: name }
   })
+  // The rule editor stops filling from the open mail (the chip's ×) while the mail itself stays open for the mail screens.
+  const fillDetached = ref(false)
+  /** What the rule editor fills conditions from: the open mail, unless the chip removed it. */
+  const fillContext = computed<MailContext | null>(() =>
+    fillDetached.value ? null : context.value,
+  )
   const currentFolder = computed(() => folders.value.find((item) => item.name === folder.value))
 
   watch([accountId, folder, selectedUid, detail], () => {
@@ -128,6 +134,7 @@ export const useMailStore = defineStore('mail', () => {
     error.value = ''
     pane.value = 'folders'
     panelOpen.value = false
+    fillDetached.value = false
     try {
       localStorage.removeItem(STORAGE_KEY)
     } catch {
@@ -243,6 +250,7 @@ export const useMailStore = defineStore('mail', () => {
     if (id === null || name === null) return
     const ticket = ++detailTicket
     selectedUid.value = uid
+    fillDetached.value = false
     detail.value = null
     events.value = []
     error.value = ''
@@ -394,6 +402,8 @@ export const useMailStore = defineStore('mail', () => {
     active,
     actionsEnabled,
     context,
+    fillDetached,
+    fillContext,
     loadAccounts,
     selectAccount,
     selectFolder,

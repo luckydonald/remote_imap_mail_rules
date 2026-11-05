@@ -50,6 +50,22 @@ test('fills a condition from the mail beside the editor and undoes it', async ({
   await expect.poll(() => inputValues(page)).not.toContain('Subject 3')
 })
 
+test('shows the mail as a chip that stops the filling', async ({ page }) => {
+  await openRule(page)
+  await expect(page.locator('.rule-editor .mail-chip')).toHaveCount(0)
+  await openMail(page)
+  await expect(page.locator('.rule-editor .mail-chip')).toContainText('Subject 3')
+  await page.getByRole('button', { name: 'Do not fill from this mail' }).click()
+  await expect(page.locator('.rule-editor .mail-chip')).toHaveCount(0)
+  // The mail stays open in the panel, but the editor no longer fills from it.
+  await expect(page.locator('.mail-panel .mail-message .subject')).toHaveText('Subject 3')
+  await page.locator('.rule-editor .fill-from-mail').first().click()
+  await expect.poll(() => inputValues(page)).not.toContain('Subject 3')
+  await page.getByRole('button', { name: '‹ Messages' }).click()
+  await page.locator('.mail-panel .row-mail').first().click()
+  await expect(page.locator('.rule-editor .mail-chip')).toContainText('Subject 3')
+})
+
 test('adds a condition from the mail with the chosen part of the address', async ({ page }) => {
   await openRule(page)
   await openMail(page)
