@@ -13,7 +13,14 @@ import {
 } from './catalog'
 import type { Address, Detail } from './mail-api'
 import { isVar } from './types'
-import type { AddressCondition, Expression, HeaderCondition, TextCondition } from './types'
+import type {
+  AddressCondition,
+  Expression,
+  HeaderCondition,
+  TemplateDef,
+  TemplateUse,
+  TextCondition,
+} from './types'
 
 /** Which part of an address to match, the values of `AddressPart`. */
 export type Granularity = 'full' | 'name' | 'address' | 'local_part' | 'domain'
@@ -369,6 +376,32 @@ export function appendCondition(
   if (when.type === 'not' && step === 0)
     return { ...when, condition: appendCondition(when.condition, added, rest) }
   return appendCondition(when, added)
+}
+
+/** The leaves of a template's content, in order. */
+function leavesOf(expr: Expression): Expression[] {
+  if (expr.type === 'all' || expr.type === 'any') return expr.conditions.flatMap(leavesOf)
+  if (expr.type === 'not') return leavesOf(expr.condition)
+  return [expr]
+}
+
+/**
+ * A use of a template with its variables filled from the mail.
+ * A variable is filled from the leaf it is the `value` of, using that leaf's own (concrete) field, header name and address part.
+ * The first leaf that yields a value wins; a variable that no leaf can fill is left out, so the template's default applies.
+ */
+export function templateUseFor(ref: string, def: TemplateDef, ctx: MailContext): TemplateUse {
+  const variables: Record<string, unknown> = {}
+  for (const leaf of leavesOf(def.content)) {
+    if (leaf.type === 'template' || !('value' in leaf) || !isVar(leaf.value)) continue
+    const name = leaf.value.var
+    if (name in variables) continue
+    const probe = { ...leaf, value: '' } as Expression
+    const filled = fillExpression(probe, ctx, leaf.type === 'address' ? partOf(leaf) : undefined)
+    if (filled === probe || !('value' in filled) || filled.value === '') continue
+    variables[name] = filled.value
+  }
+  return { type: 'template', ref, variables }
 }
 
 /** The groups of a `when` a condition can be added to, with their path and depth, e.g. to show them as a tree. */

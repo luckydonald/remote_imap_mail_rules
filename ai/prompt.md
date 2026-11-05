@@ -833,3 +833,5 @@ This includes the directory for rules and the SQLight database
 
 ❯ Plan accepted, auto mode.
 
+❯ Plan accepted, auto mode.
+

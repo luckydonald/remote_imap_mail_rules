@@ -6,11 +6,12 @@ import {
   conditionFor,
   fillExpression,
   headerSuggestions,
+  templateUseFor,
   type MailContext,
 } from '@/model/fill-from-mail'
 import { newExpression } from '@/model/catalog'
 import type { Detail } from '@/model/mail-api'
-import type { AddressCondition, Expression } from '@/model/types'
+import type { AddressCondition, Expression, TemplateDef } from '@/model/types'
 
 const detail: Detail = {
   uid: 7,
@@ -236,5 +237,40 @@ describe('headerSuggestions', () => {
 
   it('offers only the common ones without an open mail', () => {
     expect(headerSuggestions(null, ['X-Mailer'])).toEqual(['X-Mailer'])
+  })
+})
+
+describe('templateUseFor', () => {
+  const def: TemplateDef = {
+    type: 'template',
+    defaults: { who: 'default' },
+    content: {
+      type: 'all',
+      conditions: [
+        {
+          type: 'address',
+          field: 'from',
+          part: 'address',
+          operator: 'equals',
+          value: { var: 'addr' },
+        },
+        { type: 'address', field: 'from', part: 'name', operator: 'equals', value: { var: 'who' } },
+        { type: 'text', field: 'subject', operator: 'equals', value: { var: 'addr' } },
+        { type: 'text', field: { var: 'f' }, operator: 'equals', value: { var: 'other' } },
+      ],
+    },
+  }
+
+  it('fills each variable from the field and part of the leaf it sits in', () => {
+    expect(templateUseFor('t', def, ctx)).toEqual({
+      type: 'template',
+      ref: 't',
+      variables: { addr: 'max.muster@example.com', who: 'Max Muster' },
+    })
+  })
+
+  it('leaves out a variable the mail cannot fill, so the default applies', () => {
+    const noName = { ...ctx, detail: { ...detail, sender: { name: '', address: 'x@example.com' } } }
+    expect(templateUseFor('t', def, noName).variables).toEqual({ addr: 'x@example.com' })
   })
 })
