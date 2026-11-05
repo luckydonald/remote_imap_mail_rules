@@ -81,7 +81,7 @@ function addTo(): void {
     >
       Rule ▾
     </button>
-    <div v-if="open" class="menu-pop" role="menu">
+    <div v-if="open" class="menu-pop end" role="menu">
       <button type="button" role="menuitem" @click="newRule">New rule from this mail</button>
       <button
         type="button"

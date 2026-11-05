@@ -260,3 +260,28 @@ test('the rule button starts a rule from the mail', async ({ page }) => {
   await page.getByRole('menuitem', { name: 'New rule from this mail' }).click()
   await expect(page).toHaveURL(/\/rules\/1$/)
 })
+
+for (const width of [1366, 1280, 900, 700, 390]) {
+  test(`the rule menu is fully visible and its dialog on top at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: width === 1366 ? 1024 : 720 })
+    await mockServer(page, false, MOVE_RULES)
+    await openThird(page)
+    await page.getByRole('button', { name: 'Rule ▾' }).click()
+    // The mail column scrolls and clips what sticks out of it.
+    const inside = await page.locator('.menu-pop').evaluate((pop) => {
+      const box = pop.getBoundingClientRect()
+      const column = pop.closest('.mail-message')?.getBoundingClientRect()
+      const right = Math.min(window.innerWidth, column?.right ?? 0)
+      return box.left >= (column?.left ?? 0) && box.right <= right
+    })
+    expect(inside).toBe(true)
+    await page.getByRole('menuitem', { name: 'Add to existing rule …' }).click()
+    await expect(page.getByRole('dialog', { name: 'Add to a rule' })).toBeVisible()
+    const topmost = await page.locator('.modal').evaluate((element) => {
+      const box = element.getBoundingClientRect()
+      const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+      return hit !== null && element.contains(hit)
+    })
+    expect(topmost).toBe(true)
+  })
+}

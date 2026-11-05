@@ -1142,6 +1142,7 @@ button {
   top: calc(100% + 4px);
   left: 0;
   min-width: 220px;
+  max-width: calc(100vw - 32px);
   max-height: 60vh;
   overflow-y: auto;
   display: flex;
@@ -1151,6 +1152,12 @@ button {
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
+
+  // For a button near the right edge: grow leftwards, the scrolling mail column would clip it.
+  &.end {
+    left: auto;
+    right: 0;
+  }
 
   button {
     text-align: left;
