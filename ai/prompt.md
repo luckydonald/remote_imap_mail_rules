@@ -804,3 +804,7 @@ This includes the directory for rules and the SQLight database
 
 ❯ Fold both new ai commits and then push, if everything else is clean by then. We can postpone closing that todo for later.
 
+❯ It’s still hidden behind the mail GUI.
+
+❯ Why can’t the mock data reproduce this? It should be able too. Check that all corners of the dialog box is visible, I assume it was cut off because it went out of bounds to the left of the display viewer panel. Why was this working in the tests without being caught?
+
