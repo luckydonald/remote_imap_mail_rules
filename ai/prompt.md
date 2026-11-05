@@ -800,3 +800,7 @@ This includes the directory for rules and the SQLight database
 
 ❯ Commit rest first though.
 
+❯ Mark the task completed with MCP ad only if there's not a single unpushed ai or todo commit remaining you're allowed to push.
+
+❯ Fold both new ai commits and then push, if everything else is clean by then. We can postpone closing that todo for later.
+
