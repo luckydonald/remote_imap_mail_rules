@@ -27,7 +27,9 @@ function changeType(type: ExpressionType): void {
     emit('update:modelValue', { ...current, type })
     return
   }
-  emit('update:modelValue', newExpression(type, Object.keys(store.file.templates)))
+  const created = newExpression(type, Object.keys(store.file.templates))
+  // With a mail open the new condition starts from it.
+  emit('update:modelValue', mail.context ? fillExpression(created, mail.context) : created)
 }
 
 const fillable = computed(() =>
@@ -103,6 +105,7 @@ function wrap(type: 'all' | 'any' | 'not'): void {
     <AddressEditor
       v-else-if="node.type === 'text' || node.type === 'address' || node.type === 'header'"
       :node="node"
+      @update:node="emit('update:modelValue', $event)"
     />
     <NumberEditor v-else-if="node.type === 'number'" :node="node" />
     <DateEditor v-else-if="node.type === 'date'" :node="node" />

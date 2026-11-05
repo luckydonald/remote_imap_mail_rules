@@ -60,6 +60,22 @@ test('adds a condition from the mail with the chosen part of the address', async
   await expect(page.locator('.rule-editor .node-all')).toHaveCount(1)
 })
 
+test('an address condition starts filled and follows its part, but keeps a typed value', async ({
+  page,
+}) => {
+  await openRule(page)
+  await openMail(page)
+  await page.getByLabel('Condition type').first().selectOption('address')
+  await expect.poll(() => inputValues(page)).toContain('s3@example.com')
+  await page.getByTitle('Which part of the address to compare').selectOption('name')
+  await expect.poll(() => inputValues(page)).toContain('Sender 3')
+  await page.getByTitle('Undo').click()
+  await expect.poll(() => inputValues(page)).toContain('s3@example.com')
+  await page.locator('.rule-editor .leaf input[placeholder="value"]').fill('typed')
+  await page.getByTitle('Which part of the address to compare').selectOption('domain')
+  await expect.poll(() => inputValues(page)).toContain('typed')
+})
+
 test('keeps the open mail after a reload', async ({ page }) => {
   await openRule(page)
   await openMail(page)

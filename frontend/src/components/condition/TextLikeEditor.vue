@@ -10,7 +10,7 @@ import {
   textFields,
   textOperators,
 } from '@/model/catalog'
-import { headerSuggestions } from '@/model/fill-from-mail'
+import { changeAddress, headerSuggestions } from '@/model/fill-from-mail'
 import { useMailStore } from '@/model/mail-store'
 import {
   isVar,
@@ -26,6 +26,13 @@ const model = defineModel<TextCondition | HeaderCondition | AddressCondition>('n
 const mail = useMailStore()
 const headerListId = useId()
 const headerNames = computed(() => headerSuggestions(mail.context, commonHeaders))
+
+/** Another field or part: for an address one the value follows the open mail, in one step so one undo takes it back. */
+function setFieldOrPart(change: { field?: string; part?: string }): void {
+  const node = model.value
+  if (node.type === 'address') model.value = changeAddress(node, change, mail.context)
+  else if (node.type === 'text' && change.field !== undefined) node.field = change.field
+}
 
 function setOperator(operator: string): void {
   const node = model.value
@@ -56,7 +63,10 @@ function setList(event: Event): void {
       </datalist>
     </FieldValue>
     <FieldValue v-else v-model="model.field" :fallback="model.type === 'text' ? 'subject' : 'from'">
-      <select v-model="model.field">
+      <select
+        :value="model.field"
+        @change="setFieldOrPart({ field: ($event.target as HTMLSelectElement).value })"
+      >
         <option
           v-for="field in model.type === 'text' ? textFields : addressFields"
           :key="field"
@@ -67,7 +77,11 @@ function setList(event: Event): void {
       </select>
     </FieldValue>
     <FieldValue v-if="model.type === 'address'" v-model="model.part" fallback="address">
-      <select v-model="model.part" title="Which part of the address to compare">
+      <select
+        :value="model.part"
+        title="Which part of the address to compare"
+        @change="setFieldOrPart({ part: ($event.target as HTMLSelectElement).value })"
+      >
         <option v-for="part in addressParts" :key="part" :value="part">{{ part }}</option>
       </select>
     </FieldValue>

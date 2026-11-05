@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   appendCondition,
+  changeAddress,
   groupsOf,
   conditionFor,
   fillExpression,
@@ -9,7 +10,7 @@ import {
 } from '@/model/fill-from-mail'
 import { newExpression } from '@/model/catalog'
 import type { Detail } from '@/model/mail-api'
-import type { Expression } from '@/model/types'
+import type { AddressCondition, Expression } from '@/model/types'
 
 const detail: Detail = {
   uid: 7,
@@ -70,6 +71,36 @@ const ctx: MailContext = { detail, accountId: 'acc-1', folder: 'INBOX' }
 function fill(expr: Expression, granularity?: Parameters<typeof fillExpression>[2]) {
   return fillExpression(expr, ctx, granularity)
 }
+
+describe('change an address condition', () => {
+  const base = { ...newExpression('address'), value: 'max.muster@example.com' } as AddressCondition
+
+  it('follows the new part while the value came from the mail', () => {
+    expect(changeAddress(base, { part: 'name' }, ctx)).toMatchObject({
+      part: 'name',
+      value: 'Max Muster',
+    })
+    expect(changeAddress(base, { field: 'to' }, ctx)).toMatchObject({
+      field: 'to',
+      value: 'a@example.org',
+    })
+  })
+
+  it('fills an empty value', () => {
+    expect(changeAddress({ ...base, value: '' }, { part: 'domain' }, ctx)).toMatchObject({
+      value: 'example.com',
+    })
+  })
+
+  it('keeps a value typed by hand, without a mail, and when the mail lacks the value', () => {
+    expect(changeAddress({ ...base, value: 'mine' }, { part: 'name' }, ctx).value).toBe('mine')
+    expect(changeAddress(base, { part: 'name' }, null)).toMatchObject({
+      part: 'name',
+      value: 'max.muster@example.com',
+    })
+    expect(changeAddress(base, { field: 'cc' }, ctx).value).toBe('max.muster@example.com')
+  })
+})
 
 describe('fill from mail', () => {
   it('fills address conditions by granularity', () => {
