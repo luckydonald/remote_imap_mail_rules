@@ -25,12 +25,12 @@ const model = defineModel<TextCondition | HeaderCondition | AddressCondition>('n
 
 const mail = useMailStore()
 const headerListId = useId()
-const headerNames = computed(() => headerSuggestions(mail.context, commonHeaders))
+const headerNames = computed(() => headerSuggestions(mail.fillContext, commonHeaders))
 
 /** Another field or part: for an address one the value follows the open mail, in one step so one undo takes it back. */
 function setFieldOrPart(change: { field?: string; part?: string }): void {
   const node = model.value
-  if (node.type === 'address') model.value = changeAddress(node, change, mail.context)
+  if (node.type === 'address') model.value = changeAddress(node, change, mail.fillContext)
   else if (node.type === 'text' && change.field !== undefined) node.field = change.field
 }
 

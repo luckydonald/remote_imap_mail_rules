@@ -12,7 +12,7 @@ function add(): void {
   if (model.value.type === 'not') return
   const added = newExpression('text')
   // With a mail open the new condition starts from it.
-  model.value.conditions.push(mail.context ? fillExpression(added, mail.context) : added)
+  model.value.conditions.push(mail.fillContext ? fillExpression(added, mail.fillContext) : added)
 }
 
 function remove(index: number): void {
