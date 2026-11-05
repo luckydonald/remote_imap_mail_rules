@@ -6,6 +6,7 @@ import FieldValue from './FieldValue.vue'
 import DryRunPanel from './DryRunPanel.vue'
 import LocationsEditor from './LocationsEditor.vue'
 import { useStore } from '@/model/store'
+import MailChip from './MailChip.vue'
 import { useMailStore } from '@/model/mail-store'
 import type { Rule } from '@/model/types'
 
@@ -34,6 +35,7 @@ function setDescription(text: string): void {
         <code>{{ problem.path }}</code> {{ problem.message }}
       </li>
     </ul>
+    <MailChip v-if="mail.fillContext" />
     <div class="row">
       <input v-model="model.name" class="title" placeholder="Rule name" aria-label="Rule name" />
       <FieldValue v-model="model.enabled" :fallback="true">

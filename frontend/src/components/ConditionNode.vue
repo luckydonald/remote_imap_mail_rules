@@ -29,7 +29,7 @@ function changeType(type: ExpressionType): void {
   }
   const created = newExpression(type, Object.keys(store.file.templates))
   // With a mail open the new condition starts from it.
-  emit('update:modelValue', mail.context ? fillExpression(created, mail.context) : created)
+  emit('update:modelValue', mail.fillContext ? fillExpression(created, mail.fillContext) : created)
 }
 
 const fillable = computed(() =>
@@ -38,7 +38,7 @@ const fillable = computed(() =>
 
 /** Takes the value from the open mail, or opens the mail panel to choose one. */
 function fillFromMail(): void {
-  const context = mail.context
+  const context = mail.fillContext
   if (!context) {
     mail.panelOpen = true
     return
@@ -76,7 +76,9 @@ function wrap(type: 'all' | 'any' | 'not'): void {
         v-if="fillable && mail.active"
         type="button"
         class="ghost fill-from-mail"
-        :title="mail.context ? 'Fill the value from the open mail' : 'Choose a mail to fill from'"
+        :title="
+          mail.fillContext ? 'Fill the value from the open mail' : 'Choose a mail to fill from'
+        "
         @click="fillFromMail"
       >
         From mail
