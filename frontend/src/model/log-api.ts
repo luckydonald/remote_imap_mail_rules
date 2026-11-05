@@ -32,6 +32,10 @@ export interface LogStatus {
   watcher_enabled: boolean
   /** In memory on the server, `null` after its restart until the watching wakes up. */
   last_run: string | null
+  /** The earliest planned poll, `null` when every folder waits for a server push or nothing is scheduled yet. */
+  next_run: string | null
+  /** Some folder waits for a server push (`IDLE`), so it also wakes up without a planned time. */
+  push: boolean
   last_change: string | null
   last_action: string | null
 }

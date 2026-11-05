@@ -103,6 +103,17 @@ const runText = computed(() => {
   if (!status.value.watcher_enabled) return 'The watcher is switched off'
   return status.value.last_run ? fullDate(status.value.last_run) : 'not since the server started'
 })
+
+const nextText = computed(() => {
+  const current = status.value
+  if (!current) return '…'
+  if (!current.watcher_enabled) return 'The watcher is switched off'
+  if (current.next_run) {
+    const when = fullDate(current.next_run)
+    return current.push ? `${when} (and on server push)` : when
+  }
+  return current.push ? 'on change (server push)' : 'not scheduled yet'
+})
 </script>
 
 <template>
@@ -116,6 +127,10 @@ const runText = computed(() => {
       <div>
         <dt>Watcher last ran</dt>
         <dd data-test="last-run">{{ runText }}</dd>
+      </div>
+      <div>
+        <dt>Next scheduled run</dt>
+        <dd data-test="next-run">{{ nextText }}</dd>
       </div>
       <div>
         <dt>Last change found</dt>

@@ -44,6 +44,8 @@ const mockServer = async (page: Page): Promise<string[]> => {
       json: {
         watcher_enabled: true,
         last_run: '2026-11-03T10:05:00Z',
+        next_run: '2026-11-03T10:10:00Z',
+        push: false,
         last_change: '2026-11-03T10:00:00Z',
         last_action: '2026-11-03T09:00:00Z',
       },

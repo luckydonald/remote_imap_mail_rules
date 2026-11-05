@@ -1,7 +1,8 @@
 """Notifies about changes of a folder: IMAP `IDLE` push when the server supports it, polling otherwise."""
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
+from datetime import UTC, datetime, timedelta
 
 from aioimaplib import AioImapException
 
@@ -53,17 +54,27 @@ async def idle_once(client: ImapClient, folder: str, timeout: float) -> ChangeEv
 # end def
 
 
-async def watch(client: ImapClient, folder: str, poll_interval: float, idle_timeout: float = IDLE_RENEW_SECONDS) -> AsyncIterator[ChangeEvent]:
+async def watch(
+    client: ImapClient, folder: str, poll_interval: float, idle_timeout: float = IDLE_RENEW_SECONDS,
+    on_schedule: Callable[[datetime | None], None] | None = None,
+) -> AsyncIterator[ChangeEvent]:
     """Yields an event whenever the folder may have changed: after each server push, or after each `poll_interval` without IDLE.
 
     The folder must already be examined. Events are only hints, the caller then asks the client what actually changed.
+    `on_schedule` is told when the next poll is due before the wait starts, or `None` before waiting in `IDLE` (a push has no planned time).
     """
     use_idle = client.has_capability("IDLE")
     while True:
         if not use_idle:
+            if on_schedule is not None:
+                on_schedule(datetime.now(UTC) + timedelta(seconds=poll_interval))
+            # end if
             await asyncio.sleep(poll_interval)
             yield ChangeEvent(kind=ChangeKind.poll, folder=folder)
             continue
+        # end if
+        if on_schedule is not None:
+            on_schedule(None)
         # end if
         try:
             event = await idle_once(client, folder, idle_timeout)
