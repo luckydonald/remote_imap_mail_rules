@@ -305,3 +305,37 @@ for (const width of [1366, 1280, 900, 700, 390]) {
     expect(topmost).toBe(true)
   })
 }
+
+const TEMPLATE_RULES = `templates:
+  by-sender: &by-sender
+    type: template
+    defaults: {}
+    content:
+      type: address
+      field: from
+      part: address
+      operator: equals
+      value: !var sender
+rules:
+  - name: sent copy
+    locations:
+      - account_id: ${ACCOUNT_ID}
+        folder: INBOX
+    when:
+      type: bool
+      field: seen
+`
+
+test('adds a template use to an existing rule with the variable filled from the mail', async ({
+  page,
+}) => {
+  await mockServer(page, false, TEMPLATE_RULES)
+  await openThird(page)
+  await page.getByRole('button', { name: 'Rule ▾' }).click()
+  await page.getByRole('menuitem', { name: 'Add to existing rule …' }).click()
+  await page.getByLabel('Kind of condition').selectOption('template')
+  await expect(page.locator('.template-fill')).toContainText('sender = s3@example.com')
+  await page.locator('.add-condition').click()
+  await expect(page).toHaveURL(/\/rules\/0$/)
+  await expect(page.locator('.rule-editor')).toContainText('by-sender')
+})
