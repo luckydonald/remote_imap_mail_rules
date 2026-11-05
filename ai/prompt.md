@@ -792,3 +792,11 @@ This includes the directory for rules and the SQLight database
 
 ❯ Plan accepted, auto mode.
 
+❯ Plan accepted, auto mode.
+
+❯ I tested on iPad Pro (12.9-inch) (4th generation), landscape
+
+❯ Include webkit test.
+
+❯ Commit rest first though.
+
