@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory } from 'vue-router'
 import ActionLogView from '@/components/ActionLogView.vue'
@@ -48,7 +49,7 @@ function stubServer(events: (query: URLSearchParams) => unknown, status: unknown
 async function mountView(path = '/log') {
   const router = createAppRouter(createMemoryHistory())
   await router.push(path)
-  const wrapper = mount(ActionLogView, { global: { plugins: [router] } })
+  const wrapper = mount(ActionLogView, { global: { plugins: [router, createPinia()] } })
   await flushPromises()
   return { wrapper, router }
 }

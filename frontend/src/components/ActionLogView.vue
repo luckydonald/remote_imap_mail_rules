@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { listAccounts, type Account } from '@/model/accounts-api'
 import { ApiError, describeError } from '@/model/http'
 import {
   EVENT_KINDS,
@@ -16,16 +15,17 @@ import {
   type LogStatus,
 } from '@/model/log-api'
 import { eventLabel, fullDate } from '@/model/mail-format'
+import { useStore } from '@/model/store'
 
 const emit = defineEmits<{ unauthorized: [] }>()
 
+const store = useStore()
 const route = useRoute()
 const router = useRouter()
 const filters = reactive<LogFilters>({ ...NO_FILTERS, ...filtersOfQuery(route.query) })
 const entries = ref<LogEntry[]>([])
 const next = ref<string | null>(null)
 const status = ref<LogStatus | null>(null)
-const accounts = ref<Account[]>([])
 const message = ref('')
 const loading = ref(false)
 /** Answers of an older request must not replace the ones of the newest. */
@@ -35,7 +35,7 @@ let timer: ReturnType<typeof setTimeout> | undefined
 const STATUS_INTERVAL = 5000
 let statusTimer: ReturnType<typeof setTimeout> | undefined
 
-const accountNames = computed(() => new Map(accounts.value.map((a) => [a.id, a.name])))
+const accountNames = computed(() => new Map(store.accounts.map((a) => [a.id, a.name])))
 const filtered = computed(() => JSON.stringify(filters) !== JSON.stringify(NO_FILTERS))
 
 function fail(error: unknown, what: string): void {
@@ -97,10 +97,13 @@ watch(
 onMounted(async () => {
   void refresh()
   pollStatus()
-  try {
-    accounts.value = await listAccounts()
-  } catch {
-    // the names fall back to the ids
+  // The account list is the store's, shared with the mail browser and the accounts screen, so it is only read when nothing did yet.
+  if (store.accounts.length === 0) {
+    try {
+      await store.refreshAccounts()
+    } catch {
+      // the names fall back to the ids
+    }
   }
 })
 onBeforeUnmount(() => {
@@ -193,7 +196,7 @@ const nextText = computed(() => {
       <input v-model="filters.q" type="search" placeholder="Search" aria-label="Search" />
       <select v-model="filters.account_id" aria-label="Account">
         <option value="">All accounts</option>
-        <option v-for="account in accounts" :key="account.id" :value="account.id">
+        <option v-for="account in store.accounts" :key="account.id" :value="account.id">
           {{ account.name }}
         </option>
       </select>
