@@ -12,6 +12,16 @@ defineProps<{ store: MailStore }>()
       <button type="button" class="ghost back" @click="store.back()">‹ Folders</button>
       <strong>{{ store.currentFolder?.display_name ?? '' }}</strong>
       <span class="muted">{{ store.total }} messages</span>
+      <button
+        type="button"
+        class="ghost reload"
+        aria-label="Reload messages"
+        title="Reload messages"
+        :disabled="store.loading"
+        @click="store.reloadMessages()"
+      >
+        ↻
+      </button>
     </header>
     <ul>
       <li v-for="mail in store.messages" :key="mail.uid">

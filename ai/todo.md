@@ -71,7 +71,7 @@ To complete one:
   > - under the info box
 - [x] in the mail viewer allow to see the full headers of a email — `todo:3bc42369-9781-407c-9015-eb699c8d9b56`
 - [x] Do not load the email before the folders & mails lists both are loaded. — `todo:dfab6abb-e7ad-41d5-82e9-343040e8b23d`
-- [ ] add reload in folder list & email list of the email viewer — `todo:42311b99-f598-4cd1-ac36-729384bfbccd`
+- [x] add reload in folder list & email list of the email viewer — `todo:42311b99-f598-4cd1-ac36-729384bfbccd`
   > - this includes the example viewer of the rules
 - [ ] unwrap button — `todo:13b0300c-4b40-46a5-8ccf-ec53d75f4fa4`
   > - detete on an wrapping element asks if we should keep the children

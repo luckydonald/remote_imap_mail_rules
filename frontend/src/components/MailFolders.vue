@@ -19,6 +19,16 @@ defineProps<{ store: MailStore }>()
         </option>
       </select>
     </label>
+    <button
+      type="button"
+      class="ghost reload"
+      aria-label="Reload folders"
+      title="Reload folders"
+      :disabled="store.foldersLoading"
+      @click="store.reloadFolders()"
+    >
+      ↻
+    </button>
     <MailSpinner v-if="store.foldersLoading" />
     <ul>
       <li v-for="item in store.folders" :key="item.name">
