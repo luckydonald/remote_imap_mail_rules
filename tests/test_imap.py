@@ -240,6 +240,46 @@ async def test_watch_reports_no_due_time_while_in_idle() -> None:
 # end def
 
 
+async def test_close_cancels_the_idle_task_left_by_a_cancelled_watch() -> None:
+    server = FakeServer()
+    server.add("INBOX", 1, "one")
+    server.stall_idle = True
+    client =ImapClient(make_settings(), lambda settings: server.connect(settings))
+    await client.connect()
+    await client.examine("INBOX")
+    waiting = asyncio.create_task(anext(watch(client, "INBOX", poll_interval=0.01, idle_timeout=5)))
+    await asyncio.sleep(0.01)
+    waiting.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await waiting
+    # end with
+    connection = client.conn
+    leftover = list(connection.tasks)
+    assert len(leftover) == 1 and not leftover[0].done()
+    await client.close()
+    assert leftover[0].cancelled()
+    assert not connection.tasks
+# end def
+
+
+async def test_close_cancels_leftover_tasks_when_logout_fails() -> None:
+    server = FakeServer()
+    client = ImapClient(make_settings(), lambda settings: server.connect(settings))
+    await client.connect()
+    connection = client.conn
+    task = asyncio.ensure_future(asyncio.Event().wait())
+    connection.tasks.add(task)
+
+    async def logout() -> aioimaplib.Response:
+        raise TimeoutError
+    # end def
+
+    connection.logout = logout  # type: ignore[method-assign]
+    await client.close()
+    assert task.cancelled()
+# end def
+
+
 async def test_watch_falls_back_to_polling_without_idle() -> None:
     server = FakeServer(capabilities={"IMAP4REV1"})
     server.add("INBOX", 1, "one")

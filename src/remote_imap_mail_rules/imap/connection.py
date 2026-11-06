@@ -1,7 +1,8 @@
 """The slice of the `aioimaplib` client the project uses, so tests can substitute a fake."""
 
+import asyncio
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from aioimaplib import Response
 
@@ -10,6 +11,7 @@ class ImapConnection(Protocol):
     """Matches `aioimaplib.IMAP4` / `IMAP4_SSL`. Writes go through `select`, `append` and `uid` (`STORE`, `COPY`, `MOVE`, `EXPUNGE`) and only `ImapClient` issues them."""
 
     protocol: "ProtocolState"
+    tasks: set[asyncio.Future[Any]]
 
     async def wait_hello_from_server(self) -> None: ...
     async def login(self, user: str, password: str) -> Response: ...

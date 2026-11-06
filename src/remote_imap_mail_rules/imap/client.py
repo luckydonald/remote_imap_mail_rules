@@ -1,5 +1,6 @@
 """Async IMAP client. Reading only ever uses `EXAMINE` and `BODY.PEEK`; the write methods (`store_flags`, `move`, `delete`, `append`) open the folder with `SELECT` or `APPEND`."""
 
+import asyncio
 import logging
 import ssl
 from collections.abc import AsyncIterator, Callable
@@ -42,6 +43,20 @@ def connect_aioimaplib(settings: ImapSettings) -> ImapConnection:
         )
     # end if
     return aioimaplib.IMAP4(host=settings.imap_host, port=settings.imap_port, timeout=settings.imap_timeout)  # type: ignore[return-value]
+# end def
+
+
+async def cancel_leftover_tasks(connection: ImapConnection) -> None:
+    """Cancels the tasks `aioimaplib` keeps in `IMAP4.tasks`.
+
+    `idle_start` runs `IDLE` as a task that a cancelled caller does not stop, and a connection closed that way would be garbage collected with it
+    pending ("Task was destroyed but it is pending!").
+    """
+    leftovers = [task for task in connection.tasks if not task.done()]
+    for task in leftovers:
+        task.cancel()
+    # end for
+    await asyncio.gather(*leftovers, return_exceptions=True)
 # end def
 
 
@@ -113,6 +128,8 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
             await connection.logout()
         except (TimeoutError, aioimaplib.AioImapException, OSError):
             pass
+        finally:
+            await cancel_leftover_tasks(connection)
         # end try
     # end def
 

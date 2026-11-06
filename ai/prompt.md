@@ -947,3 +947,7 @@ And composable files inside one store sounds useful to organize it well, still.
 
 ❯ Plan accepted, auto mode.
 
+❯ /loop
+
+❯ Plan accepted, auto mode.
+

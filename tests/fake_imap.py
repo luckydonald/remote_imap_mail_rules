@@ -49,6 +49,7 @@ class FakeServer:
         self.delimiter = "/"
         self.commands: list[str] = []
         self.push_queues: list[asyncio.Queue[Response]] = []
+        self.stall_idle = False
     # end def
 
     def add(self, folder: str, uid: int, subject: str, flags: str = "", sender: str = "a@example.com", message_id: str | None = None) -> FakeMessage:
@@ -122,6 +123,7 @@ class FakeConnection:
         self.selected: str | None = None
         self.writable = False
         self.idle = False
+        self.tasks: set[asyncio.Future[object]] = set()
         self.queue: asyncio.Queue[Response] = asyncio.Queue()
         server.push_queues.append(self.queue)
     # end def
@@ -312,6 +314,13 @@ class FakeConnection:
     async def idle_start(self, timeout: float = 0) -> object:
         self.log("IDLE")
         self.require_selected("IDLE")
+        if self.server.stall_idle:
+            # Like aioimaplib: the `IDLE` task is registered, and a cancelled caller does not stop it.
+            task = asyncio.ensure_future(asyncio.Event().wait())
+            self.tasks.add(task)
+            task.add_done_callback(self.tasks.discard)
+            await asyncio.wait({task})
+        # end if
         self.idle = True
         return None
     # end def
