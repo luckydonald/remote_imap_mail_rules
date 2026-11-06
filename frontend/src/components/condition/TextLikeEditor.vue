@@ -11,7 +11,7 @@ import {
   textOperators,
 } from '@/model/catalog'
 import { changeAddress, headerSuggestions } from '@/model/fill-from-mail'
-import { useMailStore } from '@/model/mail-store'
+import { useMailStore } from '@/model/store'
 import {
   isVar,
   type AddressCondition,

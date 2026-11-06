@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import MailSpinner from './MailSpinner.vue'
-import { useStore } from '@/model/store'
+import { useStore } from '@/model/store/rules'
 import {
   describeStep,
   dryRun,
@@ -14,7 +14,7 @@ import {
   type SummaryRow,
 } from '@/model/dry-run'
 import { describeError } from '@/model/http'
-import { useMailStore } from '@/model/mail-store'
+import { useMailStore } from '@/model/store'
 import { locationOfMail } from '@/router'
 import type { Rule } from '@/model/types'
 

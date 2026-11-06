@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { personLabel, shortDate } from '@/model/mail-format'
-import type { MailStore } from '@/model/mail-store'
+import type { MailStore } from '@/model/store'
 import MailSpinner from './MailSpinner.vue'
 
 defineProps<{ store: MailStore }>()

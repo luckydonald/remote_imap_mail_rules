@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /** `Move ▾`: the move targets the rules already use come first, `More …` opens the folder tree. */
 import { computed, ref } from 'vue'
-import type { MailStore } from '@/model/mail-store'
+import type { MailStore } from '@/model/store'
 import { useMenu } from '@/model/menu'
-import { useStore } from '@/model/store'
+import { useStore } from '@/model/store/rules'
 import MailFolderTree from './MailFolderTree.vue'
 
 const props = defineProps<{ store: MailStore }>()

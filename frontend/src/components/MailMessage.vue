@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { addressList, fileSize, frameDocument, fullDate } from '@/model/mail-format'
-import type { MailStore } from '@/model/mail-store'
+import type { MailStore } from '@/model/store'
 import { usePrefsStore, type BodyMode } from '@/model/prefs'
 import MailAddCondition from './MailAddCondition.vue'
 import MailLog from './MailLog.vue'

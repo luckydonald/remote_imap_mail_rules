@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import MailFolders from './MailFolders.vue'
 import MailList from './MailList.vue'
 import MailMessage from './MailMessage.vue'
-import { useMailStore, type Place } from '@/model/mail-store'
+import { useMailStore, type Place } from '@/model/store'
 import { locationOfMail, mailPlaceOfRoute } from '@/router'
 
 const props = defineProps<{ compact?: boolean }>()

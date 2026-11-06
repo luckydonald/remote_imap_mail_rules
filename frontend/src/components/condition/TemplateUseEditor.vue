@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { refillTemplateUse } from '@/model/fill-from-mail'
-import { useMailStore } from '@/model/mail-store'
-import { useStore } from '@/model/store'
+import { useMailStore } from '@/model/store'
+import { useStore } from '@/model/store/rules'
 import { parseValue as parse, showValue as show } from '@/model/values'
 import { templateVariables } from '@/model/validate'
 import type { TemplateUse } from '@/model/types'

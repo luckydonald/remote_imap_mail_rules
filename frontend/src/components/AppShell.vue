@@ -15,8 +15,8 @@ import TemplatesView from './TemplatesView.vue'
 import YamlPanel from './YamlPanel.vue'
 import { fetchConfig, fetchRules, saveRules, SaveError } from '@/model/api'
 import { logout } from '@/model/mail-api'
-import { useMailStore } from '@/model/mail-store'
-import { useStore } from '@/model/store'
+import { useMailStore } from '@/model/store'
+import { useStore } from '@/model/store/rules'
 import { locationOfView, viewOfRoute } from '@/router'
 
 const store = useStore()

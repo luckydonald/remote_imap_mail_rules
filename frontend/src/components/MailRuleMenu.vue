@@ -12,9 +12,9 @@ import {
   type MailContext,
 } from '@/model/fill-from-mail'
 import { personLabel } from '@/model/mail-format'
-import { useMailStore } from '@/model/mail-store'
+import { useMailStore } from '@/model/store'
 import { useMenu } from '@/model/menu'
-import { useStore } from '@/model/store'
+import { useStore } from '@/model/store/rules'
 import { locationOfView } from '@/router'
 import RuleInsertPicker from './RuleInsertPicker.vue'
 

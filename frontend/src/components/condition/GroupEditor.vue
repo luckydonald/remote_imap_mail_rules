@@ -4,7 +4,7 @@ import { useClipboardStore } from '@/model/clipboard'
 import ConditionNode from '../ConditionNode.vue'
 import { newExpression } from '@/model/catalog'
 import { fillExpression } from '@/model/fill-from-mail'
-import { useMailStore } from '@/model/mail-store'
+import { useMailStore } from '@/model/store'
 import type { GroupAll, GroupAny, GroupNot } from '@/model/types'
 
 const mail = useMailStore()
