@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useMailStore } from '@/model/mail-store'
+import { useMailStore } from '@/model/store'
 import { folderLabel, shortDate } from '@/model/mail-format'
 import type { Folder, Summary } from '@/model/mail-api'
 

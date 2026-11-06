@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useMailStore } from '@/model/mail-store'
+import { useMailStore } from '@/model/store'
 
 /** The mail the rule editor fills from; the × stops the filling, the mail stays open in the mail screens. */
 const mail = useMailStore()

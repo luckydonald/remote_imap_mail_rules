@@ -6,8 +6,8 @@ import {
   type Router,
   type RouterHistory,
 } from 'vue-router'
-import type { Place } from '@/model/mail-store'
-import type { View } from '@/model/store'
+import type { Place } from '@/model/store'
+import type { View } from '@/model/store/rules'
 
 /** The top level screens of the app; a route names the one it shows in `meta.screen`. */
 export type Screen = 'rules' | 'accounts' | 'git' | 'mail' | 'log' | 'settings' | 'sample-error'

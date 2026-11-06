@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia'
 import { computed, reactive, ref, shallowRef, watch } from 'vue'
-import { templateVariables, validateRules } from './validate'
-import { parseRulesWithComments, stringifyRules } from './yaml-io'
-import type { CommentMap } from './comments'
-import { newExpression } from './catalog'
-import type { Rule, RuleFile, TemplateUse } from './types'
+import { templateVariables, validateRules } from '../validate'
+import { parseRulesWithComments, stringifyRules } from '../yaml-io'
+import type { CommentMap } from '../comments'
+import { newExpression } from '../catalog'
+import type { Rule, RuleFile, TemplateUse } from '../types'
 
 export type View = { kind: 'rule'; index: number } | { kind: 'templates' } | { kind: 'yaml' }
 

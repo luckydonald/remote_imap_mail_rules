@@ -2,10 +2,10 @@
 
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
-import { listAccounts, type Account } from './accounts-api'
-import type { MailContext } from './fill-from-mail'
-import { ApiError, describeError } from './http'
-import { usePrefsStore } from './prefs'
+import { listAccounts, type Account } from '../accounts-api'
+import type { MailContext } from '../fill-from-mail'
+import { ApiError, describeError } from '../http'
+import { usePrefsStore } from '../prefs'
 import {
   getMessage,
   listEvents,
@@ -18,7 +18,7 @@ import {
   type Folder,
   type MailEvent,
   type Summary,
-} from './mail-api'
+} from '../mail-api'
 
 /** On a narrow screen only one of the panes shows. */
 export type Pane = 'folders' | 'list' | 'message'

@@ -935,3 +935,8 @@ Of course you can still keep local data where it makes sense. Just be mindful of
 
 ❯ Plan accepted, auto mode.
 
+❯ The existing `mail-store.ts` is probably a good base for that new central one, so start with renaming that.
+And composable files inside one store sounds useful to organize it well, still.
+
+❯ Plan accepted, auto mode.
+

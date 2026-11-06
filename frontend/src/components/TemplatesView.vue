@@ -4,7 +4,7 @@ import ConditionNode from './ConditionNode.vue'
 import TemplateRenameBox from './TemplateRenameBox.vue'
 import { newExpression } from '@/model/catalog'
 import { ALLOW_VARS } from '@/model/context'
-import { useStore } from '@/model/store'
+import { useStore } from '@/model/store/rules'
 import { parseValue, showValue } from '@/model/values'
 import { templateVariables } from '@/model/validate'
 

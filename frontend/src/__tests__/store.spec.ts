@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
-import { useStore } from '@/model/store'
+import { useStore } from '@/model/store/rules'
 
 beforeEach(() => setActivePinia(createPinia()))
 

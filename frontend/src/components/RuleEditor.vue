@@ -5,9 +5,9 @@ import ConditionNode from './ConditionNode.vue'
 import FieldValue from './FieldValue.vue'
 import DryRunPanel from './DryRunPanel.vue'
 import LocationsEditor from './LocationsEditor.vue'
-import { useStore } from '@/model/store'
+import { useStore } from '@/model/store/rules'
 import MailChip from './MailChip.vue'
-import { useMailStore } from '@/model/mail-store'
+import { useMailStore } from '@/model/store'
 import type { Rule } from '@/model/types'
 
 const model = defineModel<Rule>('rule', { required: true })

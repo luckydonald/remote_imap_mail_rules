@@ -6,7 +6,7 @@ import MailFolderTree from '@/components/MailFolderTree.vue'
 import SegmentedToggle from '@/components/SegmentedToggle.vue'
 import type { Folder } from '@/model/mail-api'
 import { framePolicy } from '@/model/mail-format'
-import { useMailStore } from '@/model/mail-store'
+import { useMailStore } from '@/model/store'
 
 const folder = (name: string, extra: Partial<Folder> = {}): Folder => ({
   name,

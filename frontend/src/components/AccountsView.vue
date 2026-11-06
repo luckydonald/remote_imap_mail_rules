@@ -8,7 +8,7 @@ import {
   type Account,
   type AccountInput,
 } from '@/model/accounts-api'
-import { useMailStore } from '@/model/mail-store'
+import { useMailStore } from '@/model/store'
 
 // The list is the mail browser's, so the account picker there follows every change made here.
 const mail = useMailStore()

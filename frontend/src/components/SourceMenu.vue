@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useStore } from '@/model/store'
-import { SERVER } from '@/model/store'
+import { useStore } from '@/model/store/rules'
+import { SERVER } from '@/model/store/rules'
 
 const store = useStore()
 const menu = ref<HTMLDetailsElement | null>(null)
