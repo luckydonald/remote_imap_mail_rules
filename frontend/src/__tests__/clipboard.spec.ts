@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { parseExpressionText, useClipboardStore } from '@/model/clipboard'
-import { usePrefsStore } from '@/model/prefs'
+import { useStore } from '@/model/store'
 import { stringifyExpression } from '@/model/yaml-io'
 import type { Expression } from '@/model/types'
 
@@ -64,7 +64,7 @@ describe('clipboard store', () => {
 
   it('writes nothing with the setting off, but still pastes the cut block', async () => {
     const clipboard = fakeClipboard('type: bool\nfield: flagged\n')
-    const prefs = usePrefsStore()
+    const prefs = useStore()
     prefs.copyCut = 'off'
     prefs.readPaste = 'off'
     const store = useClipboardStore()
@@ -87,7 +87,7 @@ describe('clipboard store', () => {
 
   it('has nothing to paste without a block and without a readable clipboard', async () => {
     fakeClipboard('')
-    const prefs = usePrefsStore()
+    const prefs = useStore()
     prefs.readPaste = 'off'
     const store = useClipboardStore()
     expect(store.canPaste).toBe(false)

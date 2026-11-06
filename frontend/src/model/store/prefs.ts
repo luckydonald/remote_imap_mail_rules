@@ -1,6 +1,5 @@
-/** View settings of this browser: how mails are shown. Kept in localStorage, nothing here is sent to the server. */
+/** View settings of this browser: how mails are shown and whether the rule editor uses the real clipboard. Kept in localStorage, nothing here is sent to the server. Part of the central store (`index.ts`). */
 
-import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 
 export type BodyMode = 'html' | 'text'
@@ -29,7 +28,7 @@ function readSaved(): Partial<Saved> {
   }
 }
 
-export const usePrefsStore = defineStore('prefs', () => {
+export function usePrefs() {
   const saved = readSaved()
   const bodyMode = ref<BodyMode>(saved.bodyMode === 'text' ? 'text' : 'html')
   const remoteImages = ref<Policy>(saved.remoteImages === 'allow' ? 'allow' : 'block')
@@ -56,4 +55,4 @@ export const usePrefsStore = defineStore('prefs', () => {
   })
 
   return { bodyMode, remoteImages, mailStyles, copyCut, readPaste }
-})
+}

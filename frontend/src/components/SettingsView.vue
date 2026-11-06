@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /** How this browser shows mails. Kept in the browser (localStorage), nothing here is sent to the server. */
-import { usePrefsStore } from '@/model/prefs'
+import { useStore } from '@/model/store'
 import SegmentedToggle from './SegmentedToggle.vue'
 
-const prefs = usePrefsStore()
+const store = useStore()
 </script>
 
 <template>
@@ -12,7 +12,7 @@ const prefs = usePrefsStore()
     <section>
       <h3>Show mails as</h3>
       <SegmentedToggle
-        v-model="prefs.bodyMode"
+        v-model="store.bodyMode"
         label="Show mails as"
         :options="[
           { value: 'html', label: 'HTML' },
@@ -24,7 +24,7 @@ const prefs = usePrefsStore()
     <section>
       <h3>Remote images</h3>
       <SegmentedToggle
-        v-model="prefs.remoteImages"
+        v-model="store.remoteImages"
         label="Remote images"
         :options="[
           { value: 'block', label: 'Block' },
@@ -39,7 +39,7 @@ const prefs = usePrefsStore()
     <section>
       <h3>Styles of mails</h3>
       <SegmentedToggle
-        v-model="prefs.mailStyles"
+        v-model="store.mailStyles"
         label="Styles of mails"
         :options="[
           { value: 'block', label: 'Block' },
@@ -54,7 +54,7 @@ const prefs = usePrefsStore()
     <section>
       <h3>Copy cut blocks to the clipboard</h3>
       <SegmentedToggle
-        v-model="prefs.copyCut"
+        v-model="store.copyCut"
         label="Copy cut blocks to the clipboard"
         :options="[
           { value: 'on', label: 'On' },
@@ -69,7 +69,7 @@ const prefs = usePrefsStore()
     <section>
       <h3>Paste from the clipboard</h3>
       <SegmentedToggle
-        v-model="prefs.readPaste"
+        v-model="store.readPaste"
         label="Paste from the clipboard"
         :options="[
           { value: 'on', label: 'On' },
