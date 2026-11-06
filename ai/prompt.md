@@ -928,3 +928,10 @@ In all cases above, the `(12)` is an apple style counter badge (not superscript 
 
 ❯ Fix [`ai/prompt.md`](./prompt.md) having lost lines.
 
+❯ There seem to have been a memory or `CLAUDE.md` rule which instructs to use pinia, which however was missunderstood a lot, as if it says to create separate stores for problems.
+It should use one central store, unless there are good arguments to separate them (e.g. totally different concerns). Everything Mails and rules should be in a single central one, and I assume that's all we need.
+So fix the wrong sounding memory/instruction, and unify the stores and local data duplications, one commit per store/local file.
+Of course you can still keep local data where it makes sense. Just be mindful of this email data stuff. For example, somewhere in the last 5 commits we merged in a duplicate account fetch from the account view.
+
+❯ Plan accepted, auto mode.
+
