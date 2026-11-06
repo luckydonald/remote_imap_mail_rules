@@ -5,7 +5,7 @@ import { computed, ref, watch } from 'vue'
 import { listAccounts, type Account } from '../accounts-api'
 import type { MailContext } from '../fill-from-mail'
 import { ApiError, describeError } from '../http'
-import { usePrefsStore } from '../prefs'
+import { usePrefs } from './prefs'
 import { useRules } from './rules'
 import {
   getMessage,
@@ -59,7 +59,7 @@ function writeSaved(saved: Saved): void {
 }
 
 export const useStore = defineStore('app', () => {
-  const prefs = usePrefsStore()
+  const prefs = usePrefs()
   const rules = useRules()
   let onUnauthorized: () => void = () => {}
   // The place of the last session, used once by the first loadAccounts().
@@ -326,8 +326,8 @@ export const useStore = defineStore('app', () => {
     error.value = ''
     pane.value = 'message'
     bodyOptions.value = {
-      remoteImages: prefs.remoteImages === 'allow',
-      styles: prefs.mailStyles === 'allow',
+      remoteImages: prefs.remoteImages.value === 'allow',
+      styles: prefs.mailStyles.value === 'allow',
     }
     void loadEvents(id, name, uid)
     try {
@@ -454,6 +454,7 @@ export const useStore = defineStore('app', () => {
 
   return {
     ...rules,
+    ...prefs,
     accounts,
     accountId,
     folders,

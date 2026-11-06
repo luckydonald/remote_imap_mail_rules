@@ -3,7 +3,7 @@
 import { defineStore } from 'pinia'
 import { computed, shallowRef } from 'vue'
 import { expressionTypes } from './catalog'
-import { usePrefsStore } from './prefs'
+import { useStore } from './store'
 import { validateRules } from './validate'
 import { parseYamlData, stringifyExpression } from './yaml-io'
 import type { Expression, Rule } from './types'
@@ -46,16 +46,16 @@ export function parseExpressionText(text: string): Expression | null {
 const copyOf = (expression: Expression): Expression => JSON.parse(JSON.stringify(expression))
 
 export const useClipboardStore = defineStore('clipboard', () => {
-  const prefs = usePrefsStore()
+  const store = useStore()
   /** The last cut block, kept for this session. */
   const block = shallowRef<Expression | null>(null)
   /** Whether a paste may find something: a cut block, or a clipboard that is allowed to be read. */
-  const canPaste = computed(() => block.value !== null || prefs.readPaste === 'on')
+  const canPaste = computed(() => block.value !== null || store.readPaste === 'on')
 
   /** Remembers a copy of the block and, if allowed, puts its YAML on the clipboard. A blocked clipboard is no error. */
   async function cut(expression: Expression): Promise<void> {
     block.value = copyOf(expression)
-    if (prefs.copyCut !== 'on') return
+    if (store.copyCut !== 'on') return
     try {
       await navigator.clipboard.writeText(stringifyExpression(expression))
     } catch {
@@ -65,7 +65,7 @@ export const useClipboardStore = defineStore('clipboard', () => {
 
   /** A fresh copy of the block to paste: from the clipboard if it holds one and reading is allowed, else the last cut. */
   async function read(): Promise<Expression | null> {
-    if (prefs.readPaste === 'on') {
+    if (store.readPaste === 'on') {
       try {
         const parsed = parseExpressionText(await navigator.clipboard.readText())
         if (parsed) return parsed

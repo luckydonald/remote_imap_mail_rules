@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { addressList, fileSize, frameDocument, fullDate } from '@/model/mail-format'
 import { useStore } from '@/model/store'
-import { usePrefsStore, type BodyMode } from '@/model/prefs'
+import type { BodyMode } from '@/model/store/prefs'
 import MailAddCondition from './MailAddCondition.vue'
 import MailLog from './MailLog.vue'
 import MailMoveMenu from './MailMoveMenu.vue'
@@ -12,7 +12,6 @@ import SegmentedToggle from './SegmentedToggle.vue'
 
 defineProps<{ compact?: boolean }>()
 const store = useStore()
-const prefs = usePrefsStore()
 
 const frame = ref<HTMLIFrameElement | null>(null)
 let observer: ResizeObserver | null = null
@@ -20,10 +19,10 @@ let observer: ResizeObserver | null = null
 /** The mode to show: the setting, or the other one when the mail has only that part. */
 const mode = computed<BodyMode>(() => {
   const detail = store.detail
-  if (!detail) return prefs.bodyMode
-  if (prefs.bodyMode === 'html' && !detail.html && detail.text) return 'text'
-  if (prefs.bodyMode === 'text' && !detail.text && detail.html) return 'html'
-  return prefs.bodyMode
+  if (!detail) return store.bodyMode
+  if (store.bodyMode === 'html' && !detail.html && detail.text) return 'text'
+  if (store.bodyMode === 'text' && !detail.text && detail.html) return 'html'
+  return store.bodyMode
 })
 const modes = computed(() => [
   { value: 'text' as const, label: 'Text', disabled: !store.detail?.text },
@@ -85,7 +84,7 @@ const unreadLabel = computed(() => (store.detail?.seen ? 'Mark unread' : 'Mark r
         </button>
         <MailMoveMenu />
         <MailRuleMenu v-if="store.context" :context="store.context" />
-        <SegmentedToggle v-model="prefs.bodyMode" :options="modes" label="Show the mail as" />
+        <SegmentedToggle v-model="store.bodyMode" :options="modes" label="Show the mail as" />
       </div>
     </header>
     <p v-if="store.error" class="message error" role="alert">{{ store.error }}</p>
