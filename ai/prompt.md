@@ -942,3 +942,6 @@ And composable files inside one store sounds useful to organize it well, still.
 
 ❯ Plan accepted, auto mode.
 
+❯ Plan denied:
+> Increase the timeout for slow servers
+
