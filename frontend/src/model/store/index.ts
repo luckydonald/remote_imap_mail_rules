@@ -6,6 +6,7 @@ import { listAccounts, type Account } from '../accounts-api'
 import type { MailContext } from '../fill-from-mail'
 import { ApiError, describeError } from '../http'
 import { useClipboard } from './clipboard'
+import { useMenus } from './menu'
 import { usePrefs } from './prefs'
 import { useRules } from './rules'
 import {
@@ -63,6 +64,7 @@ export const useStore = defineStore('app', () => {
   const prefs = usePrefs()
   const rules = useRules()
   const clipboard = useClipboard(prefs)
+  const menus = useMenus()
   let onUnauthorized: () => void = () => {}
   // The place of the last session, used once by the first loadAccounts().
   let restore = readSaved()
@@ -458,6 +460,7 @@ export const useStore = defineStore('app', () => {
     ...rules,
     ...prefs,
     ...clipboard,
+    ...menus,
     accounts,
     accountId,
     folders,

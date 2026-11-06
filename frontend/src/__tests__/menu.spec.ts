@@ -1,32 +1,32 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useMenuStore } from '@/model/menu'
+import { useStore } from '@/model/store'
 
-describe('useMenuStore', () => {
+describe('menus in the central store', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
   it('closes the open menu when another one opens', () => {
-    const menus = useMenuStore()
-    menus.open('move')
-    menus.open('rule')
-    expect(menus.isOpen('move')).toBe(false)
-    expect(menus.isOpen('rule')).toBe(true)
+    const menus = useStore()
+    menus.openMenu('move')
+    menus.openMenu('rule')
+    expect(menus.isMenuOpen('move')).toBe(false)
+    expect(menus.isMenuOpen('rule')).toBe(true)
   })
 
   it('toggles the open menu closed', () => {
-    const menus = useMenuStore()
-    menus.toggle('rule')
-    expect(menus.isOpen('rule')).toBe(true)
-    menus.toggle('rule')
-    expect(menus.openId).toBeNull()
+    const menus = useStore()
+    menus.toggleMenu('rule')
+    expect(menus.isMenuOpen('rule')).toBe(true)
+    menus.toggleMenu('rule')
+    expect(menus.openMenuId).toBeNull()
   })
 
   it('leaves a different open menu alone when closing by id', () => {
-    const menus = useMenuStore()
-    menus.open('rule')
-    menus.close('move')
-    expect(menus.isOpen('rule')).toBe(true)
-    menus.close()
-    expect(menus.openId).toBeNull()
+    const menus = useStore()
+    menus.openMenu('rule')
+    menus.closeMenu('move')
+    expect(menus.isMenuOpen('rule')).toBe(true)
+    menus.closeMenu()
+    expect(menus.openMenuId).toBeNull()
   })
 })
