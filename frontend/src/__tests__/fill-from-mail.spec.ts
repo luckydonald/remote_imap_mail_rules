@@ -4,6 +4,7 @@ import {
   changeAddress,
   groupsOf,
   conditionFor,
+  describeExpression,
   fillExpression,
   headerSuggestions,
   refillTemplateUse,
@@ -222,6 +223,38 @@ describe('fill from mail', () => {
     })
     expect(appendCondition(when, added, [9]).type).toBe('all')
   })
+
+  it('inserts at an index of the group, clamped to it', () => {
+    const added = newExpression('bool')
+    const a = { ...newExpression('text'), value: 'a' } as Expression
+    const b = { ...newExpression('text'), value: 'b' } as Expression
+    const when: Expression = { type: 'all', conditions: [a, b] }
+    const at = (index: number) =>
+      (appendCondition(when, added, [], index) as { conditions: Expression[] }).conditions
+    expect(at(0)).toEqual([added, a, b])
+    expect(at(1)).toEqual([a, added, b])
+    expect(at(2)).toEqual([a, b, added])
+    expect(at(99)).toEqual([a, b, added])
+    expect(at(-3)).toEqual([added, a, b])
+    const nested: Expression = { type: 'all', conditions: [a, { type: 'any', conditions: [b] }] }
+    const inner = appendCondition(nested, added, [1], 0) as { conditions: Expression[] }
+    expect(inner.conditions[1]).toEqual({ type: 'any', conditions: [added, b] })
+  })
+
+  it('inserts before or after the child of a not, and around a lone condition', () => {
+    const added = newExpression('bool')
+    const leaf = newExpression('text')
+    expect(appendCondition({ type: 'not', condition: leaf }, added, [], 0)).toEqual({
+      type: 'not',
+      condition: { type: 'all', conditions: [added, leaf] },
+    })
+    expect(appendCondition({ type: 'not', condition: leaf }, added, [], 1)).toEqual({
+      type: 'not',
+      condition: { type: 'all', conditions: [leaf, added] },
+    })
+    expect(appendCondition(leaf, added, [], 0)).toEqual({ type: 'all', conditions: [added, leaf] })
+    expect(appendCondition(leaf, added, [], 1)).toEqual({ type: 'all', conditions: [leaf, added] })
+  })
 })
 
 describe('headerSuggestions', () => {
@@ -303,5 +336,48 @@ describe('templateUseFor', () => {
     const use = { type: 'template' as const, ref: 't', variables: { addr: 'typed' } }
     expect(refillTemplateUse(use, 'o', { t: def }, ctx).variables).toEqual({ addr: 'typed' })
     expect(refillTemplateUse(use, 't', { t: def }, null)).toEqual(use)
+  })
+})
+
+describe('describeExpression', () => {
+  it('reads each kind of condition as one line', () => {
+    const text = { ...newExpression('text'), field: 'subject', operator: 'contains', value: 'hi' }
+    expect(describeExpression(text as Expression)).toBe('subject contains "hi"')
+    const address = {
+      ...newExpression('address'),
+      field: 'from',
+      part: 'domain',
+      operator: 'equals',
+      value: 'example.com',
+    }
+    expect(describeExpression(address as Expression)).toBe('from.domain equals "example.com"')
+    expect(describeExpression({ type: 'bool', field: 'seen' })).toBe('seen = true')
+    expect(describeExpression({ type: 'bool', field: 'seen', value: false })).toBe('seen = false')
+    expect(describeExpression({ type: 'presence', header: 'X-Foo' })).toBe('header X-Foo exists')
+    expect(describeExpression({ type: 'presence', field: 'subject', value: false })).toBe(
+      'subject is absent',
+    )
+    expect(
+      describeExpression({ type: 'header', name: 'X-Foo', operator: 'equals', value: 'x' }),
+    ).toBe('header X-Foo equals "x"')
+    expect(describeExpression({ type: 'number', field: 'size', operator: 'gt', value: 5 })).toBe(
+      'size gt 5',
+    )
+    expect(
+      describeExpression({ type: 'template', ref: 'by-sender', variables: { sender: 'a@b.c' } }),
+    ).toBe('template by-sender(sender = "a@b.c")')
+    expect(describeExpression({ type: 'all', conditions: [text as Expression] })).toBe('all of 1')
+    expect(describeExpression({ type: 'not', condition: text as Expression })).toBe('not')
+  })
+
+  it('shows a template variable as its name', () => {
+    expect(
+      describeExpression({
+        type: 'text',
+        field: 'subject',
+        operator: 'equals',
+        value: { var: 'who' },
+      } as unknown as Expression),
+    ).toBe('subject equals {who}')
   })
 })

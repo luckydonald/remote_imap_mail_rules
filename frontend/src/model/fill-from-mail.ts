@@ -351,13 +351,20 @@ export function conditionFor(
  * Without `path` it goes into a root `all`, else the rule and the new condition are wrapped in a new `all`.
  * With a `path` (child indexes from the root, `[]` is the root group itself, `not` has the single child 0) it goes into that group:
  * an `all` / `any` gets it appended, and a `not` gets its child wrapped in an `all` so it stays one condition.
+ * With an `index` as well it is inserted at that position of the group instead of appended (clamped to the group; a `not` has the
+ * positions 0, before its child, and 1, after it; a lone condition wrapped in a new `all` is placed the same way).
  * A path that leads nowhere falls back to no path.
  */
 export function appendCondition(
   when: Expression,
   added: Expression,
   path?: readonly number[],
+  index?: number,
 ): Expression {
+  const place = (list: Expression[]): Expression[] => {
+    const at = index === undefined ? list.length : Math.max(0, Math.min(index, list.length))
+    return [...list.slice(0, at), added, ...list.slice(at)]
+  }
   if (path === undefined) {
     if (when.type === 'all') return { ...when, conditions: [...when.conditions, added] }
     return { type: 'all', conditions: [when, added] }
@@ -365,20 +372,60 @@ export function appendCondition(
   const [step, ...rest] = path
   if (step === undefined) {
     if (when.type === 'all' || when.type === 'any')
-      return { ...when, conditions: [...when.conditions, added] }
+      return { ...when, conditions: place(when.conditions) }
     if (when.type === 'not')
-      return { ...when, condition: { type: 'all', conditions: [when.condition, added] } }
-    return { type: 'all', conditions: [when, added] }
+      return { ...when, condition: { type: 'all', conditions: place([when.condition]) } }
+    return { type: 'all', conditions: place([when]) }
   }
   const child = when.type === 'all' || when.type === 'any' ? when.conditions[step] : undefined
   if ((when.type === 'all' || when.type === 'any') && child) {
     const conditions = [...when.conditions]
-    conditions[step] = appendCondition(child, added, rest)
+    conditions[step] = appendCondition(child, added, rest, index)
     return { ...when, conditions }
   }
   if (when.type === 'not' && step === 0)
-    return { ...when, condition: appendCondition(when.condition, added, rest) }
+    return { ...when, condition: appendCondition(when.condition, added, rest, index) }
   return appendCondition(when, added)
+}
+
+/** A name (field, operator, header) as it reads in a sentence, a template variable as `{name}`. */
+const word = (value: unknown): string => (isVar(value) ? `{${value.var}}` : String(value))
+
+/** A value as it reads in a sentence: strings quoted, a template variable as `{name}`. */
+const shown = (value: unknown): string =>
+  isVar(value)
+    ? `{${value.var}}`
+    : typeof value === 'string'
+      ? JSON.stringify(value)
+      : (JSON.stringify(value) ?? '')
+
+/** A one-line description of an expression, for lists of conditions. Groups are described by their kind and size. */
+export function describeExpression(expr: Expression): string {
+  switch (expr.type) {
+    case 'all':
+    case 'any':
+      return `${expr.type} of ${expr.conditions.length}`
+    case 'not':
+      return 'not'
+    case 'template':
+      return `template ${expr.ref}(${Object.entries(expr.variables)
+        .map(([name, value]) => `${name} = ${shown(value)}`)
+        .join(', ')})`
+    case 'bool':
+      return `${word(expr.field)} = ${word(expr.value ?? true)}`
+    case 'presence': {
+      const target = expr.header !== undefined ? `header ${word(expr.header)}` : word(expr.field)
+      return `${target} ${expr.value === false ? 'is absent' : (expr.operator ?? 'exists')}`
+    }
+    case 'header':
+      return `header ${word(expr.name)} ${word(expr.operator)} ${shown(expr.value)}`
+    case 'address': {
+      const part = expr.part === undefined ? '' : `.${word(expr.part)}`
+      return `${word(expr.field)}${part} ${word(expr.operator)} ${shown(expr.value)}`
+    }
+    default:
+      return `${word(expr.field)} ${word(expr.operator)} ${shown(expr.value)}`
+  }
 }
 
 /** The leaves of a template's content, in order. */
