@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { refillTemplateUse } from '@/model/fill-from-mail'
+import { useMailStore } from '@/model/mail-store'
 import { useStore } from '@/model/store'
 import { parseValue as parse, showValue as show } from '@/model/values'
 import { templateVariables } from '@/model/validate'
@@ -7,6 +9,7 @@ import type { TemplateUse } from '@/model/types'
 
 const model = defineModel<TemplateUse>('node', { required: true })
 const store = useStore()
+const mail = useMailStore()
 
 const names = computed(() => Object.keys(store.file.templates))
 const variables = computed(() => templateVariables(store.file, model.value.ref))
@@ -36,6 +39,13 @@ function keep(key: string, which: 'orphan' | 'target' | 'revert'): void {
     store.resolveOrphan(model.value, key, target, which)
 }
 
+/** Points the use at another template; with an example mail open its variables are filled from it. */
+function changeRef(ref: string): void {
+  if (mail.fillContext)
+    model.value = refillTemplateUse(model.value, ref, store.file.templates, mail.fillContext)
+  else model.value.ref = ref
+}
+
 function set(name: string, event: Event): void {
   const text = (event.target as HTMLInputElement).value
   if (text === '') delete model.value.variables[name]
@@ -47,7 +57,7 @@ function set(name: string, event: Event): void {
   <div class="template-use">
     <label>
       Template
-      <select v-model="model.ref">
+      <select :value="model.ref" @change="changeRef(($event.target as HTMLSelectElement).value)">
         <option v-for="name in names" :key="name" :value="name">{{ name }}</option>
         <option v-if="!names.includes(model.ref)" :value="model.ref">
           {{ model.ref || '(none)' }} (missing)
