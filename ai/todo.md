@@ -79,3 +79,10 @@ To complete one:
 - [x] Adding an account is not immediately reflected in the account list. — `todo:892f49ef-c48d-4744-91c5-b28ca614ae0d` _(done)_
 - [ ] fix Bigsink issues — `todo:420b2ab0-94b6-4181-a233-dd46416379cc`
   > (Create subtasks)
+  - [x] Bugsink REMOTE-IMAP-MAIL-RULES-4/-5: mail browser EXAMINE of `Boxed In/Updates` fails with "nonexistent namespace (prefix INBOX.)" — `todo:6b1a79f8-187a-48e6-bdbe-576c51545427` _(done)_
+    > Issues a03... : 04f/af9 (REMOTE-IMAP-MAIL-RULES-4 and -5), `/api/mail/accounts/{id}/messages` and `.../messages/{uid}`. The browser passes the folder name as given, not resolved through `ImapClient.resolve_folder`.
+  - [ ] Bugsink REMOTE-IMAP-MAIL-RULES-2/-7/-8: TimeoutError / "mail server did not answer in time" (watcher, /api/editor/rules, message fetch) — `todo:8377cbe7-5136-4b98-8bd0-5a517495c160`
+  - [ ] Bugsink REMOTE-IMAP-MAIL-RULES-3/-6: "Task was destroyed but it is pending!" (a task is not awaited or cancelled on shutdown / rules save) — `todo:0775f42d-504f-436e-873e-870afea6b4fa`
+  - [ ] Bugsink REMOTE-IMAP-MAIL-RULES-9: "login failed: NO authentication failed" on /api/mail/accounts/{id}/folders is reported as an error (expected user-config problem, should not be a Sentry event) — `todo:97650feb-165f-4eff-bf6d-71427ae7bcba`
+  - [ ] Bugsink REMOTE-IMAP-MAIL-RULES-1: CancelledError on /api/editor/rules — `todo:d1caceac-5747-42e2-8e47-d4113963d02b`
+  - [ ] Bugsink REMOTE-IMAP-MAIL-RULES-VUE-1: UnhandledRejection "Non-Error promise rejection captured with value: undefined" — `todo:3c2db7b4-c683-46bc-ba31-08c320ffbba3`
