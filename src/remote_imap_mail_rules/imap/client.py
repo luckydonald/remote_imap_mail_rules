@@ -37,9 +37,11 @@ ConnectionFactory = Callable[[ImapSettings], ImapConnection]
 
 def connect_aioimaplib(settings: ImapSettings) -> ImapConnection:
     if settings.imap_ssl:
-        return aioimaplib.IMAP4_SSL(host=settings.imap_host, port=settings.imap_port, ssl_context=ssl.create_default_context())  # type: ignore[return-value]
+        return aioimaplib.IMAP4_SSL(  # type: ignore[return-value]
+            host=settings.imap_host, port=settings.imap_port, timeout=settings.imap_timeout, ssl_context=ssl.create_default_context(),
+        )
     # end if
-    return aioimaplib.IMAP4(host=settings.imap_host, port=settings.imap_port)  # type: ignore[return-value]
+    return aioimaplib.IMAP4(host=settings.imap_host, port=settings.imap_port, timeout=settings.imap_timeout)  # type: ignore[return-value]
 # end def
 
 
