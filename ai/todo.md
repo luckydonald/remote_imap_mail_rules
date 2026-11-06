@@ -46,7 +46,7 @@ To complete one:
 - [x] process the rules from oldest first — `todo:373419c8-c04b-4372-ab82-91652baaaccd` _(done)_
   > - at least attempt as good as possible.
   > - Reason: when moving and then displaying the folder's default sort (last changed?) it currently reverses order
-- [ ] cut & paste rule blocks — `todo:b0b026ed-854d-4de5-a098-067ceffb5536`
+- [x] cut & paste rule blocks — `todo:b0b026ed-854d-4de5-a098-067ceffb5536` _(done)_
   > - cut any block at any level
   >   - includes any sub-blocks
   >   - stores into pinia
@@ -73,3 +73,5 @@ To complete one:
 - [ ] Do not load the email before the folders & mails lists both are loaded. — `todo:dfab6abb-e7ad-41d5-82e9-343040e8b23d`
 - [ ] add reload in folder list & email list of the email viewer — `todo:42311b99-f598-4cd1-ac36-729384bfbccd`
   > - this includes the example viewer of the rules
+- [ ] unwrap button — `todo:13b0300c-4b40-46a5-8ccf-ec53d75f4fa4`
+  > - detete on an wrapping element asks if we should keep the children

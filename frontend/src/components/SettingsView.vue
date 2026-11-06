@@ -50,5 +50,36 @@ const prefs = usePrefsStore()
         Allowed styles are filtered: no imports, no scripted values, nothing fixed over the page.
       </p>
     </section>
+    <h2>Rule editor</h2>
+    <section>
+      <h3>Copy cut blocks to the clipboard</h3>
+      <SegmentedToggle
+        v-model="prefs.copyCut"
+        label="Copy cut blocks to the clipboard"
+        :options="[
+          { value: 'on', label: 'On' },
+          { value: 'off', label: 'Off' },
+        ]"
+      />
+      <p class="hint">
+        A cut block is always kept in the editor. With this on its YAML also goes to the clipboard,
+        which clipboard history managers may record.
+      </p>
+    </section>
+    <section>
+      <h3>Paste from the clipboard</h3>
+      <SegmentedToggle
+        v-model="prefs.readPaste"
+        label="Paste from the clipboard"
+        :options="[
+          { value: 'on', label: 'On' },
+          { value: 'off', label: 'Off' },
+        ]"
+      />
+      <p class="hint">
+        Paste tries the clipboard first and takes the last cut block when it holds no rule block.
+        Browsers may ask for permission to read the clipboard.
+      </p>
+    </section>
   </main>
 </template>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import { useClipboardStore } from '@/model/clipboard'
 import ConditionNode from '../ConditionNode.vue'
 import { newExpression } from '@/model/catalog'
 import { fillExpression } from '@/model/fill-from-mail'
@@ -6,6 +8,8 @@ import { useMailStore } from '@/model/mail-store'
 import type { GroupAll, GroupAny, GroupNot } from '@/model/types'
 
 const mail = useMailStore()
+const clipboard = useClipboardStore()
+const nothing = ref(false)
 const model = defineModel<GroupAll | GroupAny | GroupNot>('node', { required: true })
 
 function add(): void {
@@ -13,6 +17,14 @@ function add(): void {
   const added = newExpression('text')
   // With a mail open the new condition starts from it.
   model.value.conditions.push(mail.fillContext ? fillExpression(added, mail.fillContext) : added)
+}
+
+/** Appends the cut block (or valid YAML from the clipboard) like "+ Add condition" does. */
+async function paste(): Promise<void> {
+  const block = await clipboard.read()
+  nothing.value = block === null
+  const group = model.value
+  if (block && group.type !== 'not') group.conditions.push(block)
 }
 
 function remove(index: number): void {
@@ -36,6 +48,10 @@ function remove(index: number): void {
         @remove="remove(index)"
       />
       <button type="button" class="add" @click="add">+ Add condition</button>
+      <button v-if="clipboard.canPaste" type="button" class="add paste" @click="paste">
+        Paste
+      </button>
+      <span v-if="nothing" class="hint">Nothing to paste.</span>
     </template>
   </div>
 </template>
