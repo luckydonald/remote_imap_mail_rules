@@ -115,3 +115,19 @@ test('the Log link is in the navigation', async ({ page }) => {
   await page.getByRole('link', { name: 'Log', exact: true }).click()
   await expect(page).toHaveURL(/\/log$/)
 })
+
+test('reads the accounts once, they are the store’s shared list', async ({ page }) => {
+  await mockServer(page)
+  let requests = 0
+  await page.route('**/api/accounts', (route) => {
+    requests += 1
+    return route.fallback()
+  })
+  await page.goto('/log')
+  await expect(page.getByLabel('Account')).toContainText('Private')
+  await page.getByRole('link', { name: 'Settings', exact: true }).click()
+  await page.getByRole('link', { name: 'Log', exact: true }).click()
+  await expect(page.locator('.entries li')).toHaveCount(2)
+  await expect(page.getByLabel('Account')).toContainText('Private')
+  expect(requests).toBe(1)
+})
