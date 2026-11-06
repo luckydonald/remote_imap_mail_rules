@@ -866,3 +866,14 @@ Do you want to rename all (16) usages?
 ˋˋˋ
 In all cases above, the `(12)` is an apple style counter badge (not superscript though).
 
+❯ Plan denied:
+> I feel like this should be part of the same pinia store the editor is already using to keep the changes until saving.
+
+❯ Plan denied:
+> Ah, additionally, if we are on the usage side, and we notice a invalid variable name, we should offer to fix that too:
+> Have a dropdown of existing variables to rename it to, and a delete button too, e.g. if you no longer need that version.
+> If that field already exists (it's gonna be rendered from the new template) and is unfilled (empty) still, just filling it into that is fine as rename resolution.
+> If it already contains something, ask which one to keep, a, b, or revert (to the illegal variable as before).
+
+❯ Plan accepted, auto mode.
+

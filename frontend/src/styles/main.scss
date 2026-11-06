@@ -1322,3 +1322,58 @@ button {
     line-height: 1.4;
   }
 }
+
+.count-badge {
+  display: inline-block;
+  min-width: 1.3em;
+  padding: 0 0.4em;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.75em;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.rename-box {
+  position: relative;
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+
+  h4 {
+    margin: 0 0 0.25rem;
+  }
+
+  ul {
+    margin: 0;
+    padding-left: 1.2rem;
+  }
+
+  .close {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+  }
+
+  .buttons button {
+    margin-right: 0.5rem;
+  }
+}
+
+.rename-chip {
+  border: 1px solid var(--danger);
+  border-radius: 999px;
+  color: var(--danger);
+  background: transparent;
+}
+
+.template-use .orphan {
+  margin: 0.25rem 0;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+}
