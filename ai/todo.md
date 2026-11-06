@@ -46,3 +46,30 @@ To complete one:
 - [x] process the rules from oldest first — `todo:373419c8-c04b-4372-ab82-91652baaaccd` _(done)_
   > - at least attempt as good as possible.
   > - Reason: when moving and then displaying the folder's default sort (last changed?) it currently reverses order
+- [ ] cut & paste rule blocks — `todo:b0b026ed-854d-4de5-a098-067ceffb5536`
+  > - cut any block at any level
+  >   - includes any sub-blocks
+  >   - stores into pinia
+  >   - also copies yml to real clipboard
+  >     - user setting to disable
+  >       - it could spam Clipboard history managers
+  > - paste wherever we also can create (add) a new sub-block
+  >   - paste button for that
+  >   - attempts to read user (text/yml) clipboard first
+  >     - user setting to disable
+  >       - in case it's disabled in your browser anyways
+  >       - or it spams paste request prompts you don't want to accept
+- [ ] fix new template not auto-filling from example mail — `todo:98e90741-4a7d-4d83-a9be-7b78680ed135`
+- [ ] _Mail_ > _Rule_: add `Select as example mail` — `todo:181001a3-daac-4ee9-975a-213e5b6d4b11`
+  > - Basically _New rule from this mail_, but don't actually create any new rule.
+  > - put first in drop-down list
+- [ ] Actual picker for _Add to existing rule …_ — `todo:a8a6cdf8-c935-4b71-b19c-898cfb094062`
+  > - currently it is a drop-down which doesn't tell you really were in the rules you are.
+  > - so basically I want a view of the rules having big empty areas on any insert point which can be clicked.
+  > - do that as overlay, and full screen "< back"-able on mobile
+- [ ] in the _Log_ view, list currently working jobs — `todo:ae83447e-1a4c-4dc0-ad2f-c8d3d3ea8b3d`
+  > - under the info box
+- [ ] in the mail viewer allow to see the full headers of a email — `todo:3bc42369-9781-407c-9015-eb699c8d9b56`
+- [ ] Do not load the email before the folders & mails lists both are loaded. — `todo:dfab6abb-e7ad-41d5-82e9-343040e8b23d`
+- [ ] add reload in folder list & email list of the email viewer — `todo:42311b99-f598-4cd1-ac36-729384bfbccd`
+  > - this includes the example viewer of the rules
