@@ -6,6 +6,7 @@ import {
   conditionFor,
   fillExpression,
   headerSuggestions,
+  refillTemplateUse,
   templateUseFor,
   type MailContext,
 } from '@/model/fill-from-mail'
@@ -272,5 +273,35 @@ describe('templateUseFor', () => {
   it('leaves out a variable the mail cannot fill, so the default applies', () => {
     const noName = { ...ctx, detail: { ...detail, sender: { name: '', address: 'x@example.com' } } }
     expect(templateUseFor('t', def, noName).variables).toEqual({ addr: 'x@example.com' })
+  })
+
+  it('fills a new template use through fillExpression when the templates are given', () => {
+    const use = newExpression('template', ['t'])
+    expect(fillExpression(use, ctx, 'address', { t: def })).toEqual({
+      type: 'template',
+      ref: 't',
+      variables: { addr: 'max.muster@example.com', who: 'Max Muster' },
+    })
+    expect(fillExpression(use, ctx)).toEqual(use)
+  })
+
+  it('refills with another template and drops the values of the old one', () => {
+    const other: TemplateDef = {
+      type: 'template',
+      defaults: {},
+      content: { type: 'text', field: 'subject', operator: 'equals', value: { var: 'subj' } },
+    }
+    const use = { type: 'template' as const, ref: 't', variables: { addr: 'typed' } }
+    expect(refillTemplateUse(use, 'o', { t: def, o: other }, ctx)).toEqual({
+      type: 'template',
+      ref: 'o',
+      variables: { subj: 'Hello' },
+    })
+  })
+
+  it('only switches the ref without a mail or an unknown template', () => {
+    const use = { type: 'template' as const, ref: 't', variables: { addr: 'typed' } }
+    expect(refillTemplateUse(use, 'o', { t: def }, ctx).variables).toEqual({ addr: 'typed' })
+    expect(refillTemplateUse(use, 't', { t: def }, null)).toEqual(use)
   })
 })

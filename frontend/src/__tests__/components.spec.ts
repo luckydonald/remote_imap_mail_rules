@@ -10,6 +10,7 @@ import MailLog from '@/components/MailLog.vue'
 import TemplateRenameBox from '@/components/TemplateRenameBox.vue'
 import SourceMenu from '@/components/SourceMenu.vue'
 import { useStore } from '@/model/store'
+import { useMailStore } from '@/model/mail-store'
 import { defineComponent, h, reactive } from 'vue'
 import { ALLOW_VARS } from '@/model/context'
 import type { Expression } from '@/model/types'
@@ -23,6 +24,48 @@ function withStore(child: () => ReturnType<typeof h>) {
   const Host = defineComponent({ setup: () => child })
   return { store, wrapper: mount(Host, { global: { plugins: [pinia] } }) }
 }
+
+describe('template use with an example mail', () => {
+  const when = () =>
+    reactive<Expression>({ type: 'all', conditions: [{ type: 'bool', field: 'seen' }] })
+
+  function openMail(): void {
+    const mail = useMailStore()
+    mail.active = true
+    mail.accountId = 'a'
+    mail.folder = 'INBOX'
+    mail.detail = {
+      subject: 'Hello',
+      sender: { name: 'Max', address: 'max@example.com' },
+      flags: [],
+      attachments: [],
+      headers: [{ name: 'Subject', value: 'Hello' }],
+    } as never
+  }
+
+  function addTemplates(store: ReturnType<typeof useStore>): void {
+    for (const name of ['t1', 't2'])
+      store.file.templates[name] = {
+        type: 'template',
+        defaults: {},
+        content: { type: 'text', field: 'subject', operator: 'equals', value: { var: 'subj' } },
+      } as never
+  }
+
+  it('fills a template use created by changing the type', async () => {
+    const node = when()
+    const { store, wrapper } = withStore(() => h(ConditionNode, { modelValue: node }))
+    addTemplates(store)
+    openMail()
+    const selects = wrapper
+      .findAll('select')
+      .filter((item) => item.find('option[value="template"]').exists())
+    const select = selects[selects.length - 1]!
+    await select.setValue('template')
+    await flushPromises()
+    expect(JSON.stringify(node)).toContain('"subj":"Hello"')
+  })
+})
 
 describe('ConditionNode', () => {
   it('renders nested groups and adds a condition', async () => {

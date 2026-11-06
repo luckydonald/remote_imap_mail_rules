@@ -285,9 +285,12 @@ export function fillExpression(
   expr: Expression,
   ctx: MailContext,
   granularity: Granularity = 'address',
+  templates?: Record<string, TemplateDef>,
 ): Expression {
   const { detail } = ctx
   switch (expr.type) {
+    case 'template':
+      return templates ? refillTemplateUse(expr, expr.ref, templates, ctx) : expr
     case 'text':
       return isVar(expr.field) ? expr : fillText(expr, textValues(ctx, expr.field))
     case 'header':
@@ -402,6 +405,22 @@ export function templateUseFor(ref: string, def: TemplateDef, ctx: MailContext):
     variables[name] = filled.value
   }
   return { type: 'template', ref, variables }
+}
+
+/**
+ * The template use pointing at `ref`, its variables taken from the mail by `templateUseFor`.
+ * Values typed for the old template are dropped, as another template has other variables.
+ * Without a known template the use is returned as it is, with the new `ref`.
+ */
+export function refillTemplateUse(
+  use: TemplateUse,
+  ref: string,
+  templates: Record<string, TemplateDef>,
+  ctx: MailContext | null,
+): TemplateUse {
+  const def = templates[ref]
+  if (!ctx || !def) return { ...use, ref }
+  return { ...use, ...templateUseFor(ref, def, ctx) }
 }
 
 /** The groups of a `when` a condition can be added to, with their path and depth, e.g. to show them as a tree. */

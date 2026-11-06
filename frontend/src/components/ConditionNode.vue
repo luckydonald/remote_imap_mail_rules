@@ -31,7 +31,12 @@ function changeType(type: ExpressionType): void {
   }
   const created = newExpression(type, Object.keys(store.file.templates))
   // With a mail open the new condition starts from it.
-  emit('update:modelValue', mail.fillContext ? fillExpression(created, mail.fillContext) : created)
+  emit(
+    'update:modelValue',
+    mail.fillContext
+      ? fillExpression(created, mail.fillContext, 'address', store.file.templates)
+      : created,
+  )
 }
 
 const fillable = computed(() =>
