@@ -118,10 +118,8 @@ export const useMailStore = defineStore('mail', () => {
     }
   })
 
-  /** Forgets everything of the session, e.g. on log out. */
-  function clear(): void {
-    restore = null
-    accounts.value = []
+  /** Leaves the open account, folder and mail, e.g. when the account is gone. */
+  function resetPlace(): void {
     accountId.value = null
     folders.value = []
     folder.value = null
@@ -131,6 +129,13 @@ export const useMailStore = defineStore('mail', () => {
     detail.value = null
     events.value = []
     selectedUid.value = null
+  }
+
+  /** Forgets everything of the session, e.g. on log out. */
+  function clear(): void {
+    restore = null
+    accounts.value = []
+    resetPlace()
     error.value = ''
     pane.value = 'folders'
     panelOpen.value = false
@@ -168,6 +173,32 @@ export const useMailStore = defineStore('mail', () => {
     } catch (caught) {
       foldersLoading.value = false
       fail('Could not load the accounts', caught)
+    }
+  }
+
+  /**
+   * Reads the accounts again, e.g. after the accounts screen changed them; unlike `loadAccounts` it opens nothing.
+   * `renamed` tells that an account got another id, so the open account follows it instead of being treated as deleted.
+   * Failures other than a login are thrown for the caller to show.
+   */
+  async function refreshAccounts(renamed?: { from: string; to: string }): Promise<void> {
+    let list: Account[]
+    try {
+      list = await listAccounts()
+    } catch (caught) {
+      if (caught instanceof ApiError && caught.status === 401) {
+        onUnauthorized()
+        return
+      }
+      throw caught
+    }
+    accounts.value = list
+    if (renamed && accountId.value === renamed.from) accountId.value = renamed.to
+    if (accountId.value !== null && !list.some((item) => item.id === accountId.value)) {
+      resetPlace()
+      restore = null
+      const first = list[0]
+      if (first) await selectAccount(first.id)
     }
   }
 
@@ -442,6 +473,7 @@ export const useMailStore = defineStore('mail', () => {
     fillDetached,
     fillContext,
     loadAccounts,
+    refreshAccounts,
     selectAccount,
     selectFolder,
     loadMore,

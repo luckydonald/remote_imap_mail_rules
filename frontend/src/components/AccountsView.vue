@@ -4,13 +4,14 @@ import {
   AccountError,
   createAccount,
   deleteAccount,
-  listAccounts,
   updateAccount,
   type Account,
   type AccountInput,
 } from '@/model/accounts-api'
+import { useMailStore } from '@/model/mail-store'
 
-const accounts = ref<Account[]>([])
+// The list is the mail browser's, so the account picker there follows every change made here.
+const mail = useMailStore()
 const message = ref('')
 const loading = ref(true)
 /** `null` is closed, `'new'` adds, an id edits. */
@@ -38,9 +39,9 @@ function describe(error: unknown): string {
       : String(error)
 }
 
-async function load(): Promise<void> {
+async function load(renamed?: { from: string; to: string }): Promise<void> {
   try {
-    accounts.value = await listAccounts()
+    await mail.refreshAccounts(renamed)
   } catch (error) {
     message.value = `Could not load the accounts: ${describe(error)}`
   } finally {
@@ -74,11 +75,16 @@ const UUID_PATTERN = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4
 
 async function submit(): Promise<void> {
   try {
+    let renamed: { from: string; to: string } | undefined
     if (editing.value === 'new') await createAccount(form.value)
-    else if (editing.value) await updateAccount(editing.value, form.value)
+    else if (editing.value) {
+      const from = editing.value
+      const updated = await updateAccount(from, form.value)
+      if (updated.id !== from) renamed = { from, to: updated.id }
+    }
     editing.value = null
     message.value = 'Saved.'
-    await load()
+    await load(renamed)
   } catch (error) {
     message.value = `Not saved: ${describe(error)}`
   }
@@ -107,8 +113,8 @@ onMounted(() => void load())
       <button type="button" class="add" @click="add">Add account</button>
     </header>
     <p v-if="message" class="message" @click="message = ''">{{ message }}</p>
-    <p v-if="!loading && accounts.length === 0" class="hint">No accounts yet.</p>
-    <article v-for="account in accounts" :key="account.id" class="account">
+    <p v-if="!loading && mail.accounts.length === 0" class="hint">No accounts yet.</p>
+    <article v-for="account in mail.accounts" :key="account.id" class="account">
       <header class="row">
         <strong>{{ account.name }}</strong>
         <span class="mono">{{ account.username }}@{{ account.host }}:{{ account.port }}</span>

@@ -28,13 +28,16 @@ const mail = (uid: number): Summary => ({
 })
 
 /** Routes by URL, so the order of the store's requests does not matter. */
-function stubServer(unauthorized = false): ReturnType<typeof vi.fn<typeof fetch>> {
+function stubServer(
+  unauthorized = false,
+  accounts: { id: string; name: string }[] = [ACCOUNT],
+): ReturnType<typeof vi.fn<typeof fetch>> {
   const fetchMock = vi.fn<typeof fetch>().mockImplementation((input) => {
     const url = String(input)
     const json = (body: unknown, status = 200): Promise<Response> =>
       Promise.resolve(new Response(JSON.stringify(body), { status }))
     if (unauthorized) return json({ detail: 'Not logged in.' }, 401)
-    if (url === '/api/accounts') return json([ACCOUNT])
+    if (url === '/api/accounts') return json(accounts)
     if (url.endsWith('/folders'))
       return json([
         folder('INBOX', { special_use: 'inbox' }),
@@ -250,5 +253,92 @@ describe('mail store writes', () => {
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes('remote_images=true'))).toBe(
       true,
     )
+  })
+
+  describe('refreshAccounts', () => {
+    const SECOND = { id: 'acc2', name: 'Work' }
+    const requests = (fetchMock: ReturnType<typeof stubServer>): string[] =>
+      fetchMock.mock.calls.map(([url]) => String(url))
+
+    it('replaces the list without opening anything', async () => {
+      const accounts = [ACCOUNT]
+      const fetchMock = stubServer(false, accounts)
+      const store = useMailStore()
+      accounts.push(SECOND)
+      await store.refreshAccounts()
+      expect(store.accounts.map((item) => item.id)).toEqual(['acc', 'acc2'])
+      expect(store.accountId).toBeNull()
+      expect(requests(fetchMock)).toEqual(['/api/accounts'])
+    })
+
+    it('keeps the open place while its account is still listed', async () => {
+      const accounts = [ACCOUNT]
+      stubServer(false, accounts)
+      const store = useMailStore()
+      await store.loadAccounts()
+      await store.openMessage(3)
+      accounts.push(SECOND)
+      await store.refreshAccounts()
+      expect(store.accounts).toHaveLength(2)
+      expect([store.accountId, store.folder, store.selectedUid]).toEqual(['acc', 'INBOX', 3])
+    })
+
+    it('follows a renamed open account and keeps folder, list and mail', async () => {
+      const accounts = [ACCOUNT]
+      const fetchMock = stubServer(false, accounts)
+      const store = useMailStore()
+      await store.loadAccounts()
+      await store.openMessage(3)
+      accounts[0] = { id: 'new', name: 'Private' }
+      const before = fetchMock.mock.calls.length
+      await store.refreshAccounts({ from: 'acc', to: 'new' })
+      expect([store.accountId, store.folder, store.selectedUid]).toEqual(['new', 'INBOX', 3])
+      expect(store.messages.map((item) => item.uid)).toEqual([3, 2])
+      expect(requests(fetchMock).slice(before)).toEqual(['/api/accounts'])
+    })
+
+    it('leaves the open account alone when another one is renamed', async () => {
+      const accounts = [ACCOUNT, SECOND]
+      stubServer(false, accounts)
+      const store = useMailStore()
+      await store.loadAccounts()
+      accounts[1] = { id: 'new', name: 'Work' }
+      await store.refreshAccounts({ from: 'acc2', to: 'new' })
+      expect(store.accountId).toBe('acc')
+      expect(store.folder).toBe('INBOX')
+    })
+
+    it('moves to the first remaining account when the open one is gone', async () => {
+      const accounts = [ACCOUNT, SECOND]
+      stubServer(false, accounts)
+      const store = useMailStore()
+      await store.loadAccounts()
+      accounts.shift()
+      await store.refreshAccounts()
+      expect(store.accountId).toBe('acc2')
+      expect(store.folder).toBe('INBOX')
+    })
+
+    it('opens nothing when the last account is gone', async () => {
+      const accounts = [ACCOUNT]
+      stubServer(false, accounts)
+      const store = useMailStore()
+      await store.loadAccounts()
+      accounts.length = 0
+      await store.refreshAccounts()
+      expect(store.accounts).toEqual([])
+      expect([store.accountId, store.folder, store.detail]).toEqual([null, null, null])
+    })
+
+    it('reports a login to the handler and throws other errors', async () => {
+      stubServer(true)
+      const store = useMailStore()
+      const unauthorized = vi.fn<() => void>()
+      store.setUnauthorizedHandler(unauthorized)
+      await store.refreshAccounts()
+      expect(unauthorized).toHaveBeenCalledOnce()
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')))
+      await expect(store.refreshAccounts()).rejects.toThrow('offline')
+    })
   })
 })

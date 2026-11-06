@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { ACCOUNT_ID, logIn, mockServer as mockMailServer } from './mail-mock'
 
 interface Mock {
   requests: { method: string; body: unknown }[]
@@ -95,4 +96,66 @@ test('shows why an account cannot be deleted', async ({ page }) => {
   await page.getByRole('button', { name: 'Really delete' }).click()
   await expect(page.locator('.message')).toContainText('Not deleted: Still used by the rule: Newsletters')
   await expect(page.locator('.account')).toHaveCount(1)
+})
+
+/** The mail mock plus an account endpoint that follows creates and id changes; later routes win over the mock's own. */
+const mockMailWithAccounts = async (page: Page): Promise<void> => {
+  await mockMailServer(page)
+  let accounts = [{ ...ACCOUNT, id: ACCOUNT_ID, env_differs: [] as string[] }]
+  await page.route('**/api/accounts**', async (route) => {
+    const request = route.request()
+    const body = request.postData() ? JSON.parse(request.postData()!) : null
+    if (request.method() === 'POST') {
+      accounts = [...accounts, { ...ACCOUNT, ...body, id: '22222222-2222-4333-8444-555555555555', env_differs: [] }]
+      return route.fulfill({ status: 201, json: accounts.at(-1) })
+    }
+    if (request.method() === 'PUT') {
+      const target = request.url().split('/').pop()
+      accounts = accounts.map((a) => (a.id === target ? { ...a, ...body, id: body.id ?? a.id } : a))
+      return route.fulfill({ json: accounts.find((a) => a.id === (body.id ?? target)) })
+    }
+    return route.fulfill({ json: accounts })
+  })
+}
+
+test('an added account shows in the mail screen picker', async ({ page }) => {
+  await mockMailWithAccounts(page)
+  await page.goto('/')
+  await logIn(page)
+  await page.getByRole('link', { name: 'Mail', exact: true }).click()
+  await expect(page.locator('.row-mail')).toHaveCount(2)
+  await expect(page.locator('.account-pick')).toHaveCount(0)
+
+  await page.getByRole('link', { name: 'Accounts' }).click()
+  await page.getByRole('button', { name: 'Add account' }).click()
+  await page.locator('input[name=name]').fill('Work')
+  await page.locator('input[name=host]').fill('imap.work.example')
+  await page.locator('input[name=username]').fill('me@work.example')
+  await page.locator('input[name=password]').fill('secret')
+  await page.locator('.account-form').getByRole('button', { name: 'Save' }).click()
+  await expect(page.locator('.account')).toHaveCount(2)
+
+  await page.getByRole('link', { name: 'Mail', exact: true }).click()
+  await expect(page.locator('.account-pick option')).toHaveCount(2)
+})
+
+test('the open mail account follows a changed id', async ({ page }) => {
+  const renamed = '11111111-2222-4333-8444-555555555555'
+  await mockMailWithAccounts(page)
+  await page.goto('/')
+  await logIn(page)
+  await page.getByRole('link', { name: 'Mail', exact: true }).click()
+  await expect(page.locator('.row-mail')).toHaveCount(2)
+  await page.locator('.row-mail', { hasText: 'Subject 3' }).click()
+  await expect(page).toHaveURL(new RegExp(ACCOUNT_ID))
+
+  await page.getByRole('link', { name: 'Accounts' }).click()
+  await page.locator('.account').first().getByRole('button', { name: 'Edit' }).click()
+  await page.locator('input[name=id]').fill(renamed)
+  await page.locator('.account-form').getByRole('button', { name: 'Save' }).click()
+  await expect(page.locator('.account .hint')).toHaveText(renamed)
+
+  await page.getByRole('link', { name: 'Mail', exact: true }).click()
+  await expect(page).toHaveURL(new RegExp(`${renamed}/INBOX/3`))
+  await expect(page.locator('.mail-message h2')).toHaveText('Subject 3')
 })

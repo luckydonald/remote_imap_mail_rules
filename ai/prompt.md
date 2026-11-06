@@ -921,3 +921,10 @@ In all cases above, the `(12)` is an apple style counter badge (not superscript 
 
 ❯ I believe the account page should also use the `useMailStore().accounts`, no need to duplicate them. Then it should reload them properly.
 
+❯ Plan denied:
+> A rename of the current account properly reselects the account
+
+❯ Plan accepted, auto mode.
+
+❯ Fix [`ai/prompt.md`](./prompt.md) having lost lines.
+
