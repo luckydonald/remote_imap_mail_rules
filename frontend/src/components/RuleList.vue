@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useStore } from '@/model/store/rules'
+import { useStore } from '@/model/store'
 
 const store = useStore()
 

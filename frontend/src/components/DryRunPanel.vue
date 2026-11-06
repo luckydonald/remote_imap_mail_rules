@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import MailSpinner from './MailSpinner.vue'
-import { useStore } from '@/model/store/rules'
+import { useStore } from '@/model/store'
 import {
   describeStep,
   dryRun,
@@ -14,13 +14,11 @@ import {
   type SummaryRow,
 } from '@/model/dry-run'
 import { describeError } from '@/model/http'
-import { useMailStore } from '@/model/store'
 import { locationOfMail } from '@/router'
 import type { Rule } from '@/model/types'
 
 const props = defineProps<{ rule: Rule }>()
 const store = useStore()
-const mail = useMailStore()
 
 /** What the pages so far add up to. */
 interface Totals {
@@ -56,7 +54,7 @@ const noopCount = computed(() =>
 
 /** Why "Run now" is not offered, `''` when it is. */
 const blocked = computed(() => {
-  if (!mail.actionsEnabled)
+  if (!store.actionsEnabled)
     return 'The server is currently not applying rules (ACTIONS_ENABLED is off). This is a dry run only.'
   if (store.dirty) return 'Save the rule first, "Run now" works on the saved rules.'
   return ''

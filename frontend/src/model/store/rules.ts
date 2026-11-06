@@ -1,4 +1,3 @@
-import { defineStore } from 'pinia'
 import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { templateVariables, validateRules } from '../validate'
 import { parseRulesWithComments, stringifyRules } from '../yaml-io'
@@ -61,8 +60,8 @@ export function newRule(): Rule {
   }
 }
 
-/** The rule editor's document and its history, one per app (a Pinia setup store, so unwrapped refs: `store.view`, not `store.view.value`). */
-export const useStore = defineStore('rules', () => {
+/** The rule editor's document and its history. Part of the central store (`useStore` in `index.ts`), so its refs come unwrapped: `store.view`, not `store.view.value`. */
+export function useRules() {
   const file = reactive<RuleFile>(emptyFile())
   const view = ref<View>({ kind: 'yaml' })
   const fileName = ref('rules.yml')
@@ -493,6 +492,4 @@ export const useStore = defineStore('rules', () => {
     usesOf,
     renameTemplate,
   }
-})
-
-export type Store = ReturnType<typeof useStore>
+}

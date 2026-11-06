@@ -9,8 +9,7 @@ import FieldValue from '@/components/FieldValue.vue'
 import MailLog from '@/components/MailLog.vue'
 import TemplateRenameBox from '@/components/TemplateRenameBox.vue'
 import SourceMenu from '@/components/SourceMenu.vue'
-import { useStore } from '@/model/store/rules'
-import { useMailStore } from '@/model/store'
+import { useStore } from '@/model/store'
 import { defineComponent, h, reactive } from 'vue'
 import { ALLOW_VARS } from '@/model/context'
 import type { Expression } from '@/model/types'
@@ -30,7 +29,7 @@ describe('template use with an example mail', () => {
     reactive<Expression>({ type: 'all', conditions: [{ type: 'bool', field: 'seen' }] })
 
   function openMail(): void {
-    const mail = useMailStore()
+    const mail = useStore()
     mail.active = true
     mail.accountId = 'a'
     mail.folder = 'INBOX'

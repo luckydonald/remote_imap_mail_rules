@@ -15,12 +15,10 @@ import TemplatesView from './TemplatesView.vue'
 import YamlPanel from './YamlPanel.vue'
 import { fetchConfig, fetchRules, saveRules, SaveError } from '@/model/api'
 import { logout } from '@/model/mail-api'
-import { useMailStore } from '@/model/store'
-import { useStore } from '@/model/store/rules'
+import { useStore } from '@/model/store'
 import { locationOfView, viewOfRoute } from '@/router'
 
 const store = useStore()
-const mail = useMailStore()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const notice = ref('')
@@ -66,14 +64,14 @@ async function connect(): Promise<void> {
   if (config === 'login') {
     loginRequired.value = true
     online.value = false
-    mail.active = false
+    store.active = false
     return
   }
   if (!config) return
   loginRequired.value = false
   online.value = true
-  mail.active = true
-  mail.actionsEnabled = config.actions_enabled === true
+  store.active = true
+  store.actionsEnabled = config.actions_enabled === true
   const label = config.file_name ?? 'the database'
   store.backend = { kind: config.source, name: config.file_name }
   try {
@@ -98,8 +96,8 @@ async function loggedIn(): Promise<void> {
 async function logOut(): Promise<void> {
   await logout()
   online.value = false
-  mail.active = false
-  mail.clear()
+  store.active = false
+  store.clear()
   loginRequired.value = true
   void router.push(locationOfView(store.view))
 }
@@ -236,9 +234,9 @@ onBeforeUnmount(() => {
         v-if="online && screen === 'rules'"
         type="button"
         class="ghost mail-toggle"
-        :class="{ current: mail.panelOpen }"
+        :class="{ current: store.panelOpen }"
         title="Show a mail beside the rule to fill conditions from it"
-        @click="mail.panelOpen = !mail.panelOpen"
+        @click="store.panelOpen = !store.panelOpen"
       >
         Example mail
       </button>
@@ -294,7 +292,7 @@ onBeforeUnmount(() => {
     <SettingsView v-else-if="screen === 'settings'" />
     <AccountsView v-else-if="screen === 'accounts'" />
     <GitView v-else-if="screen === 'git'" />
-    <div v-else class="body" :class="{ 'with-mail': online && mail.panelOpen }">
+    <div v-else class="body" :class="{ 'with-mail': online && store.panelOpen }">
       <RuleList />
       <main>
         <RuleEditor
@@ -306,8 +304,8 @@ onBeforeUnmount(() => {
         <TemplatesView v-else-if="store.view.kind === 'templates'" />
         <YamlPanel v-else />
       </main>
-      <aside v-if="online && mail.panelOpen" class="mail-panel">
-        <MailView compact @unauthorized="logOut" @close="mail.panelOpen = false" />
+      <aside v-if="online && store.panelOpen" class="mail-panel">
+        <MailView compact @unauthorized="logOut" @close="store.panelOpen = false" />
       </aside>
     </div>
     <div v-if="dragging" class="drop">Drop a rules file to open it</div>

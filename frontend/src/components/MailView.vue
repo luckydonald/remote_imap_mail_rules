@@ -4,13 +4,13 @@ import { useRoute, useRouter } from 'vue-router'
 import MailFolders from './MailFolders.vue'
 import MailList from './MailList.vue'
 import MailMessage from './MailMessage.vue'
-import { useMailStore, type Place } from '@/model/store'
+import { useStore, type Place } from '@/model/store'
 import { locationOfMail, mailPlaceOfRoute } from '@/router'
 
 const props = defineProps<{ compact?: boolean }>()
 const emit = defineEmits<{ unauthorized: []; close: [] }>()
 
-const store = useMailStore()
+const store = useStore()
 
 store.setUnauthorizedHandler(() => emit('unauthorized'))
 
@@ -77,9 +77,9 @@ onMounted(async () => {
       >
         No accounts yet, add one on the Accounts screen.
       </p>
-      <MailFolders :store="store" />
-      <MailList :store="store" />
-      <MailMessage :store="store" :compact="compact" />
+      <MailFolders />
+      <MailList />
+      <MailMessage :compact="compact" />
     </div>
   </div>
 </template>

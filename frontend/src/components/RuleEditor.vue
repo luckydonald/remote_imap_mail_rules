@@ -5,15 +5,13 @@ import ConditionNode from './ConditionNode.vue'
 import FieldValue from './FieldValue.vue'
 import DryRunPanel from './DryRunPanel.vue'
 import LocationsEditor from './LocationsEditor.vue'
-import { useStore } from '@/model/store/rules'
+import { useStore } from '@/model/store'
 import MailChip from './MailChip.vue'
-import { useMailStore } from '@/model/store'
 import type { Rule } from '@/model/types'
 
 const model = defineModel<Rule>('rule', { required: true })
 const props = defineProps<{ index: number }>()
 const store = useStore()
-const mail = useMailStore()
 
 const problems = computed(() => store.problems.filter((problem) => problem.rule === props.index))
 
@@ -35,7 +33,7 @@ function setDescription(text: string): void {
         <code>{{ problem.path }}</code> {{ problem.message }}
       </li>
     </ul>
-    <MailChip v-if="mail.fillContext" />
+    <MailChip v-if="store.fillContext" />
     <div class="row">
       <input v-model="model.name" class="title" placeholder="Rule name" aria-label="Rule name" />
       <FieldValue v-model="model.enabled" :fallback="true">
@@ -56,6 +54,6 @@ function setDescription(text: string): void {
     <ConditionNode v-model="model.when" />
     <h3>Then</h3>
     <ActionsEditor :actions="actions()" />
-    <DryRunPanel v-if="mail.active" :rule="model" />
+    <DryRunPanel v-if="store.active" :rule="model" />
   </section>
 </template>

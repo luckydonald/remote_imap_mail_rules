@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { addressFields, boolFields, dateFields, numberFields, textFields } from '@/model/catalog'
-import { useStore } from '@/model/store/rules'
+import { useStore } from '@/model/store'
 import {
   appendCondition,
   conditionFor,

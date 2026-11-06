@@ -6,7 +6,7 @@ import MailFolderTree from '@/components/MailFolderTree.vue'
 import SegmentedToggle from '@/components/SegmentedToggle.vue'
 import type { Folder } from '@/model/mail-api'
 import { framePolicy } from '@/model/mail-format'
-import { useMailStore } from '@/model/store'
+import { useStore } from '@/model/store'
 
 const folder = (name: string, extra: Partial<Folder> = {}): Folder => ({
   name,
@@ -79,7 +79,7 @@ describe('framePolicy', () => {
 describe('MailChip', () => {
   it('shows the subject of the mail to fill from and drops it with the ×', async () => {
     setActivePinia(createPinia())
-    const mail = useMailStore()
+    const mail = useStore()
     mail.active = true
     mail.accountId = 'a'
     mail.folder = 'INBOX'
