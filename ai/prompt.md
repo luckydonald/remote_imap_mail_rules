@@ -897,3 +897,7 @@ In all cases above, the `(12)` is an apple style counter badge (not superscript 
 
 ❯ Plan accepted, auto mode.
 
+❯ [/todo-loop](./skills/todo-loop/SKILL.md) without sync or MCP
+
+❯ Plan accepted, auto mode.
+

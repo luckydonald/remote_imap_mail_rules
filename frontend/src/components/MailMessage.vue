@@ -106,6 +106,15 @@ const unreadLabel = computed(() => (props.store.detail?.seen ? 'Mark unread' : '
         <dt>Date</dt>
         <dd>{{ fullDate(store.detail.date) }}</dd>
       </dl>
+      <details :key="store.detail.uid" class="all-headers">
+        <summary>All headers ({{ store.detail.headers.length }})</summary>
+        <dl>
+          <template v-for="(header, index) in store.detail.headers" :key="index">
+            <dt>{{ header.name }}</dt>
+            <dd>{{ header.value }}</dd>
+          </template>
+        </dl>
+      </details>
       <MailAddCondition v-if="compact && store.context" :context="store.context" />
       <ul v-if="store.detail.attachments.some((item) => !item.inline)" class="attachments">
         <li v-for="item in store.detail.attachments.filter((a) => !a.inline)" :key="item.part">
