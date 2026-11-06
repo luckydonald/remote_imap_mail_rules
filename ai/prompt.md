@@ -847,3 +847,22 @@ This includes the directory for rules and the SQLight database
 
 ❯ While the editor has changes, prevent accidental window/tab close
 
+❯ When renaming the variables of a template in the gui editor, make sure to track that.
+Specifically, do not yet rename every dependent, but add a red box with
+ˋˋˋhtml
+<h>Renaming variable</h>
+<code‎>blah</code> → <code>foobar</code>
+Do you want to rename (12) usages?
+<kbd>Yes</kbd> <kbd>No</kbd>
+ˋˋˋ
+The _No_ button, or the `x` in the top right of the box collapses the box down to a chip saying `( ▾ rename (12) )`.
+The version for multiple renamed variables would be:
+ˋˋˋhtml
+<h>Renaming variables</h>
+ • <code‎>blah</code> → <code>foobar</code> (12) <kbd>✓</kbd>
+ • <code‎>baty</code> → <code>batz</code> (4) <kbd>✓</kbd>
+Do you want to rename all (16) usages?
+<kbd>Yes</kbd> <kbd>No</kbd>
+ˋˋˋ
+In all cases above, the `(12)` is an apple style counter badge (not superscript though).
+
