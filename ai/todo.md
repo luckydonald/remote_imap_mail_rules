@@ -60,18 +60,22 @@ To complete one:
   >       - in case it's disabled in your browser anyways
   >       - or it spams paste request prompts you don't want to accept
 - [x] fix new template not auto-filling from example mail — `todo:98e90741-4a7d-4d83-a9be-7b78680ed135` _(done)_
-- [x] _Mail_ > _Rule_: add `Select as example mail` — `todo:181001a3-daac-4ee9-975a-213e5b6d4b11`
+- [x] _Mail_ > _Rule_: add `Select as example mail` — `todo:181001a3-daac-4ee9-975a-213e5b6d4b11` _(done)_
   > - Basically _New rule from this mail_, but don't actually create any new rule.
   > - put first in drop-down list
-- [x] Actual picker for _Add to existing rule …_ — `todo:a8a6cdf8-c935-4b71-b19c-898cfb094062`
+- [x] Actual picker for _Add to existing rule …_ — `todo:a8a6cdf8-c935-4b71-b19c-898cfb094062` _(done)_
   > - currently it is a drop-down which doesn't tell you really were in the rules you are.
   > - so basically I want a view of the rules having big empty areas on any insert point which can be clicked.
   > - do that as overlay, and full screen "< back"-able on mobile
-- [x] in the _Log_ view, list currently working jobs — `todo:ae83447e-1a4c-4dc0-ad2f-c8d3d3ea8b3d`
+- [x] in the _Log_ view, list currently working jobs — `todo:ae83447e-1a4c-4dc0-ad2f-c8d3d3ea8b3d` _(done)_
   > - under the info box
-- [x] in the mail viewer allow to see the full headers of a email — `todo:3bc42369-9781-407c-9015-eb699c8d9b56`
-- [x] Do not load the email before the folders & mails lists both are loaded. — `todo:dfab6abb-e7ad-41d5-82e9-343040e8b23d`
-- [x] add reload in folder list & email list of the email viewer — `todo:42311b99-f598-4cd1-ac36-729384bfbccd`
+- [x] in the mail viewer allow to see the full headers of a email — `todo:3bc42369-9781-407c-9015-eb699c8d9b56` _(done)_
+- [x] Do not load the email before the folders & mails lists both are loaded. — `todo:dfab6abb-e7ad-41d5-82e9-343040e8b23d` _(done)_
+- [x] add reload in folder list & email list of the email viewer — `todo:42311b99-f598-4cd1-ac36-729384bfbccd` _(done)_
   > - this includes the example viewer of the rules
-- [ ] unwrap button — `todo:13b0300c-4b40-46a5-8ccf-ec53d75f4fa4`
+- [x] unwrap button — `todo:13b0300c-4b40-46a5-8ccf-ec53d75f4fa4` _(done)_
   > - detete on an wrapping element asks if we should keep the children
+- [ ] Mail viewer: The dropdown menus overlap and don't close each other — `todo:e5b32090-adbc-4b99-9dd6-7b990a41ebdf`
+- [ ] Adding an account is not immediately reflected in the account list. — `todo:892f49ef-c48d-4744-91c5-b28ca614ae0d`
+- [ ] fix Bigsink issues — `todo:420b2ab0-94b6-4181-a233-dd46416379cc`
+  > (Create subtasks)

@@ -265,3 +265,24 @@ test('asks before renaming a template variable in its uses', async ({ page }) =>
   await page.locator('.rule-list').getByText('YAML', { exact: true }).click()
   await expect(page.getByLabel('YAML')).toHaveValue(/renamed_var/)
 })
+
+test('unwraps a group, and asks before removing one with children', async ({ page }) => {
+  await page.getByRole('button', { name: 'New', exact: true }).click()
+  await page.getByRole('button', { name: '+ New rule' }).click()
+  await page.getByTitle('Wrap in ALL (AND)').click()
+  await expect(page.locator('.node-all')).toHaveCount(1)
+
+  // The root group holds one condition, so it can be unwrapped.
+  await page.getByRole('button', { name: '⤴ Unwrap' }).click()
+  await expect(page.locator('.node-all')).toHaveCount(0)
+  await expect(page.locator('.node-text')).toHaveCount(1)
+
+  // Wrap twice, then removing the inner group asks.
+  await page.getByTitle('Wrap in ALL (AND)').click()
+  await page.getByTitle('Wrap in ANY (OR)').last().click()
+  await expect(page.locator('.node-any')).toHaveCount(1)
+  await page.locator('.node-any > .node-bar button.danger').click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Keep the children' }).click()
+  await expect(page.locator('.node-any')).toHaveCount(0)
+  await expect(page.locator('.node-text')).toHaveCount(1)
+})
