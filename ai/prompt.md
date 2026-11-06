@@ -917,3 +917,7 @@ In all cases above, the `(12)` is an apple style counter badge (not superscript 
 
 ❯ Plan accepted, auto mode.
 
+❯ Is `useMailStore().accounts` used by the account view, and does it properly update after submit?
+
+❯ I believe the account page should also use the `useMailStore().accounts`, no need to duplicate them. Then it should reload them properly.
+
