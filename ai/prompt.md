@@ -913,3 +913,7 @@ In all cases above, the `(12)` is an apple style counter badge (not superscript 
 
 ❯ Plan accepted, auto mode.
 
+❯ Add this project to `sync_todos.local.json`
+
+❯ Plan accepted, auto mode.
+

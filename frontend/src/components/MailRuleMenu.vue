@@ -13,6 +13,7 @@ import {
 } from '@/model/fill-from-mail'
 import { personLabel } from '@/model/mail-format'
 import { useMailStore } from '@/model/mail-store'
+import { useMenu } from '@/model/menu'
 import { useStore } from '@/model/store'
 import { locationOfView } from '@/router'
 import RuleInsertPicker from './RuleInsertPicker.vue'
@@ -22,7 +23,8 @@ const rules = useStore()
 const mail = useMailStore()
 const router = useRouter()
 
-const open = ref(false)
+const root = ref<HTMLElement | null>(null)
+const open = useMenu('rule', root)
 const dialog = ref(false)
 const field = ref('from')
 const granularity = ref<Granularity>('address')
@@ -86,7 +88,7 @@ function addTo(place: { ruleIndex: number; path: number[]; index: number }): voi
 </script>
 
 <template>
-  <div class="menu" @keydown.esc="open = false">
+  <div ref="root" class="menu">
     <button
       type="button"
       class="ghost"

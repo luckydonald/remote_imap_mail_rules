@@ -240,6 +240,21 @@ test('moves the mail to a destination of the rules', async ({ page }) => {
   await expect(page.locator('.row-mail')).toHaveCount(1)
 })
 
+test('only one dropdown menu is open, and a click outside closes it', async ({ page }) => {
+  await mockServer(page, false, MOVE_RULES)
+  await openThird(page)
+  await page.getByRole('button', { name: 'Move ▾' }).click()
+  await expect(page.locator('.menu-pop')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Rule ▾' }).click()
+  await expect(page.locator('.menu-pop')).toHaveCount(1)
+  await expect(page.getByRole('menuitem', { name: 'New rule from this mail' })).toBeVisible()
+  await page.locator('.mail-message').click({ position: { x: 5, y: 300 } })
+  await expect(page.locator('.menu-pop')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Move ▾' }).click()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('.menu-pop')).toHaveCount(0)
+})
+
 test('moves the mail to a folder picked in the tree under More', async ({ page }) => {
   const calls = await mockServer(page)
   await openThird(page)

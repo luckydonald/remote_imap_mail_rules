@@ -2,13 +2,15 @@
 /** `Move ▾`: the move targets the rules already use come first, `More …` opens the folder tree. */
 import { computed, ref } from 'vue'
 import type { MailStore } from '@/model/mail-store'
+import { useMenu } from '@/model/menu'
 import { useStore } from '@/model/store'
 import MailFolderTree from './MailFolderTree.vue'
 
 const props = defineProps<{ store: MailStore }>()
 const rules = useStore()
 
-const open = ref(false)
+const root = ref<HTMLElement | null>(null)
+const open = useMenu('move', root)
 const tree = ref(false)
 
 /** The folders that move actions of the rules point to, for this account and this folder's neighbours, most used first. */
@@ -39,7 +41,7 @@ async function move(name: string): Promise<void> {
 </script>
 
 <template>
-  <div class="menu" @keydown.esc="open = false">
+  <div ref="root" class="menu">
     <button
       type="button"
       class="ghost"
