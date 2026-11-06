@@ -63,7 +63,7 @@ To complete one:
 - [x] _Mail_ > _Rule_: add `Select as example mail` — `todo:181001a3-daac-4ee9-975a-213e5b6d4b11`
   > - Basically _New rule from this mail_, but don't actually create any new rule.
   > - put first in drop-down list
-- [ ] Actual picker for _Add to existing rule …_ — `todo:a8a6cdf8-c935-4b71-b19c-898cfb094062`
+- [x] Actual picker for _Add to existing rule …_ — `todo:a8a6cdf8-c935-4b71-b19c-898cfb094062`
   > - currently it is a drop-down which doesn't tell you really were in the rules you are.
   > - so basically I want a view of the rules having big empty areas on any insert point which can be clicked.
   > - do that as overlay, and full screen "< back"-able on mobile

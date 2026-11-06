@@ -351,7 +351,54 @@ test('adds a template use to an existing rule with the variable filled from the 
   await page.getByRole('menuitem', { name: 'Add to existing rule …' }).click()
   await page.getByLabel('Kind of condition').selectOption('template')
   await expect(page.locator('.template-fill')).toContainText('sender = s3@example.com')
-  await page.locator('.add-condition').click()
+  await page.locator('.insert-point').last().click()
   await expect(page).toHaveURL(/\/rules\/0$/)
   await expect(page.locator('.rule-editor')).toContainText('by-sender')
+})
+
+const TWO_CONDITIONS = `rules:
+  - name: two conditions
+    locations:
+      - account_id: ${ACCOUNT_ID}
+        folder: INBOX
+    when:
+      type: all
+      conditions:
+        - type: bool
+          field: seen
+        - type: bool
+          field: flagged
+`
+
+test('inserts the condition at the clicked place between two others', async ({ page }) => {
+  await mockServer(page, false, TWO_CONDITIONS)
+  await openThird(page)
+  await page.getByRole('button', { name: 'Rule ▾' }).click()
+  await page.getByRole('menuitem', { name: 'Add to existing rule …' }).click()
+  await page.getByRole('combobox', { name: 'Field' }).selectOption('subject')
+  await page
+    .getByRole('button', { name: 'Insert into two conditions, whole rule, position 2' })
+    .click()
+  await expect(page).toHaveURL(/\/rules\/0$/)
+  const fields = page.locator(
+    '.rule-editor .node-all > .node-body > .leaf, .rule-editor .node-all .leaf',
+  )
+  await expect(fields).toHaveCount(3)
+  const values = await page
+    .locator('.rule-editor .leaf input[placeholder="value"]')
+    .evaluateAll((items) => items.map((i) => (i as HTMLInputElement).value))
+  expect(values).toContain('Subject 3')
+})
+
+test('the picker is a full-screen overlay with a back button on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 720 })
+  await mockServer(page, false, TWO_CONDITIONS)
+  await openThird(page)
+  await page.getByRole('button', { name: 'Rule ▾' }).click()
+  await page.getByRole('menuitem', { name: 'Add to existing rule …' }).click()
+  const box = await page.locator('.modal').boundingBox()
+  expect(box?.width).toBe(390)
+  expect(box?.height).toBe(720)
+  await page.getByRole('button', { name: '‹ Back' }).click()
+  await expect(page.getByRole('dialog', { name: 'Add to a rule' })).toHaveCount(0)
 })
