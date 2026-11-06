@@ -1,12 +1,11 @@
-/** Cut and paste of rule blocks: the last cut block in memory, and as YAML on the real clipboard if the settings allow it. */
+/** Cut and paste of rule blocks: the last cut block in memory, and as YAML on the real clipboard if the settings allow it. Part of the central store (`index.ts`). */
 
-import { defineStore } from 'pinia'
 import { computed, shallowRef } from 'vue'
-import { expressionTypes } from './catalog'
-import { useStore } from './store'
-import { validateRules } from './validate'
-import { parseYamlData, stringifyExpression } from './yaml-io'
-import type { Expression, Rule } from './types'
+import { expressionTypes } from '../catalog'
+import { validateRules } from '../validate'
+import { parseYamlData, stringifyExpression } from '../yaml-io'
+import type { Expression, Rule } from '../types'
+import type { usePrefs } from './prefs'
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -45,17 +44,16 @@ export function parseExpressionText(text: string): Expression | null {
 
 const copyOf = (expression: Expression): Expression => JSON.parse(JSON.stringify(expression))
 
-export const useClipboardStore = defineStore('clipboard', () => {
-  const store = useStore()
+export function useClipboard(prefs: ReturnType<typeof usePrefs>) {
   /** The last cut block, kept for this session. */
-  const block = shallowRef<Expression | null>(null)
+  const clipboardBlock = shallowRef<Expression | null>(null)
   /** Whether a paste may find something: a cut block, or a clipboard that is allowed to be read. */
-  const canPaste = computed(() => block.value !== null || store.readPaste === 'on')
+  const canPaste = computed(() => clipboardBlock.value !== null || prefs.readPaste.value === 'on')
 
   /** Remembers a copy of the block and, if allowed, puts its YAML on the clipboard. A blocked clipboard is no error. */
-  async function cut(expression: Expression): Promise<void> {
-    block.value = copyOf(expression)
-    if (store.copyCut !== 'on') return
+  async function cutBlock(expression: Expression): Promise<void> {
+    clipboardBlock.value = copyOf(expression)
+    if (prefs.copyCut.value !== 'on') return
     try {
       await navigator.clipboard.writeText(stringifyExpression(expression))
     } catch {
@@ -64,8 +62,8 @@ export const useClipboardStore = defineStore('clipboard', () => {
   }
 
   /** A fresh copy of the block to paste: from the clipboard if it holds one and reading is allowed, else the last cut. */
-  async function read(): Promise<Expression | null> {
-    if (store.readPaste === 'on') {
+  async function readBlock(): Promise<Expression | null> {
+    if (prefs.readPaste.value === 'on') {
       try {
         const parsed = parseExpressionText(await navigator.clipboard.readText())
         if (parsed) return parsed
@@ -73,8 +71,8 @@ export const useClipboardStore = defineStore('clipboard', () => {
         // No permission or no API: use the cut block.
       }
     }
-    return block.value ? copyOf(block.value) : null
+    return clipboardBlock.value ? copyOf(clipboardBlock.value) : null
   }
 
-  return { block, canPaste, cut, read }
-})
+  return { clipboardBlock, canPaste, cutBlock, readBlock }
+}

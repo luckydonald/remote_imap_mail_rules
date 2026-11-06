@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
-import { parseExpressionText, useClipboardStore } from '@/model/clipboard'
+import { parseExpressionText } from '@/model/store/clipboard'
 import { useStore } from '@/model/store'
 import { stringifyExpression } from '@/model/yaml-io'
 import type { Expression } from '@/model/types'
@@ -51,46 +51,44 @@ describe('parseExpressionText', () => {
   })
 })
 
-describe('clipboard store', () => {
+describe('clipboard in the central store', () => {
   it('keeps a copy of the cut block and writes its YAML', async () => {
     const clipboard = fakeClipboard()
-    const store = useClipboardStore()
+    const store = useStore()
     const block: Expression = { type: 'bool', field: 'seen' }
-    await store.cut(block)
+    await store.cutBlock(block)
     block.type = 'bool'
-    expect(store.block).toEqual({ type: 'bool', field: 'seen' })
-    expect(parseExpressionText(clipboard.text)).toEqual(store.block)
+    expect(store.clipboardBlock).toEqual({ type: 'bool', field: 'seen' })
+    expect(parseExpressionText(clipboard.text)).toEqual(store.clipboardBlock)
   })
 
   it('writes nothing with the setting off, but still pastes the cut block', async () => {
     const clipboard = fakeClipboard('type: bool\nfield: flagged\n')
-    const prefs = useStore()
-    prefs.copyCut = 'off'
-    prefs.readPaste = 'off'
-    const store = useClipboardStore()
-    await store.cut({ type: 'bool', field: 'seen' })
+    const store = useStore()
+    store.copyCut = 'off'
+    store.readPaste = 'off'
+    await store.cutBlock({ type: 'bool', field: 'seen' })
     expect(clipboard.writeText).not.toHaveBeenCalled()
     expect(clipboard.readText).not.toHaveBeenCalled()
-    expect(await store.read()).toEqual({ type: 'bool', field: 'seen' })
+    expect(await store.readBlock()).toEqual({ type: 'bool', field: 'seen' })
   })
 
   it('prefers a rule block from the clipboard, else falls back to the cut block', async () => {
     const clipboard = fakeClipboard('type: bool\nfield: flagged\n')
-    const store = useClipboardStore()
-    expect(await store.read()).toEqual({ type: 'bool', field: 'flagged' })
-    await store.cut({ type: 'bool', field: 'seen' })
+    const store = useStore()
+    expect(await store.readBlock()).toEqual({ type: 'bool', field: 'flagged' })
+    await store.cutBlock({ type: 'bool', field: 'seen' })
     clipboard.text = 'not a block'
-    expect(await store.read()).toEqual({ type: 'bool', field: 'seen' })
+    expect(await store.readBlock()).toEqual({ type: 'bool', field: 'seen' })
     clipboard.readText.mockRejectedValueOnce(new Error('denied'))
-    expect(await store.read()).toEqual({ type: 'bool', field: 'seen' })
+    expect(await store.readBlock()).toEqual({ type: 'bool', field: 'seen' })
   })
 
   it('has nothing to paste without a block and without a readable clipboard', async () => {
     fakeClipboard('')
-    const prefs = useStore()
-    prefs.readPaste = 'off'
-    const store = useClipboardStore()
+    const store = useStore()
+    store.readPaste = 'off'
     expect(store.canPaste).toBe(false)
-    expect(await store.read()).toBeNull()
+    expect(await store.readBlock()).toBeNull()
   })
 })
