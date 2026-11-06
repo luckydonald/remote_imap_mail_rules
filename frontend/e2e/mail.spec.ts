@@ -31,6 +31,20 @@ test('asks for a login, then browses folders, pages and reads a message', async 
   )
 })
 
+test('lists all headers of a message, collapsed at first', async ({ page }) => {
+  await mockServer(page)
+  await page.goto('/')
+  await logIn(page)
+  await page.getByRole('link', { name: 'Mail', exact: true }).click()
+  await page.locator('.row-mail', { hasText: 'Subject 3' }).click()
+  const headers = page.locator('.all-headers')
+  await expect(headers.locator('summary')).toHaveText('All headers (2)')
+  await expect(headers.locator('dd', { hasText: '<news.example.com>' })).toBeHidden()
+  await headers.locator('summary').click()
+  await expect(headers.locator('dt').nth(1)).toHaveText('List-Id')
+  await expect(headers.locator('dd', { hasText: '<news.example.com>' })).toBeVisible()
+})
+
 test('shows the server message for wrong credentials', async ({ page }) => {
   await mockServer(page, true)
   await page.goto('/')
