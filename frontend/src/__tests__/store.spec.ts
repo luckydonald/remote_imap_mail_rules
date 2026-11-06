@@ -117,3 +117,68 @@ describe('store documents', () => {
     expect(store.file.rules).toHaveLength(1)
   })
 })
+
+const WITH_VARIABLE = `templates:
+  t: &t
+    type: template
+    defaults: {word: x}
+    content: {type: text, field: subject, operator: contains, value: !var word}
+rules:
+  - name: r
+    locations: [{account_id: 6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11}]
+    when:
+      <<: *t
+      variables: {word: hello}
+`
+
+function renameWord(store: ReturnType<typeof useStore>, to: string): void {
+  const content = store.file.templates.t?.content as { value: { var: string } }
+  content.value = { var: to }
+}
+
+describe('store variable renames', () => {
+  it('tracks a renamed variable as one chain without touching the uses', () => {
+    const store = useStore()
+    store.load(WITH_VARIABLE)
+    for (const name of ['wor', 'wo', 'phrase']) renameWord(store, name)
+    expect(store.pendingRenames.t).toEqual([{ from: 'word', to: 'phrase', include: true }])
+    expect(store.countUsages('t', 'word')).toBe(1)
+    renameWord(store, 'word')
+    expect(store.pendingRenames.t).toBeUndefined()
+  })
+
+  it('renames the uses and the default as one undo step', () => {
+    const store = useStore()
+    store.load(WITH_VARIABLE)
+    renameWord(store, 'phrase')
+    store.renameVariables('t')
+    expect(store.pendingRenames.t).toBeUndefined()
+    const use = store.file.rules[0]?.when as unknown as { variables: Record<string, unknown> }
+    expect(use.variables).toEqual({ phrase: 'hello' })
+    expect(store.file.templates.t?.defaults).toEqual({ phrase: 'x' })
+    store.undo()
+    const again = store.file.rules[0]?.when as unknown as { variables: Record<string, unknown> }
+    expect(again.variables).toEqual({ word: 'hello' })
+  })
+
+  it('moves or asks when fixing a variable the template no longer has', () => {
+    const store = useStore()
+    store.load(WITH_VARIABLE)
+    renameWord(store, 'phrase')
+    const use = store.file.rules[0]?.when as unknown as {
+      type: 'template'
+      ref: string
+      variables: Record<string, unknown>
+    }
+    expect(store.resolveOrphan(use, 'word', 'phrase')).toBe('done')
+    expect(use.variables).toEqual({ phrase: 'hello' })
+    use.variables.word = 'old'
+    expect(store.resolveOrphan(use, 'word', 'phrase')).toBe('conflict')
+    expect(use.variables).toEqual({ phrase: 'hello', word: 'old' })
+    store.resolveOrphan(use, 'word', 'phrase', 'target')
+    expect(use.variables).toEqual({ phrase: 'hello' })
+    use.variables.word = 'old'
+    store.dropOrphan(use, 'word')
+    expect(use.variables).toEqual({ phrase: 'hello' })
+  })
+})

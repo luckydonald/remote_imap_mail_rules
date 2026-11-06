@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { provide, ref } from 'vue'
 import ConditionNode from './ConditionNode.vue'
+import TemplateRenameBox from './TemplateRenameBox.vue'
 import { newExpression } from '@/model/catalog'
 import { ALLOW_VARS } from '@/model/context'
 import { useStore } from '@/model/store'
@@ -70,6 +71,7 @@ function setDefault(defaults: Record<string, unknown>, name: string, event: Even
           ✕
         </button>
       </header>
+      <TemplateRenameBox :template="String(name)" />
       <h3>Variables</h3>
       <p v-if="templateVariables(store.file, String(name)).length === 0" class="hint">
         No variables yet.

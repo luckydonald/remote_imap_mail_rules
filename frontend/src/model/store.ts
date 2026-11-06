@@ -1,14 +1,22 @@
 import { defineStore } from 'pinia'
 import { computed, reactive, ref, shallowRef, watch } from 'vue'
-import { validateRules } from './validate'
+import { templateVariables, validateRules } from './validate'
 import { parseRulesWithComments, stringifyRules } from './yaml-io'
 import type { CommentMap } from './comments'
 import { newExpression } from './catalog'
-import type { Rule, RuleFile } from './types'
+import type { Rule, RuleFile, TemplateUse } from './types'
 
 export type View = { kind: 'rule'; index: number } | { kind: 'templates' } | { kind: 'yaml' }
 
 const HISTORY_LIMIT = 100
+
+/** A template variable that was renamed in the template and whose uses are not renamed yet. */
+export interface PendingRename {
+  from: string
+  to: string
+  /** Whether Yes renames this one (the ✓ of the box). */
+  include: boolean
+}
 
 /** Where the rules of the server live: its rules file or its database. */
 export interface Backend {
@@ -80,6 +88,11 @@ export const useStore = defineStore('rules', () => {
   let last = JSON.stringify(file)
   let applying = false
 
+  /** Renames of template variables the uses were not told about yet, by template name. */
+  const pendingRenames = ref<Record<string, PendingRename[]>>({})
+  /** Whether the rename box of a template is folded to its chip. */
+  const renamesCollapsed = ref<Record<string, boolean>>({})
+
   const sync = () => {
     canUndo.value = past.length > 0
     canRedo.value = future.length > 0
@@ -112,6 +125,24 @@ export const useStore = defineStore('rules', () => {
     sync()
   }
 
+  /** Runs several changes as one undo step. */
+  function batch(change: () => void): void {
+    const before = last
+    applying = true
+    try {
+      change()
+    } finally {
+      applying = false
+    }
+    const json = JSON.stringify(file)
+    if (json === before) return
+    past.push(before)
+    if (past.length > HISTORY_LIMIT) past.shift()
+    future.length = 0
+    last = json
+    sync()
+  }
+
   function undo(): void {
     const previous = past.pop()
     if (previous === undefined) return
@@ -136,6 +167,8 @@ export const useStore = defineStore('rules', () => {
     file.rules = data.rules
     if (name) fileName.value = name
     serverFile.value = null
+    pendingRenames.value = {}
+    renamesCollapsed.value = {}
     view.value = file.rules.length > 0 ? { kind: 'rule', index: 0 } : { kind: 'yaml' }
   }
 
@@ -300,13 +333,135 @@ export const useStore = defineStore('rules', () => {
     }
     fix(file.rules)
     fix(file.templates)
+    for (const state of [pendingRenames, renamesCollapsed] as const) {
+      const record = state.value as Record<string, unknown>
+      if (from in record) {
+        record[to] = record[from]
+        delete record[from]
+      }
+    }
     file.templates = Object.fromEntries(
       Object.entries(file.templates).map(([key, def]) => [key === from ? to : key, def]),
     )
     return true
   }
 
+  /** Every use of a template, in the rules and in other templates. */
+  function usesOfTemplate(name: string): TemplateUse[] {
+    const found: TemplateUse[] = []
+    const walk = (node: unknown): void => {
+      if (Array.isArray(node)) node.forEach(walk)
+      else if (typeof node === 'object' && node !== null) {
+        const record = node as Record<string, unknown>
+        if (record.type === 'template' && record.ref === name)
+          found.push(record as unknown as TemplateUse)
+        Object.values(record).forEach(walk)
+      }
+    }
+    walk(file.rules)
+    walk(file.templates)
+    return found
+  }
+
+  /** How many uses of the template bind the variable. */
+  function countUsages(template: string, variable: string): number {
+    return usesOfTemplate(template).filter((use) => variable in (use.variables ?? {})).length
+  }
+
+  function noticeRename(template: string, before: string[], after: string[]): void {
+    const gone = before.filter((name) => !after.includes(name))
+    const added = after.filter((name) => !before.includes(name))
+    const [from, to] = [gone[0], added[0]]
+    if (gone.length !== 1 || added.length !== 1 || from === undefined || to === undefined) return
+    const list = pendingRenames.value[template] ?? []
+    const chained = list.find((entry) => entry.to === from)
+    if (chained) {
+      chained.to = to
+      if (chained.to === chained.from) list.splice(list.indexOf(chained), 1)
+    } else if (
+      from !== '' &&
+      (countUsages(template, from) > 0 || from in (file.templates[template]?.defaults ?? {}))
+    ) {
+      list.push({ from, to, include: true })
+    }
+    if (list.length > 0) pendingRenames.value[template] = list
+    else delete pendingRenames.value[template]
+  }
+
+  watch(
+    () =>
+      Object.fromEntries(Object.keys(file.templates).map((n) => [n, templateVariables(file, n)])),
+    (now, old) => {
+      if (applying) return
+      for (const [name, after] of Object.entries(now)) {
+        const before = old[name]
+        if (before && before.join('\n') !== after.join('\n')) noticeRename(name, before, after)
+      }
+    },
+    { flush: 'sync' },
+  )
+
+  /** Renames the included pending variables in every use and in the defaults of the template, as one undo step. */
+  function renameVariables(template: string): void {
+    const def = file.templates[template]
+    const list = pendingRenames.value[template] ?? []
+    batch(() => {
+      for (const entry of list) {
+        if (!entry.include || entry.to === '') continue
+        for (const use of usesOfTemplate(template)) {
+          if (!(entry.from in (use.variables ?? {})) || entry.to in use.variables) continue
+          use.variables = Object.fromEntries(
+            Object.entries(use.variables).map(([k, v]) => [k === entry.from ? entry.to : k, v]),
+          )
+        }
+        if (def?.defaults && entry.from in def.defaults && !(entry.to in def.defaults)) {
+          def.defaults = Object.fromEntries(
+            Object.entries(def.defaults).map(([k, v]) => [k === entry.from ? entry.to : k, v]),
+          )
+        }
+      }
+    })
+    const rest = list.filter((entry) => !entry.include)
+    if (rest.length > 0) pendingRenames.value[template] = rest
+    else delete pendingRenames.value[template]
+  }
+
+  /** Whether a variable of a use has no value yet. */
+  function isUnfilled(value: unknown): boolean {
+    return value === undefined || value === ''
+  }
+
+  /**
+   * Moves the value of a variable the template no longer has to an existing one.
+   * Returns `conflict` without changing anything when the target is filled and `keep` (the orphan's or the target's value) was not given.
+   */
+  function resolveOrphan(
+    use: TemplateUse,
+    key: string,
+    target: string,
+    keep?: 'orphan' | 'target',
+  ): 'done' | 'conflict' {
+    const filled = !isUnfilled(use.variables[target])
+    if (filled && keep === undefined) return 'conflict'
+    batch(() => {
+      if (!filled || keep === 'orphan') use.variables[target] = use.variables[key]
+      delete use.variables[key]
+    })
+    return 'done'
+  }
+
+  /** Drops a variable of a use the template no longer has. */
+  function dropOrphan(use: TemplateUse, key: string): void {
+    delete use.variables[key]
+  }
+
   return {
+    pendingRenames,
+    renamesCollapsed,
+    countUsages,
+    renameVariables,
+    resolveOrphan,
+    dropOrphan,
     file,
     view,
     fileName,

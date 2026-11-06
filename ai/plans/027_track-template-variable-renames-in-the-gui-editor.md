@@ -9,22 +9,22 @@ The request: notice the rename, do not rename the dependents yet, show a red box
 
 ## Design
 
-**Detection** (in a new Pinia store `frontend/src/model/renames.ts`, `useRenames()`, per the Pinia-not-inject rule):
-- State: `pending: Record<templateName, Array<{from, to, include}>>` and `collapsed: Record<templateName, boolean>`. `from` is the name as the variables stood when tracking began, `to` the current name.
-- `observe(template, before, after)` takes the sorted `templateVariables()` before and after a change.
+**Detection** (in the existing rules store `useStore` in `frontend/src/model/store.ts`, next to `usesOf` / `renameTemplate`, no new store):
+- State: `pendingRenames: Record<templateName, Array<{from, to, include}>>` and `renamesCollapsed: Record<templateName, boolean>`, as plain refs of the setup store so they live with the document the store already keeps until saving.
+  A save does not clear them, since the file is still inconsistent until the question is answered.
+- The store already watches `file` for history. Beside that watcher, a sync watcher on each template's `templateVariables()` (from `validate.ts`) compares the sorted names before and after a change.
   Exactly one name gone and one added is a rename.
   If the gone name is the `to` of a pending entry, update that entry's `to` (typing `foobar` letter by letter is one chain, not six renames).
   If `to` becomes equal to `from`, drop the entry (reverted).
-  Anything else (a name added or removed alone, or a variable that still occurs elsewhere in the content) is not a rename and only prunes entries whose `from` is no longer expected.
-- Driven by a `watch` in `TemplatesView.vue` on `templateVariables(store.file, name)` per template.
-  Undo/redo/load/switching documents would show up as spurious renames, so `store.restore`, `load` and `switchTo` clear the pending state (expose `reset()`), and the watch is skipped while `store` is applying a history step.
-- `store.renameTemplate` moves the pending and collapsed entries to the new template key.
+  Anything else (a name added or removed alone, or a variable that still occurs elsewhere in the content) is not a rename.
+- The watcher is skipped while the store is applying history (`undo` / `redo` / `restore`), and `load`, `switchTo` and `openDocument` reset the pending state, because each of those starts a fresh document.
+- `renameTemplate` moves the pending and collapsed entries to the new template key.
 
-**Applying** (`store.renameVariables(template, pairs)` in `model/store.ts`, one undo step through a small `batch(fn)` helper that suppresses the per-mutation history watcher and pushes a single entry):
+**Applying** (`store.renameVariables(template)` applies the included pending pairs, one undo step through a small `batch(fn)` helper that suppresses the per-mutation history watcher and pushes a single entry):
 - Walk `file.rules` and `file.templates` (reusing the `walkUses` pattern from `validate.ts`, exported; the `fix` walk in `renameTemplate` is the model) and, for every use with `ref === template`, rename the key in `variables`.
 - Rename the key in the template's own `defaults`.
 - Skip a pair when the target name is empty or already a variable of the template.
-- `countUsages(template, from)` (also in the store, next to `usesOf`) counts uses whose `variables` hold `from`; this is the badge number.
+- `countUsages(template, from)` (in the store) counts uses whose `variables` hold `from`; this is the badge number.
   The default is renamed together but not counted.
 
 **UI** (`frontend/src/components/TemplateRenameBox.vue`, placed in `TemplatesView.vue` under the template header, before "Variables"):
@@ -36,17 +36,29 @@ The request: notice the rename, do not rename the dependents yet, show a red box
 - `Yes` is disabled while a target name is empty (mid-typing).
 - A count of 0 still shows the box, since the default is renamed too.
 
+**Usage side** (`components/condition/TemplateUseEditor.vue`, the editor of a `{type: template, ref, variables}` use):
+- Orphan keys: the use's `variables` keys that are not in `templateVariables(store.file, ref)` (the same set the validator reports as "template has no such variables").
+  Each gets a red row, shown whether or not a rename is pending, with the stale key and its value, a dropdown of the template's existing variables to rename it to, and a delete button (`🗑`) for a version that is no longer needed.
+  When a pending rename `from → to` matches the key, the dropdown is preselected to `to`.
+- Store function `store.resolveOrphan(use, key, target)` does the move in one undo step, with three cases:
+  - The target is unfilled in the use (absent or empty): the value moves into it and the old key goes.
+  - The target already holds a value: the row asks which to keep, as three buttons: the orphan's value (`a`, shown), the target's value (`b`, shown), or `Revert`.
+    `Revert` leaves the use exactly as it was, with the stale key still flagged.
+  - `store.dropOrphan(use, key)` is the delete button.
+- Unfilled means `undefined`, `''` or a missing key, so a variable bound to a `Var` of an enclosing template counts as filled.
+- Tests: `store.spec.ts` for the three cases, `components.spec.ts` for the row and the a / b / Revert prompt, and one e2e step after the rename flow where a rule's use is fixed through the dropdown.
+
 ## Tests
 
 - `src/__tests__/store.spec.ts`: `renameVariables` renames `variables` keys in rules and nested template uses and the default, in one undo step; `countUsages`.
-- `src/__tests__/renames.spec.ts` (new): chain `a → ab → abc`, revert drops the entry, add/remove alone is no rename, `reset`.
+- `src/__tests__/store.spec.ts`: detection chain `a → ab → abc`, revert drops the entry, add/remove alone is no rename, `reset`.
 - `src/__tests__/components.spec.ts`: the box states (single, multiple with a toggled ✓, collapse via No and ✕, Yes applies).
 - `e2e/editor.spec.ts`: rename a variable in the Templates view, see the box with the count, collapse it, expand it, say Yes, and check the rule's template use in the YAML view.
   Run with Playwright (never the Chrome tools).
 
 ## Docs
 
-Add a sentence to the Templates paragraph of `CLAUDE.md` (frontend section) about the pending-rename box and `useRenames`.
+Add a sentence to the Templates paragraph of `CLAUDE.md` (frontend section) about the pending-rename box and `pendingRenames` in `useStore`.
 
 ## Verification
 

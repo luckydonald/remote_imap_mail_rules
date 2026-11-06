@@ -7,6 +7,7 @@ import AppShell from '@/components/AppShell.vue'
 import ConditionNode from '@/components/ConditionNode.vue'
 import FieldValue from '@/components/FieldValue.vue'
 import MailLog from '@/components/MailLog.vue'
+import TemplateRenameBox from '@/components/TemplateRenameBox.vue'
 import SourceMenu from '@/components/SourceMenu.vue'
 import { useStore } from '@/model/store'
 import { defineComponent, h, reactive } from 'vue'
@@ -171,5 +172,36 @@ describe('SourceMenu', () => {
     expect(store.serverFile).toBe('somefile.yml')
     expect(store.file.rules).toHaveLength(1)
     expect(wrapper.get('summary').text()).toBe('📄 somefile.yml')
+  })
+})
+
+describe('TemplateRenameBox', () => {
+  const YAML = `templates:
+  t: &t
+    type: template
+    content: {type: text, field: subject, operator: contains, value: !var word}
+rules:
+  - name: r
+    locations: [{account_id: 6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11}]
+    when:
+      <<: *t
+      variables: {word: hello}
+`
+
+  it('asks, folds to a chip and renames on Yes', async () => {
+    const { store, wrapper } = withStore(() => h(TemplateRenameBox, { template: 't' }))
+    store.load(YAML)
+    expect(wrapper.find('.rename').exists()).toBe(false)
+    const content = store.file.templates.t?.content as { value: unknown }
+    content.value = { var: 'phrase' }
+    await flushPromises()
+    expect(wrapper.find('.rename-box').text()).toContain('word → phrase')
+    expect(wrapper.find('.rename-box .count-badge').text()).toBe('1')
+    await wrapper.findAll('.rename-box kbd')[1]?.trigger('click')
+    expect(wrapper.find('.rename-chip').text()).toContain('rename 1')
+    await wrapper.find('.rename-chip').trigger('click')
+    await wrapper.findAll('.rename-box kbd')[0]?.trigger('click')
+    expect(wrapper.find('.rename').exists()).toBe(false)
+    expect(store.yaml).toContain('phrase: hello')
   })
 })
