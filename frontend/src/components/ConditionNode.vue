@@ -11,7 +11,6 @@ import TemplateUseEditor from './condition/TemplateUseEditor.vue'
 import { expressionTypes, newExpression, typeLabels, type ExpressionType } from '@/model/catalog'
 import { useStore } from '@/model/store'
 import { fillExpression, type Granularity } from '@/model/fill-from-mail'
-import { useClipboardStore } from '@/model/clipboard'
 import type { Expression } from '@/model/types'
 
 const props = defineProps<{ modelValue: Expression; removable?: boolean }>()
@@ -21,7 +20,6 @@ const emit = defineEmits<{
   unwrap: []
 }>()
 const store = useStore()
-const clipboard = useClipboardStore()
 
 const node = computed(() => props.modelValue)
 const isGroup = computed(() => ['all', 'any', 'not'].includes(node.value.type))
@@ -63,7 +61,7 @@ function fillFromMail(): void {
 
 /** Keeps the block (and its sub-blocks) for pasting and takes it out; the root and a `not` child are replaced by a fresh condition. */
 function cut(): void {
-  void clipboard.cut(node.value)
+  void store.cutBlock(node.value)
   if (props.removable) emit('remove')
   else emit('update:modelValue', newExpression('text'))
 }

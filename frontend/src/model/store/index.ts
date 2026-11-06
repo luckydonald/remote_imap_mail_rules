@@ -5,6 +5,7 @@ import { computed, ref, watch } from 'vue'
 import { listAccounts, type Account } from '../accounts-api'
 import type { MailContext } from '../fill-from-mail'
 import { ApiError, describeError } from '../http'
+import { useClipboard } from './clipboard'
 import { usePrefs } from './prefs'
 import { useRules } from './rules'
 import {
@@ -61,6 +62,7 @@ function writeSaved(saved: Saved): void {
 export const useStore = defineStore('app', () => {
   const prefs = usePrefs()
   const rules = useRules()
+  const clipboard = useClipboard(prefs)
   let onUnauthorized: () => void = () => {}
   // The place of the last session, used once by the first loadAccounts().
   let restore = readSaved()
@@ -455,6 +457,7 @@ export const useStore = defineStore('app', () => {
   return {
     ...rules,
     ...prefs,
+    ...clipboard,
     accounts,
     accountId,
     folders,
