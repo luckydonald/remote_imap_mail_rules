@@ -76,6 +76,6 @@ To complete one:
 - [x] unwrap button — `todo:13b0300c-4b40-46a5-8ccf-ec53d75f4fa4` _(done)_
   > - detete on an wrapping element asks if we should keep the children
 - [x] Mail viewer: The dropdown menus overlap and don't close each other — `todo:e5b32090-adbc-4b99-9dd6-7b990a41ebdf` _(done)_
-- [ ] Adding an account is not immediately reflected in the account list. — `todo:892f49ef-c48d-4744-91c5-b28ca614ae0d`
+- [x] Adding an account is not immediately reflected in the account list. — `todo:892f49ef-c48d-4744-91c5-b28ca614ae0d` _(done)_
 - [ ] fix Bigsink issues — `todo:420b2ab0-94b6-4181-a233-dd46416379cc`
   > (Create subtasks)
