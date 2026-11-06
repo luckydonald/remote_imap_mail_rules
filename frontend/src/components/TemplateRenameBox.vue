@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useStore } from '@/model/store/rules'
+import { useStore } from '@/model/store'
 
 const props = defineProps<{ template: string }>()
 const store = useStore()

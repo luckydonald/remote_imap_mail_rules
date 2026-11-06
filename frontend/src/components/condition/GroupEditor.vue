@@ -4,10 +4,10 @@ import { useClipboardStore } from '@/model/clipboard'
 import ConditionNode from '../ConditionNode.vue'
 import { newExpression } from '@/model/catalog'
 import { fillExpression } from '@/model/fill-from-mail'
-import { useMailStore } from '@/model/store'
+import { useStore } from '@/model/store'
 import type { GroupAll, GroupAny, GroupNot } from '@/model/types'
 
-const mail = useMailStore()
+const mail = useStore()
 const clipboard = useClipboardStore()
 const nothing = ref(false)
 const model = defineModel<GroupAll | GroupAny | GroupNot>('node', { required: true })

@@ -11,7 +11,7 @@ import {
   textOperators,
 } from '@/model/catalog'
 import { changeAddress, headerSuggestions } from '@/model/fill-from-mail'
-import { useMailStore } from '@/model/store'
+import { useStore } from '@/model/store'
 import {
   isVar,
   type AddressCondition,
@@ -23,7 +23,7 @@ const model = defineModel<TextCondition | HeaderCondition | AddressCondition>('n
   required: true,
 })
 
-const mail = useMailStore()
+const mail = useStore()
 const headerListId = useId()
 const headerNames = computed(() => headerSuggestions(mail.fillContext, commonHeaders))
 

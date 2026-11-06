@@ -9,9 +9,8 @@ import NumberEditor from './condition/NumberEditor.vue'
 import PresenceEditor from './condition/PresenceEditor.vue'
 import TemplateUseEditor from './condition/TemplateUseEditor.vue'
 import { expressionTypes, newExpression, typeLabels, type ExpressionType } from '@/model/catalog'
-import { useStore } from '@/model/store/rules'
+import { useStore } from '@/model/store'
 import { fillExpression, type Granularity } from '@/model/fill-from-mail'
-import { useMailStore } from '@/model/store'
 import { useClipboardStore } from '@/model/clipboard'
 import type { Expression } from '@/model/types'
 
@@ -22,7 +21,6 @@ const emit = defineEmits<{
   unwrap: []
 }>()
 const store = useStore()
-const mail = useMailStore()
 const clipboard = useClipboardStore()
 
 const node = computed(() => props.modelValue)
@@ -38,8 +36,8 @@ function changeType(type: ExpressionType): void {
   // With a mail open the new condition starts from it.
   emit(
     'update:modelValue',
-    mail.fillContext
-      ? fillExpression(created, mail.fillContext, 'address', store.file.templates)
+    store.fillContext
+      ? fillExpression(created, store.fillContext, 'address', store.file.templates)
       : created,
   )
 }
@@ -50,9 +48,9 @@ const fillable = computed(() =>
 
 /** Takes the value from the open mail, or opens the mail panel to choose one. */
 function fillFromMail(): void {
-  const context = mail.fillContext
+  const context = store.fillContext
   if (!context) {
-    mail.panelOpen = true
+    store.panelOpen = true
     return
   }
   const current = node.value
@@ -121,11 +119,11 @@ function wrap(type: 'all' | 'any' | 'not'): void {
       </select>
       <span class="spacer" />
       <button
-        v-if="fillable && mail.active"
+        v-if="fillable && store.active"
         type="button"
         class="ghost fill-from-mail"
         :title="
-          mail.fillContext ? 'Fill the value from the open mail' : 'Choose a mail to fill from'
+          store.fillContext ? 'Fill the value from the open mail' : 'Choose a mail to fill from'
         "
         @click="fillFromMail"
       >

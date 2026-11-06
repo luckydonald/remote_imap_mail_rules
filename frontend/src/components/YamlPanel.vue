@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { fetchRules, saveRules, SaveError } from '@/model/api'
-import { useStore } from '@/model/store/rules'
+import { useStore } from '@/model/store'
 import { validateRules } from '@/model/validate'
 import { parseRulesWithComments, RulesParseError } from '@/model/yaml-io'
 

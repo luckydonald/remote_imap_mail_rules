@@ -1,6 +1,6 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useMailStore } from '@/model/store'
+import { useStore } from '@/model/store'
 import { folderLabel, shortDate } from '@/model/mail-format'
 import type { Folder, Summary } from '@/model/mail-api'
 
@@ -91,7 +91,7 @@ afterEach(() => vi.unstubAllGlobals())
 describe('mail store', () => {
   it('opens the inbox of the first account, pages and opens a message', async () => {
     stubServer()
-    const store = useMailStore()
+    const store = useStore()
     await store.loadAccounts()
     expect(store.folder).toBe('INBOX')
     expect(store.folders.map((item) => item.name)).toEqual(['INBOX'])
@@ -113,7 +113,7 @@ describe('mail store', () => {
 
   it('reloads the folders and the first page and keeps the open mail', async () => {
     const fetchMock = stubServer()
-    const store = useMailStore()
+    const store = useStore()
     await store.loadAccounts()
     await store.openMessage(3)
     store.folders = []
@@ -133,7 +133,7 @@ describe('mail store', () => {
 
   it('stops filling the editor from the mail without closing it, until another mail is opened', async () => {
     stubServer()
-    const store = useMailStore()
+    const store = useStore()
     store.active = true
     await store.loadAccounts()
     await store.openMessage(3)
@@ -149,12 +149,12 @@ describe('mail store', () => {
 
   it('brings back the open mail after a reload', async () => {
     stubServer()
-    const first = useMailStore()
+    const first = useStore()
     await first.loadAccounts()
     await first.openMessage(3)
     await vi.waitFor(() => expect(localStorage.getItem('mail-browser')).toContain('"uid":3'))
     setActivePinia(createPinia())
-    const second = useMailStore()
+    const second = useStore()
     expect(second.selectedUid).toBe(3)
     expect(second.detail?.text).toBe('hi')
     await second.loadAccounts()
@@ -173,7 +173,7 @@ describe('mail store', () => {
         await listGate
       return answer(input, init)
     })
-    const store = useMailStore()
+    const store = useStore()
     const loading = store.loadAccounts({ accountId: 'acc', folder: 'INBOX', uid: 3 })
     await vi.waitFor(() =>
       expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/messages?'))).toBe(true),
@@ -190,7 +190,7 @@ describe('mail store', () => {
   it('asks to log in again on a 401', async () => {
     stubServer(true)
     const onUnauthorized = vi.fn<() => void>()
-    const store = useMailStore()
+    const store = useStore()
     store.setUnauthorizedHandler(onUnauthorized)
     await store.loadAccounts()
     expect(onUnauthorized).toHaveBeenCalledOnce()
@@ -202,7 +202,7 @@ describe('mail store', () => {
       'fetch',
       vi.fn<typeof fetch>().mockResolvedValue(new Response('{"detail":"down"}', { status: 502 })),
     )
-    const store = useMailStore()
+    const store = useStore()
     await store.loadAccounts()
     expect(store.error).toContain('down')
   })
@@ -221,7 +221,7 @@ describe('mail format', () => {
 describe('mail store writes', () => {
   it('marks the open mail read and keeps the list and the badge right', async () => {
     const fetchMock = stubServer()
-    const store = useMailStore()
+    const store = useStore()
     await store.loadAccounts()
     await store.openMessage(3)
     await store.setSeen(true)
@@ -234,7 +234,7 @@ describe('mail store writes', () => {
 
   it('moves the open mail away and opens the next one', async () => {
     const fetchMock = stubServer()
-    const store = useMailStore()
+    const store = useStore()
     await store.loadAccounts()
     await store.openMessage(3)
     await store.moveTo('Sent')
@@ -246,7 +246,7 @@ describe('mail store writes', () => {
 
   it('loads the mail again with its remote images when asked', async () => {
     const fetchMock = stubServer()
-    const store = useMailStore()
+    const store = useStore()
     await store.loadAccounts()
     await store.openMessage(3)
     await store.allow({ remoteImages: true })
@@ -263,7 +263,7 @@ describe('mail store writes', () => {
     it('replaces the list without opening anything', async () => {
       const accounts = [ACCOUNT]
       const fetchMock = stubServer(false, accounts)
-      const store = useMailStore()
+      const store = useStore()
       accounts.push(SECOND)
       await store.refreshAccounts()
       expect(store.accounts.map((item) => item.id)).toEqual(['acc', 'acc2'])
@@ -274,7 +274,7 @@ describe('mail store writes', () => {
     it('keeps the open place while its account is still listed', async () => {
       const accounts = [ACCOUNT]
       stubServer(false, accounts)
-      const store = useMailStore()
+      const store = useStore()
       await store.loadAccounts()
       await store.openMessage(3)
       accounts.push(SECOND)
@@ -286,7 +286,7 @@ describe('mail store writes', () => {
     it('follows a renamed open account and keeps folder, list and mail', async () => {
       const accounts = [ACCOUNT]
       const fetchMock = stubServer(false, accounts)
-      const store = useMailStore()
+      const store = useStore()
       await store.loadAccounts()
       await store.openMessage(3)
       accounts[0] = { id: 'new', name: 'Private' }
@@ -300,7 +300,7 @@ describe('mail store writes', () => {
     it('leaves the open account alone when another one is renamed', async () => {
       const accounts = [ACCOUNT, SECOND]
       stubServer(false, accounts)
-      const store = useMailStore()
+      const store = useStore()
       await store.loadAccounts()
       accounts[1] = { id: 'new', name: 'Work' }
       await store.refreshAccounts({ from: 'acc2', to: 'new' })
@@ -311,7 +311,7 @@ describe('mail store writes', () => {
     it('moves to the first remaining account when the open one is gone', async () => {
       const accounts = [ACCOUNT, SECOND]
       stubServer(false, accounts)
-      const store = useMailStore()
+      const store = useStore()
       await store.loadAccounts()
       accounts.shift()
       await store.refreshAccounts()
@@ -322,7 +322,7 @@ describe('mail store writes', () => {
     it('opens nothing when the last account is gone', async () => {
       const accounts = [ACCOUNT]
       stubServer(false, accounts)
-      const store = useMailStore()
+      const store = useStore()
       await store.loadAccounts()
       accounts.length = 0
       await store.refreshAccounts()
@@ -332,7 +332,7 @@ describe('mail store writes', () => {
 
     it('reports a login to the handler and throws other errors', async () => {
       stubServer(true)
-      const store = useMailStore()
+      const store = useStore()
       const unauthorized = vi.fn<() => void>()
       store.setUnauthorizedHandler(unauthorized)
       await store.refreshAccounts()

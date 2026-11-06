@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useStore } from '@/model/store/rules'
+import { useStore } from '@/model/store'
 import { SERVER } from '@/model/store/rules'
 
 const store = useStore()

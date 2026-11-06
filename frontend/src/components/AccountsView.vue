@@ -8,10 +8,10 @@ import {
   type Account,
   type AccountInput,
 } from '@/model/accounts-api'
-import { useMailStore } from '@/model/store'
+import { useStore } from '@/model/store'
 
 // The list is the mail browser's, so the account picker there follows every change made here.
-const mail = useMailStore()
+const mail = useStore()
 const message = ref('')
 const loading = ref(true)
 /** `null` is closed, `'new'` adds, an id edits. */

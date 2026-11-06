@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { addressList, fileSize, frameDocument, fullDate } from '@/model/mail-format'
-import type { MailStore } from '@/model/store'
+import { useStore } from '@/model/store'
 import { usePrefsStore, type BodyMode } from '@/model/prefs'
 import MailAddCondition from './MailAddCondition.vue'
 import MailLog from './MailLog.vue'
@@ -10,7 +10,8 @@ import MailRuleMenu from './MailRuleMenu.vue'
 import MailSpinner from './MailSpinner.vue'
 import SegmentedToggle from './SegmentedToggle.vue'
 
-const props = defineProps<{ store: MailStore; compact?: boolean }>()
+defineProps<{ compact?: boolean }>()
+const store = useStore()
 const prefs = usePrefsStore()
 
 const frame = ref<HTMLIFrameElement | null>(null)
@@ -18,17 +19,17 @@ let observer: ResizeObserver | null = null
 
 /** The mode to show: the setting, or the other one when the mail has only that part. */
 const mode = computed<BodyMode>(() => {
-  const detail = props.store.detail
+  const detail = store.detail
   if (!detail) return prefs.bodyMode
   if (prefs.bodyMode === 'html' && !detail.html && detail.text) return 'text'
   if (prefs.bodyMode === 'text' && !detail.text && detail.html) return 'html'
   return prefs.bodyMode
 })
 const modes = computed(() => [
-  { value: 'text' as const, label: 'Text', disabled: !props.store.detail?.text },
-  { value: 'html' as const, label: 'HTML', disabled: !props.store.detail?.html },
+  { value: 'text' as const, label: 'Text', disabled: !store.detail?.text },
+  { value: 'html' as const, label: 'HTML', disabled: !store.detail?.html },
 ])
-const showHtml = computed(() => mode.value === 'html' && !!props.store.detail?.html)
+const showHtml = computed(() => mode.value === 'html' && !!store.detail?.html)
 
 /** Grows the iframe to its content, the sandbox allows this because it keeps the origin but runs no scripts. */
 function fit(): void {
@@ -51,12 +52,12 @@ function track(): void {
 onBeforeUnmount(() => observer?.disconnect())
 
 watch(
-  () => [props.store.detail?.uid, showHtml.value] as const,
+  () => [store.detail?.uid, showHtml.value] as const,
   () => void nextTick(fit),
 )
 
-const remote = computed(() => props.store.detail?.remote_images_allowed ?? false)
-const unreadLabel = computed(() => (props.store.detail?.seen ? 'Mark unread' : 'Mark read'))
+const remote = computed(() => store.detail?.remote_images_allowed ?? false)
+const unreadLabel = computed(() => (store.detail?.seen ? 'Mark unread' : 'Mark read'))
 </script>
 
 <template>
@@ -82,7 +83,7 @@ const unreadLabel = computed(() => (props.store.detail?.seen ? 'Mark unread' : '
         >
           {{ unreadLabel }}
         </button>
-        <MailMoveMenu :store="store" />
+        <MailMoveMenu />
         <MailRuleMenu v-if="store.context" :context="store.context" />
         <SegmentedToggle v-model="prefs.bodyMode" :options="modes" label="Show the mail as" />
       </div>

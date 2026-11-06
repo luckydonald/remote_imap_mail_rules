@@ -1,4 +1,4 @@
-/** State of the mail browser: accounts, folders, the paged message list and the open message. */
+/** The one central store of the frontend: the rule editor's document (`rules.ts`) and the mail browser (accounts, folders, the paged message list and the open message). */
 
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
@@ -6,6 +6,7 @@ import { listAccounts, type Account } from '../accounts-api'
 import type { MailContext } from '../fill-from-mail'
 import { ApiError, describeError } from '../http'
 import { usePrefsStore } from '../prefs'
+import { useRules } from './rules'
 import {
   getMessage,
   listEvents,
@@ -57,8 +58,9 @@ function writeSaved(saved: Saved): void {
   }
 }
 
-export const useMailStore = defineStore('mail', () => {
+export const useStore = defineStore('app', () => {
   const prefs = usePrefsStore()
+  const rules = useRules()
   let onUnauthorized: () => void = () => {}
   // The place of the last session, used once by the first loadAccounts().
   let restore = readSaved()
@@ -451,6 +453,7 @@ export const useMailStore = defineStore('mail', () => {
   }
 
   return {
+    ...rules,
     accounts,
     accountId,
     folders,
@@ -491,4 +494,4 @@ export const useMailStore = defineStore('mail', () => {
   }
 })
 
-export type MailStore = ReturnType<typeof useMailStore>
+export type Store = ReturnType<typeof useStore>

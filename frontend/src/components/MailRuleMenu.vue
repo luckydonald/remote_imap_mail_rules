@@ -12,15 +12,13 @@ import {
   type MailContext,
 } from '@/model/fill-from-mail'
 import { personLabel } from '@/model/mail-format'
-import { useMailStore } from '@/model/store'
+import { useStore } from '@/model/store'
 import { useMenu } from '@/model/menu'
-import { useStore } from '@/model/store/rules'
 import { locationOfView } from '@/router'
 import RuleInsertPicker from './RuleInsertPicker.vue'
 
 const props = defineProps<{ context: MailContext }>()
-const rules = useStore()
-const mail = useMailStore()
+const store = useStore()
 const router = useRouter()
 
 const root = ref<HTMLElement | null>(null)
@@ -31,13 +29,13 @@ const granularity = ref<Granularity>('address')
 const kind = ref<'condition' | 'template'>('condition')
 const templateRef = ref('')
 
-const templateNames = computed(() => Object.keys(rules.file.templates))
+const templateNames = computed(() => Object.keys(store.file.templates))
 const chosenTemplate = computed(() =>
   templateNames.value.includes(templateRef.value) ? templateRef.value : templateNames.value[0],
 )
 const templateUse = computed(() => {
   const ref = chosenTemplate.value
-  const def = ref === undefined ? undefined : rules.file.templates[ref]
+  const def = ref === undefined ? undefined : store.file.templates[ref]
   return ref === undefined || !def ? null : templateUseFor(ref, def, props.context)
 })
 const filledVariables = computed(() => Object.entries(templateUse.value?.variables ?? {}))
@@ -53,25 +51,25 @@ const isAddress = computed(() => chosen.value !== undefined && addressFields.inc
 /** Makes the open mail the editor's example, without touching a rule. */
 function selectExample(): void {
   open.value = false
-  mail.fillDetached = false
-  void router.push(locationOfView(rules.view))
+  store.fillDetached = false
+  void router.push(locationOfView(store.view))
 }
 
 function newRule(): void {
   open.value = false
   const { detail, accountId, folder } = props.context
   const condition = conditionFor('from', props.context, 'address')
-  rules.addRule()
-  const created = rules.file.rules[rules.file.rules.length - 1]
+  store.addRule()
+  const created = store.file.rules[store.file.rules.length - 1]
   if (!created) return
   created.name = `From ${personLabel(detail.sender)}`
   created.locations = [{ account_id: accountId, folder, recursive: false }]
   if (condition) created.when = { type: 'all', conditions: [condition] }
-  void router.push(locationOfView(rules.view))
+  void router.push(locationOfView(store.view))
 }
 
 function addTo(place: { ruleIndex: number; path: number[]; index: number }): void {
-  const target = rules.file.rules[place.ruleIndex]
+  const target = store.file.rules[place.ruleIndex]
   if (!target) return
   const condition =
     kind.value === 'template'
@@ -81,9 +79,9 @@ function addTo(place: { ruleIndex: number; path: number[]; index: number }): voi
         : null
   if (!condition) return
   target.when = appendCondition(target.when, condition, place.path, place.index)
-  rules.view = { kind: 'rule', index: place.ruleIndex }
+  store.view = { kind: 'rule', index: place.ruleIndex }
   dialog.value = false
-  void router.push(locationOfView(rules.view))
+  void router.push(locationOfView(store.view))
 }
 </script>
 
@@ -104,7 +102,7 @@ function addTo(place: { ruleIndex: number; path: number[]; index: number }): voi
       <button
         type="button"
         role="menuitem"
-        :disabled="rules.file.rules.length === 0"
+        :disabled="store.file.rules.length === 0"
         @click="((dialog = true), (open = false))"
       >
         Add to existing rule …
@@ -160,7 +158,7 @@ function addTo(place: { ruleIndex: number; path: number[]; index: number }): voi
             </select>
           </label>
           <h4 class="pick-title">Click where it should go</h4>
-          <RuleInsertPicker :rules="rules.file.rules" @pick="addTo" />
+          <RuleInsertPicker :rules="store.file.rules" @pick="addTo" />
           <footer>
             <button type="button" class="ghost" @click="dialog = false">Cancel</button>
           </footer>
