@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
@@ -191,6 +192,72 @@ async def test_a_polling_folder_gets_a_next_run_and_an_idle_one_does_not(factory
     finally:
         await watcher.stop()
     # end try
+# end def
+
+
+async def test_a_folder_is_a_job_until_it_is_idle_again(factory: async_sessionmaker[AsyncSession]) -> None:
+    watcher = make_watcher(factory, FakeServer())
+    account = UUID(int=1)
+    watcher.working(account, "INBOX")
+    watcher.working(account, "INBOX")
+    assert [(job.kind, job.account_id, job.folder, job.uid) for job in watcher.working_jobs()] == [("folder", account, "INBOX", None)]
+    watcher.scheduled(account, "Archive", None)
+    assert len(watcher.working_jobs()) == 1
+    watcher.scheduled(account, "INBOX", None)
+    assert watcher.working_jobs() == []
+# end def
+
+
+async def test_a_real_run_leaves_no_job_behind_once_idle(factory: async_sessionmaker[AsyncSession]) -> None:
+    server = FakeServer()
+    server.add("INBOX", 1, "invoice one")
+    watcher = make_watcher(factory, server)
+    watcher.start()
+    try:
+        await until(lambda: _has(factory, "INBOX", 1, [("first_seen", None), ("rule_match", "invoices")]))
+        async with asyncio.timeout(3):
+            while watcher.working_jobs() or not watcher.push_folders():
+                await asyncio.sleep(0.02)
+            # end while
+        # end async with
+    finally:
+        await watcher.stop()
+    # end try
+# end def
+
+
+class SlowRunner:
+    def __init__(self, fail: bool = False) -> None:
+        self.started = asyncio.Event()
+        self.release = asyncio.Event()
+        self.fail = fail
+
+    async def run(self, mail: object) -> None:
+        self.started.set()
+        await self.release.wait()
+        if self.fail:
+            raise RuntimeError("boom")
+        # end if
+# end class
+
+
+@pytest.mark.parametrize("fail", [False, True])
+async def test_running_actions_is_a_job_until_it_ends(factory: async_sessionmaker[AsyncSession], fail: bool) -> None:
+    watcher = make_watcher(factory, FakeServer())
+    mail = SimpleNamespace(account_id=UUID(int=1), folder="INBOX", uid=7, flags=[])
+    runner = SlowRunner(fail)
+    task = asyncio.create_task(watcher.run_actions(runner, mail, None))  # type: ignore[arg-type]
+    await runner.started.wait()
+    assert [(job.kind, job.folder, job.uid) for job in watcher.working_jobs()] == [("actions", "INBOX", 7)]
+    runner.release.set()
+    if fail:
+        with pytest.raises(RuntimeError):
+            await task
+        # end with
+    else:
+        await task
+    # end if
+    assert watcher.working_jobs() == []
 # end def
 
 

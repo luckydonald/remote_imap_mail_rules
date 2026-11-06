@@ -1,8 +1,12 @@
 """The action log across all mails: `/api/log`."""
 
+from datetime import UTC, datetime
 from pathlib import Path
+from uuid import UUID
 
 from fastapi.testclient import TestClient
+
+from remote_imap_mail_rules.server.watcher import Job
 
 from .test_server_accounts import BODY
 from .test_server_events import client, insert  # noqa: F401 - `client` is a fixture
@@ -104,11 +108,24 @@ def test_rejects_a_broken_cursor(client: TestClient) -> None:  # noqa: F811
 
 def test_status(client: TestClient, tmp_path: Path) -> None:  # noqa: F811
     empty = client.get("/api/log/status").json()
-    assert empty == {"watcher_enabled": False, "last_run": None, "next_run": None, "push": False, "last_change": None, "last_action": None}
+    assert empty == {"watcher_enabled": False, "last_run": None, "next_run": None, "push": False, "last_change": None, "last_action": None, "jobs": []}
     setup(client, tmp_path)
     status = client.get("/api/log/status").json()
     assert status["last_change"].startswith("2026-11-03T10:00:20")
     assert status["last_action"].startswith("2026-11-03T10:00:10")
+# end def
+
+
+def test_status_lists_the_working_jobs(client: TestClient) -> None:  # noqa: F811
+    watcher = client.app.state.watcher  # type: ignore[attr-defined]
+    account = UUID(int=1)
+    watcher.jobs[("folder", account, "INBOX")] = Job("folder", account, "INBOX", None, datetime(2026, 11, 3, 10, tzinfo=UTC))
+    watcher.jobs[("actions", account, "INBOX", 4)] = Job("actions", account, "INBOX", 4, datetime(2026, 11, 3, 11, tzinfo=UTC))
+    jobs = client.get("/api/log/status").json()["jobs"]
+    assert [(job["kind"], job["account_id"], job["folder"], job["uid"]) for job in jobs] == [
+        ("folder", str(account), "INBOX", None), ("actions", str(account), "INBOX", 4),
+    ]
+    assert jobs[0]["started_at"].startswith("2026-11-03T10:00:00")
 # end def
 
 

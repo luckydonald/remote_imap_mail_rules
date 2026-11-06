@@ -27,6 +27,7 @@ const STATUS = {
   push: false,
   last_change: '2026-11-03T10:00:00Z',
   last_action: null,
+  jobs: [],
 }
 
 const json = (data: unknown): Response => new Response(JSON.stringify(data))
@@ -74,6 +75,50 @@ describe('ActionLogView', () => {
     ])
     expect(rows[0]!.get('.where').text()).toBe('Work · INBOX · 1')
     expect(rows[0]!.get('.where').attributes('href')).toBe(`/mail/${ACCOUNT}/INBOX/1`)
+  })
+
+  it('lists the working jobs and asks again for them', async () => {
+    const running = {
+      ...STATUS,
+      jobs: [
+        {
+          kind: 'folder',
+          account_id: ACCOUNT,
+          folder: 'INBOX',
+          uid: null,
+          started_at: '2026-11-03T10:00:00Z',
+        },
+        {
+          kind: 'actions',
+          account_id: ACCOUNT,
+          folder: 'INBOX',
+          uid: 7,
+          started_at: '2026-11-03T10:00:01Z',
+        },
+      ],
+    }
+    const fetchMock = stubServer(() => ({ items: [], next: null }), running)
+    const { wrapper } = await mountView()
+    const rows = wrapper.findAll('[data-test=jobs] li')
+    expect(rows.map((row) => row.get('.what').text())).toEqual([
+      'Checking folder',
+      'Running rules on mail',
+    ])
+    expect(rows[0]!.find('a').exists()).toBe(false)
+    expect(rows[1]!.get('a').attributes('href')).toBe(`/mail/${ACCOUNT}/INBOX/7`)
+    expect(wrapper.find('[data-test=no-jobs]').exists()).toBe(false)
+
+    const statusCalls = () =>
+      fetchMock.mock.calls.filter(([url]) => String(url).includes('/status')).length
+    const before = statusCalls()
+    await vi.advanceTimersByTimeAsync(5100)
+    expect(statusCalls()).toBe(before + 1)
+  })
+
+  it('says when nothing is running', async () => {
+    stubServer(() => ({ items: [], next: null }))
+    const { wrapper } = await mountView()
+    expect(wrapper.get('[data-test=no-jobs]').text()).toBe('Nothing is running right now.')
   })
 
   it('says why there is no last run', async () => {

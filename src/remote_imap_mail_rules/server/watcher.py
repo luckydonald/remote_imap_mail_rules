@@ -50,6 +50,19 @@ class UserChange:
 # end class
 
 
+@dataclass(frozen=True)
+class Job:
+    """Something the watcher is busy with right now: a folder being checked, or the rules being run over one mail."""
+
+    kind: str
+    """`folder` or `actions`."""
+    account_id: UUID
+    folder: str
+    uid: int | None
+    started_at: datetime
+# end class
+
+
 Entry = Seen | RuleMatch | Act | UserChange
 
 IGNORED_FLAGS = frozenset({"\\Recent"})
@@ -134,6 +147,7 @@ class Watcher:
         self.task: asyncio.Task[None] | None = None
         self.last_run: datetime | None = None
         self.due: dict[tuple[UUID, str], datetime | None] = {}
+        self.jobs: dict[tuple[Any, ...], Job] = {}
     # end def
 
     def start(self) -> None:
@@ -145,6 +159,7 @@ class Watcher:
     async def stop(self) -> None:
         task, self.task = self.task, None
         self.due.clear()
+        self.jobs.clear()
         if task is None:
             return
         # end if
@@ -217,8 +232,19 @@ class Watcher:
     # end def
 
     def scheduled(self, account_id: UUID, folder: str, due: datetime | None) -> None:
-        """A folder says when its next poll is due, or `None` while it waits for a server push (`IDLE`)."""
+        """A folder says when its next poll is due, or `None` while it waits for a server push (`IDLE`). It is idle again, so its job ends."""
         self.due[(account_id, folder)] = due
+        self.jobs.pop(("folder", account_id, folder), None)
+    # end def
+
+    def working(self, account_id: UUID, folder: str) -> None:
+        """The folder is being looked at; the job ends with the next `scheduled()` of that folder."""
+        self.jobs.setdefault(("folder", account_id, folder), Job("folder", account_id, folder, None, datetime.now(UTC)))
+    # end def
+
+    def working_jobs(self) -> list[Job]:
+        """What the watcher is busy with right now, oldest first."""
+        return sorted(self.jobs.values(), key=lambda job: job.started_at)
     # end def
 
     def next_run(self) -> datetime | None:
@@ -231,6 +257,11 @@ class Watcher:
     def push_folders(self) -> bool:
         """Whether some folder waits for a server push instead of polling."""
         return any(due is None for due in self.due.values())
+    # end def
+
+    def inspected(self, account_id: UUID, mail: Mail, queue: "asyncio.Queue[Entry]") -> None:
+        self.working(account_id, mail.folder)
+        queue.put_nowait(Seen(mail))
     # end def
 
     async def follow(self, account_id: UUID) -> None:
@@ -264,7 +295,7 @@ class Watcher:
         recorder = asyncio.create_task(self.record(queue, runner, pending, own))
         try:
             async for found in matches(
-                settings, rule_file, self.imap_factory, on_inspect=lambda mail: queue.put_nowait(Seen(mail)),
+                settings, rule_file, self.imap_factory, on_inspect=lambda mail: self.inspected(account_id, mail, queue),
                 on_change=lambda change: own.report(change, queue), on_poll=self.ticked,
                 on_schedule=lambda folder, due: self.scheduled(account_id, folder, due),
             ):
@@ -318,20 +349,26 @@ class Watcher:
 
     async def run_actions(self, runner: ActionRunner, mail: Mail, own: "OwnChanges | None") -> ChainResult | None:
         """Runs the rules over the mail and tells `own` what that changed, so the watching does not take it for the user's doing."""
-        if own is None:
-            return await runner.run(mail)
-        # end if
-        key, before = (mail.folder, mail.uid), frozenset(mail.flags)
-        own.acting.add(key)
+        job_key = ("actions", mail.account_id, mail.folder, mail.uid)
+        self.jobs[job_key] = Job("actions", mail.account_id, mail.folder, mail.uid, datetime.now(UTC))
         try:
-            result = await runner.run(mail)
+            if own is None:
+                return await runner.run(mail)
+            # end if
+            key, before = (mail.folder, mail.uid), frozenset(mail.flags)
+            own.acting.add(key)
+            try:
+                result = await runner.run(mail)
+            finally:
+                own.acting.discard(key)
+            # end try
+            if result is not None:
+                own.finished(key, before, result)
+            # end if
+            return result
         finally:
-            own.acting.discard(key)
+            self.jobs.pop(job_key, None)
         # end try
-        if result is not None:
-            own.finished(key, before, result)
-        # end if
-        return result
     # end def
 
     async def write_actions(self, session: AsyncSession, result: ChainResult | None) -> None:

@@ -67,7 +67,7 @@ To complete one:
   > - currently it is a drop-down which doesn't tell you really were in the rules you are.
   > - so basically I want a view of the rules having big empty areas on any insert point which can be clicked.
   > - do that as overlay, and full screen "< back"-able on mobile
-- [ ] in the _Log_ view, list currently working jobs — `todo:ae83447e-1a4c-4dc0-ad2f-c8d3d3ea8b3d`
+- [x] in the _Log_ view, list currently working jobs — `todo:ae83447e-1a4c-4dc0-ad2f-c8d3d3ea8b3d`
   > - under the info box
 - [ ] in the mail viewer allow to see the full headers of a email — `todo:3bc42369-9781-407c-9015-eb699c8d9b56`
 - [ ] Do not load the email before the folders & mails lists both are loaded. — `todo:dfab6abb-e7ad-41d5-82e9-343040e8b23d`

@@ -11,6 +11,7 @@ import {
   NO_FILTERS,
   queryOfFilters,
   type LogEntry,
+  type LogJob,
   type LogFilters,
   type LogStatus,
 } from '@/model/log-api'
@@ -30,6 +31,9 @@ const loading = ref(false)
 /** Answers of an older request must not replace the ones of the newest. */
 let requestId = 0
 let timer: ReturnType<typeof setTimeout> | undefined
+/** The working jobs change by the second, so the status is asked again while the screen is open. */
+const STATUS_INTERVAL = 5000
+let statusTimer: ReturnType<typeof setTimeout> | undefined
 
 const accountNames = computed(() => new Map(accounts.value.map((a) => [a.id, a.name])))
 const filtered = computed(() => JSON.stringify(filters) !== JSON.stringify(NO_FILTERS))
@@ -45,6 +49,13 @@ async function loadStatus(): Promise<void> {
   } catch (error) {
     fail(error, 'the status')
   }
+}
+
+function pollStatus(): void {
+  statusTimer = setTimeout(async () => {
+    await loadStatus()
+    pollStatus()
+  }, STATUS_INTERVAL)
 }
 
 /** Loads the first page, or the one after the last when `more`. */
@@ -85,13 +96,21 @@ watch(
 
 onMounted(async () => {
   void refresh()
+  pollStatus()
   try {
     accounts.value = await listAccounts()
   } catch {
     // the names fall back to the ids
   }
 })
-onBeforeUnmount(() => clearTimeout(timer))
+onBeforeUnmount(() => {
+  clearTimeout(timer)
+  clearTimeout(statusTimer)
+})
+
+function jobLabel(job: LogJob): string {
+  return job.kind === 'actions' ? 'Running rules on mail' : 'Checking folder'
+}
 
 function when(iso: string | null): string {
   if (iso !== null) return fullDate(iso)
@@ -141,6 +160,35 @@ const nextText = computed(() => {
         <dd data-test="last-action">{{ status ? when(status.last_action) : '…' }}</dd>
       </div>
     </dl>
+    <section class="jobs" aria-label="Working jobs">
+      <h3>Working now</h3>
+      <ul v-if="status && status.jobs.length > 0" data-test="jobs">
+        <li
+          v-for="job in status.jobs"
+          :key="`${job.kind}|${job.account_id}|${job.folder}|${job.uid}`"
+        >
+          <span class="what">{{ jobLabel(job) }}</span>
+          <RouterLink
+            v-if="job.uid !== null"
+            class="where"
+            :to="{
+              name: 'mail-message',
+              params: { accountId: job.account_id, folder: job.folder, uid: job.uid },
+            }"
+          >
+            {{ accountNames.get(job.account_id) ?? job.account_id }} · {{ job.folder }} ·
+            {{ job.uid }}
+          </RouterLink>
+          <span v-else class="where">
+            {{ accountNames.get(job.account_id) ?? job.account_id }} · {{ job.folder }}
+          </span>
+          <time :datetime="job.started_at">since {{ fullDate(job.started_at) }}</time>
+        </li>
+      </ul>
+      <p v-else class="empty" data-test="no-jobs">
+        {{ status ? 'Nothing is running right now.' : '…' }}
+      </p>
+    </section>
     <form class="filters" @submit.prevent="load()">
       <input v-model="filters.q" type="search" placeholder="Search" aria-label="Search" />
       <select v-model="filters.account_id" aria-label="Account">
