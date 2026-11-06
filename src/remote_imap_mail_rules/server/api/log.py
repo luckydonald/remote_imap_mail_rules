@@ -40,6 +40,16 @@ class LogPage(BaseModel):
 # end class
 
 
+class LogJob(BaseModel):
+    kind: str
+    """`folder` (being checked) or `actions` (rules running over one mail)."""
+    account_id: UUID
+    folder: str
+    uid: int | None
+    started_at: datetime
+# end class
+
+
 class LogStatus(BaseModel):
     watcher_enabled: bool
     last_run: datetime | None
@@ -50,6 +60,8 @@ class LogStatus(BaseModel):
     """Some folder waits for a server push (`IDLE`), so it also wakes up without a planned time."""
     last_change: datetime | None
     last_action: datetime | None
+    jobs: list[LogJob]
+    """What the watcher is busy with right now, oldest first. In memory only."""
 # end class
 
 
@@ -110,5 +122,6 @@ async def status(request: Request, session: AsyncSession = Depends(get_session))
         push=watcher.push_folders(),
         last_change=await mail_events.last_event_at(session, CHANGE_KINDS),
         last_action=await mail_events.last_event_at(session, (EventKind.action,)),
+        jobs=[LogJob(kind=job.kind, account_id=job.account_id, folder=job.folder, uid=job.uid, started_at=job.started_at) for job in watcher.working_jobs()],
     )
 # end def

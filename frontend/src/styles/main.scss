@@ -513,6 +513,38 @@ button {
     }
   }
 
+  .jobs {
+    margin: 12px 0;
+
+    h3 {
+      margin: 0 0 4px;
+      font-size: 14px;
+    }
+
+    ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    li {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+      padding: 4px 0;
+    }
+
+    time,
+    .empty {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .empty {
+      margin: 0;
+    }
+  }
+
   .filters {
     display: flex;
     flex-wrap: wrap;

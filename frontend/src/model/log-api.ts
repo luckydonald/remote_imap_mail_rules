@@ -28,6 +28,15 @@ export interface LogPage {
   next: string | null
 }
 
+export interface LogJob {
+  /** `folder` is being checked, `actions` are the rules running over one mail. */
+  kind: 'folder' | 'actions'
+  account_id: string
+  folder: string
+  uid: number | null
+  started_at: string
+}
+
 export interface LogStatus {
   watcher_enabled: boolean
   /** In memory on the server, `null` after its restart until the watching wakes up. */
@@ -38,6 +47,8 @@ export interface LogStatus {
   push: boolean
   last_change: string | null
   last_action: string | null
+  /** What the watcher is busy with right now, oldest first. */
+  jobs: LogJob[]
 }
 
 /** What the filter bar edits; empty strings and lists mean no filter. `since` and `until` are `datetime-local` values. */

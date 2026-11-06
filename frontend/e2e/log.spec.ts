@@ -48,6 +48,15 @@ const mockServer = async (page: Page): Promise<string[]> => {
         push: false,
         last_change: '2026-11-03T10:00:00Z',
         last_action: '2026-11-03T09:00:00Z',
+        jobs: [
+          {
+            kind: 'actions',
+            account_id: ACCOUNT,
+            folder: 'INBOX',
+            uid: 9,
+            started_at: '2026-11-03T10:05:00Z',
+          },
+        ],
       },
     }),
   )
@@ -69,6 +78,7 @@ test('shows the status box and the log, filters and links to the mail', async ({
   await expect(page.getByRole('heading', { name: 'Action log' })).toBeVisible()
   await expect(page.getByLabel('Watcher status')).toContainText('Watcher last ran')
   await expect(page.locator('[data-test=last-action]')).not.toHaveText('never')
+  await expect(page.locator('[data-test=jobs] li')).toContainText('Running rules on mail')
   await expect(page.locator('.entries li')).toHaveCount(2)
   await expect(page.locator('.entries li').first()).toContainText(
     'Matched the rule "invoices" (new)',
