@@ -1,4 +1,5 @@
 """Mail browsing, mounted at `/api/mail`. The folder is a query parameter, since folder names contain the delimiter.
+It is passed through `resolve_folder`, so a name written like in a rule (`Boxed In/Updates`) works on servers with an `INBOX.` namespace.
 
 Reading is read-only (`EXAMINE`, `BODY.PEEK`). The two write routes (`/flags`, `/move`) only work with `ACTIONS_ENABLED`."""
 
@@ -55,6 +56,7 @@ async def list_messages(
 ) -> PageOut:
     """Newest first. Pass the `next_before_uid` of the previous page to get the next one."""
     async with imap_session(request, session, account_id) as client:
+        folder = await client.resolve_folder(folder)
         mails, total = await client.list_page(account_id, folder, limit, before_uid)
     # end with
     last = mails[-1].uid if len(mails) == limit else None
@@ -74,6 +76,7 @@ async def get_message(
 ) -> DetailOut:
     """`remote_images` and `styles` let the HTML load remote images and keep its CSS, both are left out by default."""
     async with imap_session(request, session, account_id) as client:
+        folder = await client.resolve_folder(folder)
         mail = await client.fetch_message(account_id, folder, uid)
         if mail is None:
             raise HTTPException(status_code=404, detail="No such message.")
@@ -112,6 +115,7 @@ async def get_part(
 ) -> Response:
     """An attachment or inline image. Anything that a browser could run is forced to download and sandboxed."""
     async with imap_session(request, session, account_id) as client:
+        folder = await client.resolve_folder(folder)
         found = await client.fetch_part(folder, uid, part)
     # end with
     if found is None:
@@ -169,6 +173,7 @@ async def post_flags(
         raise HTTPException(status_code=422, detail=f"Flags not allowed: {', '.join(unknown)}")
     # end if
     async with imap_session(request, session, account_id) as client:
+        folder = await client.resolve_folder(folder)
         await client.store_flags(folder, uid, add=tuple(body.add), remove=tuple(body.remove))
     # end with
     return Response(status_code=204)
@@ -185,6 +190,7 @@ async def post_move(
         raise HTTPException(status_code=422, detail="The mail is in that folder already.")
     # end if
     async with imap_session(request, session, account_id) as client:
+        folder = await client.resolve_folder(folder)
         moved = await client.move(folder, uid, body.folder)
     # end with
     return MoveOut(folder=moved.folder, uid=moved.uid)

@@ -180,3 +180,18 @@ def test_remote_images_are_listed_and_can_be_allowed(client: TestClient, account
     assert (allowed["blocked_images"], allowed["remote_images_allowed"]) == ([], True)
     assert 'src="https://tracker.example/p.gif"' in allowed["html"]
 # end def
+
+
+def test_rule_style_folder_names_are_resolved(client: TestClient, server: FakeServer, account_id: str) -> None:
+    """A folder written like in a rule (`/`, no `INBOX.` prefix) finds the server's real folder instead of failing the EXAMINE."""
+    server.delimiter = "."
+    server.add("INBOX", 1, "inbox one")
+    server.add("INBOX.Boxed In.Updates", 7, "update one")
+    url = f"/api/mail/accounts/{account_id}/messages"
+    page = client.get(url, params={"folder": "Boxed In/Updates"})
+    assert page.status_code == 200
+    assert [m["subject"] for m in page.json()["messages"]] == ["update one"]
+    assert client.get(f"{url}/7", params={"folder": "Boxed In/Updates"}).status_code == 200
+    listed = client.get(url, params={"folder": "INBOX.Boxed In.Updates"})
+    assert [m["uid"] for m in listed.json()["messages"]] == [7]
+# end def
