@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import ConfirmUnwrap from './ConfirmUnwrap.vue'
 import AddressEditor from './condition/TextLikeEditor.vue'
 import BoolEditor from './condition/BoolEditor.vue'
 import DateEditor from './condition/DateEditor.vue'
@@ -15,7 +16,11 @@ import { useClipboardStore } from '@/model/clipboard'
 import type { Expression } from '@/model/types'
 
 const props = defineProps<{ modelValue: Expression; removable?: boolean }>()
-const emit = defineEmits<{ 'update:modelValue': [value: Expression]; remove: [] }>()
+const emit = defineEmits<{
+  'update:modelValue': [value: Expression]
+  remove: []
+  unwrap: []
+}>()
 const store = useStore()
 const mail = useMailStore()
 const clipboard = useClipboardStore()
@@ -63,6 +68,35 @@ function cut(): void {
   void clipboard.cut(node.value)
   if (props.removable) emit('remove')
   else emit('update:modelValue', newExpression('text'))
+}
+
+/** The expressions directly inside a group. */
+const children = computed<Expression[]>(() => {
+  const current = node.value
+  if (current.type === 'not') return [current.condition]
+  if (current.type === 'all' || current.type === 'any') return current.conditions
+  return []
+})
+const asking = ref(false)
+/** A group in a list hands its children to the parent, a single slot takes exactly one. */
+const canUnwrap = computed(() => isGroup.value && (props.removable || children.value.length === 1))
+
+function unwrap(): void {
+  asking.value = false
+  if (!canUnwrap.value) return
+  if (props.removable) emit('unwrap')
+  else emit('update:modelValue', children.value[0]!)
+}
+
+/** A group with children asks whether to keep them. */
+function askRemove(): void {
+  if (isGroup.value && children.value.length > 0) asking.value = true
+  else emit('remove')
+}
+
+function confirmRemove(): void {
+  asking.value = false
+  emit('remove')
 }
 
 function wrap(type: 'all' | 'any' | 'not'): void {
@@ -113,15 +147,30 @@ function wrap(type: 'all' | 'any' | 'not'): void {
         any(…)
       </button>
       <button
-        v-if="removable"
+        v-if="isGroup"
         type="button"
-        class="ghost danger"
-        title="Remove"
-        @click="emit('remove')"
+        class="ghost unwrap"
+        :disabled="!canUnwrap"
+        :title="
+          canUnwrap
+            ? 'Replace this group by its children'
+            : 'Only a group with a single condition can be unwrapped here'
+        "
+        @click="unwrap"
       >
+        ⤴ Unwrap
+      </button>
+      <button v-if="removable" type="button" class="ghost danger" title="Remove" @click="askRemove">
         ✕
       </button>
     </div>
+    <ConfirmUnwrap
+      v-if="asking"
+      :count="children.length"
+      @keep="unwrap"
+      @remove="confirmRemove"
+      @cancel="asking = false"
+    />
     <GroupEditor
       v-if="node.type === 'all' || node.type === 'any' || node.type === 'not'"
       :node="node"

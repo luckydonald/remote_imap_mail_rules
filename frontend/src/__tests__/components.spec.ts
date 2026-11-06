@@ -296,3 +296,77 @@ rules:
     expect(store.yaml).toContain('phrase: hello')
   })
 })
+
+describe('unwrapping a group', () => {
+  const leaf = (field: string): Expression => ({ type: 'bool', field }) as Expression
+  const names = (node: Expression): string[] =>
+    (node as { conditions: { field?: string; type: string }[] }).conditions.map(
+      (c) => c.field ?? c.type,
+    )
+
+  function mountNode(node: Expression) {
+    const { wrapper } = withStore(() => h(ConditionNode, { modelValue: node }))
+    return wrapper
+  }
+  const unwrapButtons = (w: ReturnType<typeof mountNode>) => w.findAll('button.unwrap')
+
+  it('splices the children of a nested group into its parent, in order', async () => {
+    const node = reactive<Expression>({
+      type: 'any',
+      conditions: [
+        leaf('seen'),
+        { type: 'all', conditions: [leaf('flagged'), leaf('draft')] },
+        leaf('answered'),
+      ],
+    })
+    const wrapper = mountNode(node)
+    await unwrapButtons(wrapper)[1]!.trigger('click')
+    expect(names(node)).toEqual(['seen', 'flagged', 'draft', 'answered'])
+  })
+
+  it('replaces the root by a single child and is disabled for several', async () => {
+    const single = reactive<Expression>({ type: 'not', condition: leaf('seen') })
+    const w1 = mountNode(single)
+    await unwrapButtons(w1)[0]!.trigger('click')
+    expect(w1.findComponent(ConditionNode).emitted('update:modelValue')?.[0]).toEqual([
+      leaf('seen'),
+    ])
+
+    const several = reactive<Expression>({ type: 'all', conditions: [leaf('seen'), leaf('draft')] })
+    const w2 = mountNode(several)
+    expect(unwrapButtons(w2)[0]!.attributes('disabled')).toBeDefined()
+  })
+
+  it('asks before removing a group with children', async () => {
+    const make = () =>
+      reactive<Expression>({
+        type: 'all',
+        conditions: [leaf('seen'), { type: 'any', conditions: [leaf('flagged'), leaf('draft')] }],
+      })
+    const remove = async (answer: string | null) => {
+      const node = make()
+      const wrapper = mountNode(node)
+      await wrapper.findAll('button.danger')[1]!.trigger('click')
+      const dialog = document.body.querySelector('[role=dialog]')
+      expect(dialog).not.toBeNull()
+      if (answer)
+        [...document.body.querySelectorAll<HTMLButtonElement>('[role=dialog] button')]
+          .find((b) => b.textContent === answer)!
+          .click()
+      await flushPromises()
+      wrapper.unmount()
+      return names(node)
+    }
+    expect(await remove('Keep the children')).toEqual(['seen', 'flagged', 'draft'])
+    expect(await remove('Remove all')).toEqual(['seen'])
+    expect(await remove('Cancel')).toEqual(['seen', 'any'])
+  })
+
+  it('removes a leaf at once', async () => {
+    const node = reactive<Expression>({ type: 'all', conditions: [leaf('seen'), leaf('draft')] })
+    const wrapper = mountNode(node)
+    await wrapper.findAll('button.danger')[0]!.trigger('click')
+    expect(document.body.querySelector('[role=dialog]')).toBeNull()
+    expect(names(node)).toEqual(['draft'])
+  })
+})

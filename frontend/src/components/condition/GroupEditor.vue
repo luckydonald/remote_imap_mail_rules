@@ -30,6 +30,20 @@ async function paste(): Promise<void> {
 function remove(index: number): void {
   if (model.value.type !== 'not') model.value.conditions.splice(index, 1)
 }
+
+/** Replaces the group at `index` by its own children. */
+function unwrapAt(index: number): void {
+  if (model.value.type === 'not') return
+  const inner = model.value.conditions[index]
+  if (!inner) return
+  const kids =
+    inner.type === 'not'
+      ? [inner.condition]
+      : inner.type === 'all' || inner.type === 'any'
+        ? inner.conditions
+        : [inner]
+  model.value.conditions.splice(index, 1, ...kids)
+}
 </script>
 
 <template>
@@ -46,6 +60,7 @@ function remove(index: number): void {
         @update:model-value="model.conditions[index] = $event"
         removable
         @remove="remove(index)"
+        @unwrap="unwrapAt(index)"
       />
       <button type="button" class="add" @click="add">+ Add condition</button>
       <button v-if="clipboard.canPaste" type="button" class="add paste" @click="paste">
