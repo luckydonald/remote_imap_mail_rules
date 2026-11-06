@@ -140,6 +140,30 @@ describe('mail store', () => {
     expect(second.detail?.text).toBe('hi')
   })
 
+  it('does not request the open mail before the list is loaded', async () => {
+    const fetchMock = stubServer()
+    const answer = fetchMock.getMockImplementation()!
+    let releaseList: () => void = () => {}
+    const listGate = new Promise<void>((resolve) => (releaseList = resolve))
+    fetchMock.mockImplementation(async (input, init) => {
+      if (String(input).includes('/messages?') && !String(input).includes('before_uid='))
+        await listGate
+      return answer(input, init)
+    })
+    const store = useMailStore()
+    const loading = store.loadAccounts({ accountId: 'acc', folder: 'INBOX', uid: 3 })
+    await vi.waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/messages?'))).toBe(true),
+    )
+    const mailRequested = (): boolean =>
+      fetchMock.mock.calls.some(([url]) => /\/messages\/3(\?|$)/.test(String(url)))
+    expect(mailRequested()).toBe(false)
+    releaseList()
+    await loading
+    expect(mailRequested()).toBe(true)
+    expect(store.detail?.text).toBe('hi')
+  })
+
   it('asks to log in again on a 401', async () => {
     stubServer(true)
     const onUnauthorized = vi.fn<() => void>()

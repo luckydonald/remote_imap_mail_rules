@@ -219,7 +219,9 @@ export const useMailStore = defineStore('mail', () => {
     error.value = ''
     loading.value = false
     pane.value = 'list'
-    await Promise.all([loadMore(), uid === null ? undefined : openMessage(uid)])
+    // The mail only loads once the folders (already in) and the list are, so it never shows before them.
+    await loadMore()
+    if (uid !== null && folder.value === name && accountId.value !== null) await openMessage(uid)
   }
 
   /** Loads the next page below the oldest mail shown; the first page when the list is empty. */
