@@ -723,6 +723,11 @@ button {
     margin-bottom: 8px;
   }
 
+  .reload {
+    display: block;
+    margin: 0 0 6px auto;
+  }
+
   .folder {
     display: flex;
     align-items: center;
@@ -1126,6 +1131,10 @@ button {
 
 .mail-message .pane-head {
   flex-wrap: wrap;
+}
+
+.mail-list .pane-head .reload {
+  margin-left: auto;
 }
 
 .toolbar {

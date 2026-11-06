@@ -31,6 +31,22 @@ test('asks for a login, then browses folders, pages and reads a message', async 
   )
 })
 
+test('reloads the folder list and the message list', async ({ page }) => {
+  const calls = await mockServer(page)
+  await page.goto('/')
+  await logIn(page)
+  await page.getByRole('link', { name: 'Mail', exact: true }).click()
+  await expect(page.locator('.row-mail')).toHaveCount(2)
+  const count = (suffix: string): number => calls.filter((call) => call.startsWith(suffix)).length
+  const folders = count('/folders')
+  const lists = count('/messages')
+  await page.getByRole('button', { name: 'Reload folders' }).click()
+  await expect.poll(() => count('/folders')).toBe(folders + 1)
+  await page.getByRole('button', { name: 'Reload messages' }).click()
+  await expect.poll(() => count('/messages')).toBe(lists + 1)
+  await expect(page.locator('.row-mail')).toHaveCount(2)
+})
+
 test('lists all headers of a message, collapsed at first', async ({ page }) => {
   await mockServer(page)
   await page.goto('/')

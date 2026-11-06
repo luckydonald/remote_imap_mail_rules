@@ -108,6 +108,26 @@ describe('mail store', () => {
     expect(store.pane).toBe('folders')
   })
 
+  it('reloads the folders and the first page and keeps the open mail', async () => {
+    const fetchMock = stubServer()
+    const store = useMailStore()
+    await store.loadAccounts()
+    await store.openMessage(3)
+    store.folders = []
+    store.messages = []
+    await store.reloadFolders()
+    await store.reloadMessages()
+    expect(store.folders.map((item) => item.name)).toEqual(['INBOX'])
+    expect(store.folder).toBe('INBOX')
+    expect(store.messages.map((item) => item.uid)).toEqual([3, 2])
+    expect(store.hasMore).toBe(true)
+    expect(store.selectedUid).toBe(3)
+    expect(store.detail?.text).toBe('hi')
+    expect(store.loading).toBe(false)
+    expect(store.foldersLoading).toBe(false)
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/folders'))).toHaveLength(2)
+  })
+
   it('stops filling the editor from the mail without closing it, until another mail is opened', async () => {
     stubServer()
     const store = useMailStore()

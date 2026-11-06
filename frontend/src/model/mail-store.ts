@@ -246,6 +246,41 @@ export const useMailStore = defineStore('mail', () => {
     }
   }
 
+  /** Fetches the folders again (unseen counts, new folders); folder and open mail stay. */
+  async function reloadFolders(): Promise<void> {
+    const id = accountId.value
+    if (id === null || foldersLoading.value) return
+    foldersLoading.value = true
+    try {
+      const found = await listFolders(id)
+      if (accountId.value === id) folders.value = found.filter((item) => item.selectable)
+    } catch (caught) {
+      if (accountId.value === id) fail('Could not reload the folders', caught)
+    } finally {
+      if (accountId.value === id) foldersLoading.value = false
+    }
+  }
+
+  /** Fetches the first page of the folder again and swaps it in; the list stays and the open mail stays open. */
+  async function reloadMessages(): Promise<void> {
+    const id = accountId.value
+    const name = folder.value
+    if (id === null || name === null || loading.value) return
+    const ticket = ++listTicket
+    loading.value = true
+    try {
+      const page = await listMessages(id, name, null)
+      if (ticket !== listTicket) return
+      messages.value = page.messages
+      total.value = page.total
+      nextBefore.value = page.next_before_uid
+    } catch (caught) {
+      if (ticket === listTicket) fail('Could not reload the messages', caught)
+    } finally {
+      if (ticket === listTicket) loading.value = false
+    }
+  }
+
   async function openMessage(uid: number): Promise<void> {
     const id = accountId.value
     const name = folder.value
@@ -410,6 +445,8 @@ export const useMailStore = defineStore('mail', () => {
     selectAccount,
     selectFolder,
     loadMore,
+    reloadFolders,
+    reloadMessages,
     openMessage,
     allow,
     bodyOptions,
