@@ -2,7 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory } from 'vue-router'
 import { createAppRouter } from '@/router'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import AppShell from '@/components/AppShell.vue'
 import ConditionNode from '@/components/ConditionNode.vue'
 import FieldValue from '@/components/FieldValue.vue'
@@ -34,6 +34,54 @@ describe('ConditionNode', () => {
     expect(wrapper.findAll('.node')).toHaveLength(3)
     await wrapper.findAll('button.add')[0]!.trigger('click')
     expect(wrapper.findAll('.node')).toHaveLength(4)
+  })
+
+  it('cuts a child into the clipboard store and pastes it into another group', async () => {
+    const when = reactive<Expression>({
+      type: 'all',
+      conditions: [
+        { type: 'any', conditions: [{ type: 'bool', field: 'seen' }] },
+        { type: 'bool', field: 'flagged' },
+      ],
+    })
+    const { store, wrapper } = withStore(() => h(ConditionNode, { modelValue: when }))
+    const pasteButtons = () => wrapper.findAll('button.paste')
+    // The inner `any` is cut, with its sub-block.
+    await wrapper.findAll('button.cut')[1]!.trigger('click')
+    expect(when.type === 'all' && when.conditions).toHaveLength(1)
+    // Pasting into the root appends the whole copy.
+    await pasteButtons()[0]!.trigger('click')
+    await flushPromises()
+    expect(when.type === 'all' && when.conditions[1]).toEqual({
+      type: 'any',
+      conditions: [{ type: 'bool', field: 'seen' }],
+    })
+    expect(store).toBeDefined()
+  })
+
+  it('replaces a cut root by a default condition', async () => {
+    const updates: Expression[] = []
+    const { wrapper } = withStore(() =>
+      h(ConditionNode, {
+        modelValue: { type: 'bool', field: 'seen' },
+        'onUpdate:modelValue': (value: Expression) => updates.push(value),
+      }),
+    )
+    await wrapper.find('button.cut').trigger('click')
+    expect(updates[0]?.type).toBe('text')
+  })
+
+  it('shows a hint when there is nothing to paste', async () => {
+    const when = reactive<Expression>({
+      type: 'all',
+      conditions: [{ type: 'bool', field: 'seen' }],
+    })
+    const { wrapper } = withStore(() => h(ConditionNode, { modelValue: when }))
+    vi.stubGlobal('navigator', { clipboard: { readText: async () => 'nope' } })
+    await wrapper.find('button.paste').trigger('click')
+    await flushPromises()
+    expect(wrapper.text()).toContain('Nothing to paste')
+    vi.unstubAllGlobals()
   })
 
   it('emits a new expression when the type changes', async () => {

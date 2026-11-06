@@ -163,6 +163,58 @@ test('copies the YAML', async ({ page, context }) => {
   expect(text).toContain('rules:')
 })
 
+test.describe('cut and paste of rule blocks', () => {
+  /** Two new rules, each with its `when` wrapped in an `all` group, with the first one's second condition made a `bool`. */
+  const twoRules = async (page: Page): Promise<void> => {
+    await page.getByRole('button', { name: 'New', exact: true }).click()
+    for (let index = 0; index < 2; index++) {
+      await page.getByRole('button', { name: '+ New rule' }).click()
+      await page.getByTitle('Wrap in ALL (AND)').click()
+    }
+    await page.locator('.rule-list li .select').first().click()
+    await page.getByRole('button', { name: '+ Add condition' }).click()
+    await page.locator('.node-bar select').last().selectOption('bool')
+  }
+
+  test('moves a block into another rule through the real clipboard', async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await twoRules(page)
+    // `.cut` buttons: the group, then its two children.
+    await page.locator('button.cut').last().click()
+    await expect(page.locator('.node-bool')).toHaveCount(0)
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('type: bool')
+
+    await page.locator('.rule-list li .select').nth(1).click()
+    await page.getByRole('button', { name: 'Paste', exact: true }).click()
+    await expect(page.locator('.node-bool')).toHaveCount(1)
+
+    await page.locator('.rule-list').getByText('YAML', { exact: true }).click()
+    await expect(page.getByLabel('YAML')).toHaveValue(/type: bool/)
+  })
+
+  test('keeps the clipboard untouched with the settings off, and still pastes the cut block', async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    await page.evaluate(() => navigator.clipboard.writeText('untouched'))
+    await page.evaluate(() =>
+      localStorage.setItem('mail-prefs', JSON.stringify({ copyCut: 'off', readPaste: 'off' })),
+    )
+    await page.reload()
+    await twoRules(page)
+    await page.locator('button.cut').last().click()
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('untouched')
+
+    await page.locator('.rule-list li .select').nth(1).click()
+    await page.getByRole('button', { name: 'Paste', exact: true }).click()
+    await expect(page.locator('.node-bool')).toHaveCount(1)
+  })
+})
+
 test.describe('color scheme', () => {
   const background = (page: Page) =>
     page.evaluate(() => getComputedStyle(document.body).backgroundColor)

@@ -142,6 +142,20 @@ export function stringifyRules(file: RuleFile, comments?: CommentMap): string {
   return doc.toString({ lineWidth: 0 })
 }
 
+/** One expression as YAML, e.g. for the clipboard. */
+export function stringifyExpression(expression: Expression): string {
+  // JSON round trip drops `undefined`.
+  return new Document(JSON.parse(JSON.stringify(expression)), { customTags: [varTag] }).toString({
+    lineWidth: 0,
+  })
+}
+
+/** The data of YAML text, or `null` when it is not valid YAML. Nothing is checked about its shape. */
+export function parseYamlData(text: string): unknown {
+  const doc = parseDocument(text, { customTags: [varTag], merge: false })
+  return doc.errors.length > 0 ? null : doc.toJS()
+}
+
 /** The file as the backend schema sees it: template uses merged with their definition. */
 export function expandRules(file: RuleFile): unknown {
   const expandExpression = (expression: Expression, seen: string[]): unknown => {

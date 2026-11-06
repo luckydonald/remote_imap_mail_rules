@@ -1,0 +1,80 @@
+/** Cut and paste of rule blocks: the last cut block in memory, and as YAML on the real clipboard if the settings allow it. */
+
+import { defineStore } from 'pinia'
+import { computed, shallowRef } from 'vue'
+import { expressionTypes } from './catalog'
+import { usePrefsStore } from './prefs'
+import { validateRules } from './validate'
+import { parseYamlData, stringifyExpression } from './yaml-io'
+import type { Expression, Rule } from './types'
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/** Template uses are checked against the file they land in, so here they only stand for a valid leaf. */
+function stubUses(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(stubUses)
+  if (!isObject(node)) return node
+  if (node.type === 'template') return { type: 'bool', field: 'seen' }
+  return Object.fromEntries(Object.entries(node).map(([key, value]) => [key, stubUses(value)]))
+}
+
+/** The rule block in the YAML text, or `null` when the text is anything else. Never throws. */
+export function parseExpressionText(text: string): Expression | null {
+  let data: unknown
+  try {
+    data = parseYamlData(text)
+  } catch {
+    return null
+  }
+  if (!isObject(data) || !(expressionTypes as readonly string[]).includes(String(data.type)))
+    return null
+  const rule = {
+    name: 'paste',
+    enabled: true,
+    locations: [{ account_id: '', folder: 'INBOX', recursive: false }],
+    when: stubUses(data),
+    actions: [],
+  } as unknown as Rule
+  const problems = validateRules({ templates: {}, rules: [rule] })
+  return problems.some((problem) => problem.path.startsWith('/rules/0/when'))
+    ? null
+    : (data as unknown as Expression)
+}
+
+const copyOf = (expression: Expression): Expression => JSON.parse(JSON.stringify(expression))
+
+export const useClipboardStore = defineStore('clipboard', () => {
+  const prefs = usePrefsStore()
+  /** The last cut block, kept for this session. */
+  const block = shallowRef<Expression | null>(null)
+  /** Whether a paste may find something: a cut block, or a clipboard that is allowed to be read. */
+  const canPaste = computed(() => block.value !== null || prefs.readPaste === 'on')
+
+  /** Remembers a copy of the block and, if allowed, puts its YAML on the clipboard. A blocked clipboard is no error. */
+  async function cut(expression: Expression): Promise<void> {
+    block.value = copyOf(expression)
+    if (prefs.copyCut !== 'on') return
+    try {
+      await navigator.clipboard.writeText(stringifyExpression(expression))
+    } catch {
+      // The block is still in memory.
+    }
+  }
+
+  /** A fresh copy of the block to paste: from the clipboard if it holds one and reading is allowed, else the last cut. */
+  async function read(): Promise<Expression | null> {
+    if (prefs.readPaste === 'on') {
+      try {
+        const parsed = parseExpressionText(await navigator.clipboard.readText())
+        if (parsed) return parsed
+      } catch {
+        // No permission or no API: use the cut block.
+      }
+    }
+    return block.value ? copyOf(block.value) : null
+  }
+
+  return { block, canPaste, cut, read }
+})
