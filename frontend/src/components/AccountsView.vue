@@ -11,7 +11,7 @@ import {
 import { useStore } from '@/model/store'
 
 // The list is the mail browser's, so the account picker there follows every change made here.
-const mail = useStore()
+const store = useStore()
 const message = ref('')
 const loading = ref(true)
 /** `null` is closed, `'new'` adds, an id edits. */
@@ -41,7 +41,7 @@ function describe(error: unknown): string {
 
 async function load(renamed?: { from: string; to: string }): Promise<void> {
   try {
-    await mail.refreshAccounts(renamed)
+    await store.refreshAccounts(renamed)
   } catch (error) {
     message.value = `Could not load the accounts: ${describe(error)}`
   } finally {
@@ -113,8 +113,8 @@ onMounted(() => void load())
       <button type="button" class="add" @click="add">Add account</button>
     </header>
     <p v-if="message" class="message" @click="message = ''">{{ message }}</p>
-    <p v-if="!loading && mail.accounts.length === 0" class="hint">No accounts yet.</p>
-    <article v-for="account in mail.accounts" :key="account.id" class="account">
+    <p v-if="!loading && store.accounts.length === 0" class="hint">No accounts yet.</p>
+    <article v-for="account in store.accounts" :key="account.id" class="account">
       <header class="row">
         <strong>{{ account.name }}</strong>
         <span class="mono">{{ account.username }}@{{ account.host }}:{{ account.port }}</span>
