@@ -13,11 +13,13 @@ import {
   type MailContext,
 } from '@/model/fill-from-mail'
 import { personLabel } from '@/model/mail-format'
+import { useMailStore } from '@/model/mail-store'
 import { useStore } from '@/model/store'
 import { locationOfView } from '@/router'
 
 const props = defineProps<{ context: MailContext }>()
 const rules = useStore()
+const mail = useMailStore()
 const router = useRouter()
 
 const open = ref(false)
@@ -57,6 +59,13 @@ function groupLabel(group: { path: number[]; type: string; depth: number }): str
   const place =
     group.path.length === 0 ? 'whole rule' : `child ${group.path.map((i) => i + 1).join('.')}`
   return `${'— '.repeat(group.depth)}${group.type} (${place})`
+}
+
+/** Makes the open mail the editor's example, without touching a rule. */
+function selectExample(): void {
+  open.value = false
+  mail.fillDetached = false
+  void router.push(locationOfView(rules.view))
 }
 
 function newRule(): void {
@@ -101,6 +110,7 @@ function addTo(): void {
       Rule ▾
     </button>
     <div v-if="open" class="menu-pop end" role="menu">
+      <button type="button" role="menuitem" @click="selectExample">Select as example mail</button>
       <button type="button" role="menuitem" @click="newRule">New rule from this mail</button>
       <button
         type="button"

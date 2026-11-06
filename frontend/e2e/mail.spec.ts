@@ -260,6 +260,22 @@ test('the rule button starts a rule from the mail', async ({ page }) => {
   await expect(page).toHaveURL(/\/rules\/1$/)
 })
 
+test('the rule button selects the mail as the example without a new rule', async ({ page }) => {
+  await mockServer(page, false, MOVE_RULES)
+  await openThird(page)
+  await page.getByRole('button', { name: 'Rule ▾' }).click()
+  await page.getByRole('menuitem', { name: 'Select as example mail' }).click()
+  await expect(page).toHaveURL(/\/rules\/0$/)
+  await expect(page.locator('.rule-editor .mail-chip')).toContainText('Subject 3')
+  // Remove the chip, go back to the mail and select it again.
+  await page.getByRole('button', { name: 'Do not fill from this mail' }).click()
+  await expect(page.locator('.rule-editor .mail-chip')).toHaveCount(0)
+  await page.goBack()
+  await page.getByRole('button', { name: 'Rule ▾' }).click()
+  await page.getByRole('menuitem', { name: 'Select as example mail' }).click()
+  await expect(page.locator('.rule-editor .mail-chip')).toContainText('Subject 3')
+})
+
 for (const width of [1366, 1280, 900, 700, 390]) {
   test(`the rule menu is fully visible and its dialog on top at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: width === 1366 ? 1024 : 720 })

@@ -60,7 +60,7 @@ To complete one:
   >       - in case it's disabled in your browser anyways
   >       - or it spams paste request prompts you don't want to accept
 - [x] fix new template not auto-filling from example mail — `todo:98e90741-4a7d-4d83-a9be-7b78680ed135` _(done)_
-- [ ] _Mail_ > _Rule_: add `Select as example mail` — `todo:181001a3-daac-4ee9-975a-213e5b6d4b11`
+- [x] _Mail_ > _Rule_: add `Select as example mail` — `todo:181001a3-daac-4ee9-975a-213e5b6d4b11`
   > - Basically _New rule from this mail_, but don't actually create any new rule.
   > - put first in drop-down list
 - [ ] Actual picker for _Add to existing rule …_ — `todo:a8a6cdf8-c935-4b71-b19c-898cfb094062`
