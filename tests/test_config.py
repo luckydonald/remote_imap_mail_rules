@@ -29,9 +29,19 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.imap_port == 993
     assert settings.imap_ssl is True
     assert settings.imap_page_size == 50
+    assert settings.imap_timeout == 60.0
     assert settings.imap_account_name is None
     assert settings.rules_path == Path("rules/example.yml")
     assert settings.imap_password.get_secret_value() == "hunter2"
+# end def
+
+
+@pytest.mark.parametrize("value", ["0", "-5"])
+def test_timeout_must_be_positive(monkeypatch: pytest.MonkeyPatch, value: str) -> None:
+    set_env(monkeypatch, TEST_IMAP_TIMEOUT=value)
+    with pytest.raises(ValidationError):
+        TestImapSettings()
+    # end with
 # end def
 
 

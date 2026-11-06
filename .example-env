@@ -13,6 +13,8 @@ IMAP_USERNAME=me@example.com
 IMAP_PASSWORD=secret
 IMAP_PAGE_SIZE=50
 IMAP_POLL_INTERVAL=60
+# Seconds to wait for the server to answer one command. Raise it for a slow server.
+IMAP_TIMEOUT=60
 # Keep the rules in this file instead of the database. Leave it out to use the database.
 RULES_PATH=rules/example.yml
 # Everything besides the database that the server stores: the rules mirror (rules/) and the git credentials (git/). The container uses /data.

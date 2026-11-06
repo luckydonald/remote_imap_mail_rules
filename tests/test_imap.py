@@ -2,12 +2,13 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
+import aioimaplib
 import pytest
 from pydantic_settings import SettingsConfigDict
 
 from remote_imap_mail_rules.config import ImapSettings
 from remote_imap_mail_rules.imap.bodystructure import parse_parts
-from remote_imap_mail_rules.imap.client import ImapClient, ImapError, decode_part
+from remote_imap_mail_rules.imap.client import ImapClient, ImapError, connect_aioimaplib, decode_part
 from remote_imap_mail_rules.imap.fetch import parse_fetch, parse_folder_state, parse_list
 from remote_imap_mail_rules.imap.models import ChangeKind
 from remote_imap_mail_rules.imap.watcher import watch
@@ -23,6 +24,18 @@ def make_settings(**overrides: object) -> ImapSettings:
     )
     values.update(overrides)
     return ImapSettings(_env_file=None, **values)  # type: ignore[arg-type]
+# end def
+
+
+@pytest.mark.parametrize("ssl", [True, False])
+def test_connect_passes_the_timeout_to_aioimaplib(monkeypatch: pytest.MonkeyPatch, ssl: bool) -> None:
+    calls: list[tuple[str, dict[str, object]]] = []
+    monkeypatch.setattr(aioimaplib, "IMAP4_SSL", lambda **kwargs: calls.append(("ssl", kwargs)))
+    monkeypatch.setattr(aioimaplib, "IMAP4", lambda **kwargs: calls.append(("plain", kwargs)))
+    connect_aioimaplib(make_settings(imap_ssl=ssl, imap_timeout=42.0))
+    [(kind, kwargs)] = calls
+    assert kind == ("ssl" if ssl else "plain")
+    assert kwargs["timeout"] == 42.0
 # end def
 
 

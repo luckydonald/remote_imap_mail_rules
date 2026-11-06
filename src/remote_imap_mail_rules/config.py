@@ -25,5 +25,6 @@ class ImapSettings(BaseSettings):
     imap_password: SecretStr
     imap_page_size: int = Field(default=50, ge=1, description="Mails per page when loading a folder.")
     imap_poll_interval: float = Field(default=60.0, gt=0, description="Seconds between polls when the server has no IDLE.")
+    imap_timeout: float = Field(default=60.0, gt=0, description="Seconds to wait for the server to answer one IMAP command.")
     rules_path: Path = Path("rules/example.yml")
 # end class
