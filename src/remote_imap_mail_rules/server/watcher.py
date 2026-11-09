@@ -3,6 +3,7 @@
 import asyncio
 import contextlib
 import logging
+from collections.abc import Coroutine
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -17,7 +18,7 @@ from ..config import ImapSettings
 from ..db import accounts as account_repository
 from ..db import mail_events
 from ..db.crypto import CryptoError
-from ..db.models import EventKind
+from ..db.models import Account, EventKind, MailEvent
 from ..actions import MAX_MOVES, ActionRunner, ChainResult, StepStatus
 from ..imap.client import ConnectionFactory, ImapError
 from ..mail import Mail
@@ -123,6 +124,24 @@ class OwnChanges:
 # end class
 
 
+async def uncancellable[T](coro: Coroutine[Any, Any, T]) -> T:
+    """Runs the coroutine to its end even if the caller is cancelled meanwhile, then lets the cancellation through.
+
+    A task cancelled in the middle of a database write makes SQLAlchemy log "Exception during reset or similar" (a Sentry event),
+    because the connection is rolled back while it is being cancelled. The writes are short, so waiting for them is cheap.
+    """
+    task = asyncio.ensure_future(coro)
+    try:
+        return await asyncio.shield(task)
+    except asyncio.CancelledError:
+        if not task.done():
+            await asyncio.wait({task})
+        # end if
+        raise
+    # end try
+# end def
+
+
 class Watcher:
     """One task per stored account. `restart()` re-reads the accounts and the rules, e.g. after either was edited."""
 
@@ -200,9 +219,7 @@ class Watcher:
 
     async def lookup_settings(self, account_id: UUID) -> ImapSettings | None:
         """The connection settings of a stored account, `None` if it does not exist or its password cannot be decrypted."""
-        async with self.session_factory() as session:
-            account = await account_repository.get_account(session, account_id)
-        # end with
+        account = await uncancellable(self.load_account(account_id))
         if account is None:
             return None
         # end if
@@ -213,15 +230,25 @@ class Watcher:
         # end try
     # end def
 
+    async def load_account(self, account_id: UUID) -> Account | None:
+        async with self.session_factory() as session:
+            return await account_repository.get_account(session, account_id)
+        # end with
+    # end def
+
+    async def load_events(self, message_id: str) -> list[MailEvent]:
+        async with self.session_factory() as session:
+            return await mail_events.list_events_by_message_id(session, message_id, EventKind.action)
+        # end with
+    # end def
+
     async def allow_move(self, mail: Mail) -> bool:
         """Refuses a mail that rules already moved `MAX_MOVES` times, found by its `Message-ID` across all folders and accounts."""
         message_id = message_id_of(mail)
         if message_id is None:
             return True
         # end if
-        async with self.session_factory() as session:
-            events = await mail_events.list_events_by_message_id(session, message_id, EventKind.action)
-        # end with
+        events = await uncancellable(self.load_events(message_id))
         moves = [event for event in events if event.detail.get("type") == "move" and event.detail.get("status") == "done"]
         return len(moves) < MAX_MOVES
     # end def
@@ -326,25 +353,37 @@ class Watcher:
         while True:
             entry = await queue.get()
             try:
-                async with self.session_factory() as session:
-                    if isinstance(entry, Act):
-                        if pending is not None:
-                            pending.discard((entry.mail.folder, entry.mail.uid, entry.mail.uidvalidity))
-                        # end if
-                        if runner is not None:
-                            await self.write_actions(session, await self.run_actions(runner, entry.mail, own))
-                        # end if
-                    else:
-                        await self.write(session, entry)
+                result = None
+                if isinstance(entry, Act):
+                    if pending is not None:
+                        pending.discard((entry.mail.folder, entry.mail.uid, entry.mail.uidvalidity))
                     # end if
-                    await session.commit()
-                # end with
+                    if runner is not None:
+                        # IMAP work, a restart may abort it.
+                        result = await self.run_actions(runner, entry.mail, own)
+                    # end if
+                # end if
+                await uncancellable(self.commit_entry(entry, runner is not None, result))
             except Exception:
                 logger.exception("Could not write the action log entry")
             finally:
                 queue.task_done()
             # end try
         # end while
+    # end def
+
+    async def commit_entry(self, entry: Entry, acting: bool, result: ChainResult | None) -> None:
+        """The database part of one entry, one session. Kept away from cancellation by `uncancellable`, see there."""
+        async with self.session_factory() as session:
+            if isinstance(entry, Act):
+                if acting:
+                    await self.write_actions(session, result)
+                # end if
+            else:
+                await self.write(session, entry)
+            # end if
+            await session.commit()
+        # end with
     # end def
 
     async def run_actions(self, runner: ActionRunner, mail: Mail, own: "OwnChanges | None") -> ChainResult | None:

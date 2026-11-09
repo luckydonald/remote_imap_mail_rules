@@ -1,6 +1,7 @@
 """The background watcher writes the action log."""
 
 import asyncio
+import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -15,7 +16,7 @@ from remote_imap_mail_rules.db.engine import create_engine, create_session_facto
 from remote_imap_mail_rules.db.mail_events import list_events, record_event
 from remote_imap_mail_rules.db.migrate import upgrade
 from remote_imap_mail_rules.db.models import EventKind, MailEvent
-from remote_imap_mail_rules.server.watcher import Watcher
+from remote_imap_mail_rules.server.watcher import Act, Seen, Watcher
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -591,4 +592,93 @@ async def test_changes_made_by_rule_actions_are_not_user_actions(factory: async_
     finally:
         await watcher.stop()
     # end try
+# end def
+
+
+def fake_mail() -> SimpleNamespace:
+    return SimpleNamespace(account_id=ACCOUNT, folder="INBOX", uid=1, uidvalidity=1)
+# end def
+
+
+async def test_cancelling_the_recorder_waits_for_a_running_write(factory: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch) -> None:
+    watcher = make_watcher(factory, FakeServer())
+    started, release = asyncio.Event(), asyncio.Event()
+    written: list[int] = []
+
+    async def slow_write(self: Watcher, session: AsyncSession, entry: object) -> None:
+        started.set()
+        await release.wait()
+        await record_event(session, ACCOUNT, "INBOX", 1, EventKind.first_seen)
+        written.append(1)
+    # end def
+
+    monkeypatch.setattr(Watcher, "write", slow_write)
+    queue: asyncio.Queue = asyncio.Queue()
+    queue.put_nowait(Seen(fake_mail()))
+    recorder = asyncio.create_task(watcher.record(queue))
+    await started.wait()
+    recorder.cancel()
+    await asyncio.sleep(0.05)
+    assert not recorder.done()  # still waiting for the write
+    release.set()
+    with pytest.raises(asyncio.CancelledError):
+        await recorder
+    # end with
+    assert written == [1]
+    assert await kinds(factory, "INBOX", 1) == [("first_seen", None)]
+    await asyncio.wait_for(queue.join(), 1)
+# end def
+
+
+async def test_cancelling_the_recorder_aborts_running_actions(factory: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch) -> None:
+    watcher = make_watcher(factory, FakeServer())
+    started = asyncio.Event()
+    wrote: list[int] = []
+
+    async def blocking_actions(self: Watcher, runner: object, mail: object, own: object) -> None:
+        started.set()
+        await asyncio.Event().wait()
+    # end def
+
+    async def write(self: Watcher, session: AsyncSession, entry: object) -> None:
+        wrote.append(1)
+    # end def
+
+    monkeypatch.setattr(Watcher, "run_actions", blocking_actions)
+    monkeypatch.setattr(Watcher, "write", write)
+    queue: asyncio.Queue = asyncio.Queue()
+    queue.put_nowait(Act(fake_mail()))
+    recorder = asyncio.create_task(watcher.record(queue, runner=SimpleNamespace()))  # type: ignore[arg-type]
+    await started.wait()
+    recorder.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(recorder, 1)
+    # end with
+    assert wrote == []
+# end def
+
+
+async def test_cancelling_the_recorder_never_logs_a_pool_error(
+    factory: async_sessionmaker[AsyncSession], monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    watcher = make_watcher(factory, FakeServer())
+
+    async def write(self: Watcher, session: AsyncSession, entry: object) -> None:
+        await record_event(session, ACCOUNT, "INBOX", 1, EventKind.first_seen)
+    # end def
+
+    monkeypatch.setattr(Watcher, "write", write)
+    caplog.set_level(logging.ERROR)
+    for step in range(40):
+        queue: asyncio.Queue = asyncio.Queue()
+        queue.put_nowait(Seen(fake_mail()))
+        recorder = asyncio.create_task(watcher.record(queue))
+        await asyncio.sleep(step * 0.0003)
+        recorder.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await asyncio.wait_for(recorder, 2)
+        # end with
+    # end for
+    await asyncio.sleep(0.1)
+    assert [record.getMessage() for record in caplog.records if record.name.startswith("sqlalchemy")] == []
 # end def

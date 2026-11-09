@@ -84,5 +84,5 @@ To complete one:
   - [x] Bugsink REMOTE-IMAP-MAIL-RULES-2/-7/-8: TimeoutError / "mail server did not answer in time" (watcher, /api/editor/rules, message fetch) — `todo:8377cbe7-5136-4b98-8bd0-5a517495c160` _(done)_
   - [x] Bugsink REMOTE-IMAP-MAIL-RULES-3/-6: "Task was destroyed but it is pending!" (a task is not awaited or cancelled on shutdown / rules save) — `todo:0775f42d-504f-436e-873e-870afea6b4fa` _(done)_
   - [x] Bugsink REMOTE-IMAP-MAIL-RULES-9: "login failed: NO authentication failed" on /api/mail/accounts/{id}/folders is reported as an error (expected user-config problem, should not be a Sentry event) — `todo:97650feb-165f-4eff-bf6d-71427ae7bcba` _(done)_
-  - [ ] Bugsink REMOTE-IMAP-MAIL-RULES-1: CancelledError on /api/editor/rules — `todo:d1caceac-5747-42e2-8e47-d4113963d02b`
+  - [x] Bugsink REMOTE-IMAP-MAIL-RULES-1: CancelledError on /api/editor/rules — `todo:d1caceac-5747-42e2-8e47-d4113963d02b` _(done)_
   - [ ] Bugsink REMOTE-IMAP-MAIL-RULES-VUE-1: UnhandledRejection "Non-Error promise rejection captured with value: undefined" — `todo:3c2db7b4-c683-46bc-ba31-08c320ffbba3`
