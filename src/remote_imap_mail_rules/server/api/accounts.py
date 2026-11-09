@@ -1,6 +1,7 @@
 """Endpoints of the account management, mounted at `/api/accounts`."""
 
 from collections.abc import AsyncIterator
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
@@ -12,6 +13,7 @@ from ...db import accounts as repository
 from ...db.crypto import CryptoError
 from ...db.engine import iter_session
 from ...db.models import Account
+from ...db.models.account import as_utc
 from .. import rules_file
 from ..rules_store import RulesStore, replace_account_id, rules_referencing
 from ..settings import ServerSettings
@@ -43,6 +45,12 @@ class AccountOut(AccountIn):
     id: UUID
     has_password: bool = True
     env_differs: list[str] = Field(default_factory=list, description="Fields that differ from the environment's account.")
+    auth_updated_at: datetime | None = Field(default=None, description="When the username or password were last set.")
+    auth_failed_at: datetime | None = Field(default=None, description="The last rejected login, since the credentials were set.")
+    auth_fail_count: int = Field(default=0, description="Rejected logins since the credentials were set.")
+    auth_ok_at: datetime | None = Field(default=None, description="The last working login, since the credentials were set.")
+    auth_last_error: str | None = Field(default=None, description="The server's answer to the last rejected login.")
+    needs_check: bool = Field(default=False, description="The last login was rejected and none worked since.")
 
 
 async def get_session(request: Request) -> AsyncIterator[AsyncSession]:
@@ -75,6 +83,12 @@ def to_out(request: Request, account: Account) -> AccountOut:
         poll_interval=account.poll_interval,
         has_password=bool(account.password_encrypted),
         env_differs=differs,
+        auth_updated_at=as_utc(account.auth_updated_at),
+        auth_failed_at=None if account.auth_failed_at is None else as_utc(account.auth_failed_at),
+        auth_fail_count=account.auth_fail_count,
+        auth_ok_at=None if account.auth_ok_at is None else as_utc(account.auth_ok_at),
+        auth_last_error=account.auth_last_error,
+        needs_check=account.needs_check,
     )
 # end def
 

@@ -50,6 +50,7 @@ class FakeServer:
         self.commands: list[str] = []
         self.push_queues: list[asyncio.Queue[Response]] = []
         self.stall_idle = False
+        self.login_answer: Response | None = None
     # end def
 
     def add(self, folder: str, uid: int, subject: str, flags: str = "", sender: str = "a@example.com", message_id: str | None = None) -> FakeMessage:
@@ -144,7 +145,7 @@ class FakeConnection:
 
     async def login(self, user: str, password: str) -> Response:
         self.log("LOGIN")
-        return Response("OK", [b"logged in"])
+        return self.server.login_answer or Response("OK", [b"logged in"])
     # end def
 
     async def logout(self) -> Response:

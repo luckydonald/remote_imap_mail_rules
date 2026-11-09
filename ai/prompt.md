@@ -956,3 +956,5 @@ And composable files inside one store sounds useful to organize it well, still.
 > But yes, putting this properly on the server side if we know the password is wrong makes sense.
 > Additionally i want to mark the account as "please check" in the UI, if it faiked the auth. Store the time of the last fail, the count of fails, and the last auth update. Those reset upon auth changes (username or password). They are also displayed in the frontend as additional details. A successful login also is stored in a database column, so it's detectable if it was a one-time burp, or a still ongoing problem.
 
+❯ Plan accepted, auto mode.
+

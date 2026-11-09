@@ -1,6 +1,7 @@
 """Account repository: CRUD, seeding from the environment and the drift check."""
 
 import logging
+from datetime import timedelta
 from uuid import UUID, uuid4
 
 from pydantic import SecretStr
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import ImapSettings
 from .crypto import decrypt, encrypt
 from .models import Account
+from .models.account import as_utc, utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +50,7 @@ async def create_account(
         password_encrypted=encrypt(secret_key, password),
         page_size=page_size,
         poll_interval=poll_interval,
+        auth_updated_at=utcnow(),
     )
     session.add(account)
     await session.flush()
@@ -77,6 +80,9 @@ async def update_account(
     if new_id is not None and new_id != account.id:
         account.id = new_id
     # end if
+    if password is not None or username != account.username:
+        reset_login_history(account)
+    # end if
     if password is not None:
         account.password_encrypted = encrypt(secret_key, password)
     # end if
@@ -89,6 +95,40 @@ async def update_account(
     account.poll_interval = poll_interval
     await session.flush()
     return account
+# end def
+
+
+def reset_login_history(account: Account) -> None:
+    """The credentials changed, so what was learned about the old ones says nothing about the new."""
+    account.auth_updated_at = utcnow()
+    account.auth_failed_at = None
+    account.auth_fail_count = 0
+    account.auth_ok_at = None
+    account.auth_last_error = None
+# end def
+
+
+OK_WRITE_INTERVAL = timedelta(minutes=5)
+
+
+async def record_login(session: AsyncSession, account_id: UUID, error: str | None) -> None:
+    """Notes a rejected login (`error` is the server's answer) or, with `None`, a working one. The caller commits.
+
+    Successes are written at most every `OK_WRITE_INTERVAL` (the watcher logs in all the time), unless they clear a flagged account.
+    """
+    account = await get_account(session, account_id)
+    if account is None:
+        return
+    # end if
+    now = utcnow()
+    if error is not None:
+        account.auth_failed_at = now
+        account.auth_fail_count += 1
+        account.auth_last_error = error
+    elif account.needs_check or account.auth_ok_at is None or now - as_utc(account.auth_ok_at) >= OK_WRITE_INTERVAL:
+        account.auth_ok_at = now
+    # end if
+    await session.flush()
 # end def
 
 

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from aioimaplib import Response
 from pydantic import SecretStr
 
 from remote_imap_mail_rules.config import ImapSettings
@@ -168,6 +169,31 @@ def test_imap_failures(tmp_path: Path, error: Exception, status: int) -> None:
         account = client.post("/api/accounts", json=BODY).json()["id"]
         assert client.get(f"/api/mail/accounts/{account}/folders").status_code == status
     # end with
+# end def
+
+
+def test_rejected_login_is_a_424_and_noted_on_the_account(client: TestClient, server: FakeServer, account_id: str) -> None:
+    server.login_answer = Response("NO", [b"authentication failed"])
+    for count in (1, 2):
+        response = client.get(f"/api/mail/accounts/{account_id}/folders")
+        assert response.status_code == 424
+        assert "authentication failed" in response.json()["detail"]
+        account = client.get(f"/api/accounts/{account_id}").json()
+        assert (account["needs_check"], account["auth_fail_count"], account["auth_last_error"]) == (True, count, "authentication failed")
+    # end for
+    server.login_answer = None
+    assert client.get(f"/api/mail/accounts/{account_id}/folders").status_code == 200
+    account = client.get(f"/api/accounts/{account_id}").json()
+    assert (account["needs_check"], account["auth_fail_count"]) == (False, 2)
+    assert account["auth_ok_at"] is not None and account["auth_failed_at"] is not None
+# end def
+
+
+def test_login_refused_for_other_reasons_is_a_502_and_not_counted(client: TestClient, server: FakeServer, account_id: str) -> None:
+    server.login_answer = Response("NO", [b"[UNAVAILABLE] Temporary authentication failure"])
+    assert client.get(f"/api/mail/accounts/{account_id}/folders").status_code == 502
+    account = client.get(f"/api/accounts/{account_id}").json()
+    assert (account["needs_check"], account["auth_fail_count"], account["auth_failed_at"]) == (False, 0, None)
 # end def
 
 
