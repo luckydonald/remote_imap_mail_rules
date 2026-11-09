@@ -5,7 +5,7 @@ interface Mock {
   requests: { method: string; body: unknown }[]
 }
 
-const ACCOUNT = {
+const ACCOUNT: Record<string, unknown> = {
   id: '6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11',
   name: 'Private',
   host: 'imap.example.com',
@@ -16,12 +16,18 @@ const ACCOUNT = {
   poll_interval: 60,
   has_password: true,
   env_differs: ['password'],
+  auth_updated_at: '2026-11-01T10:00:00Z',
+  auth_failed_at: null,
+  auth_fail_count: 0,
+  auth_ok_at: null,
+  auth_last_error: null,
+  needs_check: false,
 }
 
 /** Stands in for the FastAPI server: a list that follows what is created, edited and deleted. */
-const mockServer = async (page: Page, deleteError?: string[]): Promise<Mock> => {
+const mockServer = async (page: Page, deleteError?: string[], account = ACCOUNT): Promise<Mock> => {
   const mock: Mock = { requests: [] }
-  let accounts = [ACCOUNT]
+  let accounts = [account]
   await page.route('**/api/editor/config', (route) =>
     route.fulfill({ json: { mode: 'server', source: 'database', file_name: null, exists: false } }),
   )
@@ -59,6 +65,23 @@ test('lists accounts with the drift badge, and the database shows as the source'
   await page.getByRole('link', { name: 'Accounts' }).click()
   await expect(page.locator('.account')).toContainText('Private')
   await expect(page.locator('.badge.error')).toContainText('differs from env: password')
+})
+
+test('flags an account whose login was rejected, with its history', async ({ page }) => {
+  await mockServer(page, undefined, {
+    ...ACCOUNT,
+    env_differs: [],
+    auth_failed_at: '2026-11-06T19:44:17Z',
+    auth_fail_count: 3,
+    auth_ok_at: '2026-11-05T08:00:00Z',
+    auth_last_error: 'authentication failed',
+    needs_check: true,
+  })
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Accounts' }).click()
+  await expect(page.locator('.badge.needs-check')).toContainText('Please check')
+  await expect(page.locator('.login-history')).toContainText('3× since the credentials were set')
+  await expect(page.locator('.login-history')).toContainText('authentication failed')
 })
 
 test('adds, edits and deletes an account', async ({ page }) => {

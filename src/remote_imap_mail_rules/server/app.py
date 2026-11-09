@@ -17,6 +17,7 @@ from .api import accounts, auth, dry_run, editor, events, git, log, mail, public
 from .auth import require_login
 from .git_repo import GitRepo
 from .git_service import GitService
+from .login_log import recording_factory
 from .rules_store import DatabaseRulesStore, FileRulesStore, RulesStore
 from .sentry import report_startup_failure
 from .settings import ServerSettings
@@ -76,6 +77,7 @@ def create_app(
     app.state.settings = settings
     app.state.session_factory = session_factory
     app.state.env_account = env_account
+    imap_factory = recording_factory(imap_factory, session_factory)
     app.state.imap_factory = imap_factory
     store: RulesStore = FileRulesStore(settings.rules_path) if settings.rules_path else DatabaseRulesStore(session_factory, settings.git_dir)
     app.state.rules_store = store

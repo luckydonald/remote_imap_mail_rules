@@ -49,6 +49,11 @@ async function load(renamed?: { from: string; to: string }): Promise<void> {
   }
 }
 
+/** A time as the user's locale shows it, `never` for none. */
+function when(value: string | null | undefined): string {
+  return value ? new Date(value).toLocaleString() : 'never'
+}
+
 function add(): void {
   form.value = emptyForm()
   editing.value = 'new'
@@ -124,6 +129,12 @@ onMounted(() => void load())
           :title="`Differs from the environment: ${account.env_differs.join(', ')}`"
           >differs from env: {{ account.env_differs.join(', ') }}</span
         >
+        <span
+          v-if="account.needs_check"
+          class="badge error needs-check"
+          title="The mail server rejected the login and it has not worked since."
+          >⚠ Please check</span
+        >
         <span class="spacer" />
         <button type="button" class="ghost" @click="edit(account)">Edit</button>
         <template v-if="confirming === account.id">
@@ -135,6 +146,23 @@ onMounted(() => void load())
         </button>
       </header>
       <p class="hint mono">{{ account.id }}</p>
+      <dl class="login-history muted">
+        <dt>Credentials set</dt>
+        <dd>{{ when(account.auth_updated_at) }}</dd>
+        <dt>Last login worked</dt>
+        <dd>{{ when(account.auth_ok_at) }}</dd>
+        <dt>Last login rejected</dt>
+        <dd>
+          {{ when(account.auth_failed_at) }}
+          <template v-if="account.auth_fail_count > 0">
+            ({{ account.auth_fail_count }}× since the credentials were set)
+          </template>
+        </dd>
+        <template v-if="account.auth_last_error">
+          <dt>Server said</dt>
+          <dd class="mono">{{ account.auth_last_error }}</dd>
+        </template>
+      </dl>
     </article>
     <form v-if="editing" class="account-form" @submit.prevent="submit">
       <h3>{{ editing === 'new' ? 'New account' : 'Edit account' }}</h3>

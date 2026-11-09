@@ -33,6 +33,28 @@ class ImapError(Exception):
 # end class
 
 
+TRANSIENT_LOGIN_CODES = ("UNAVAILABLE", "SERVERBUG", "INUSE", "LIMIT")
+
+
+class ImapLoginError(ImapError):
+    """The server refused the `LOGIN`. `transient` is set when its response code (RFC 5530) says the credentials are not the reason."""
+
+    def __init__(self, response: aioimaplib.Response) -> None:
+        self.server_text = " ".join(line.decode("utf-8", errors="replace") if isinstance(line, bytes) else str(line) for line in response.lines)
+        self.transient = any(f"[{code}" in self.server_text.upper() for code in TRANSIENT_LOGIN_CODES)
+        super().__init__(f"login failed: {response.result} {response.lines!r}")
+    # end def
+# end class
+
+
+def check_login(response: aioimaplib.Response) -> aioimaplib.Response:
+    if response.result != "OK":
+        raise ImapLoginError(response)
+    # end if
+    return response
+# end def
+
+
 ConnectionFactory = Callable[[ImapSettings], ImapConnection]
 
 
@@ -112,7 +134,7 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
     async def connect(self) -> None:
         connection = self.factory(self.settings)
         await connection.wait_hello_from_server()
-        check(await connection.login(self.settings.imap_username, self.settings.imap_password.get_secret_value()), "login")
+        check_login(await connection.login(self.settings.imap_username, self.settings.imap_password.get_secret_value()))
         self.connection = connection
     # end def
 

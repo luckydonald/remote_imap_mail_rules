@@ -16,6 +16,15 @@ export interface Account {
   has_password: boolean
   /** Fields that differ from the account in the server's environment. */
   env_differs: string[]
+  /** When the username or password were last set; the login fields below restart then. */
+  auth_updated_at: string
+  auth_failed_at: string | null
+  auth_fail_count: number
+  auth_ok_at: string | null
+  /** The server's answer to the last rejected login. */
+  auth_last_error: string | null
+  /** The last login was rejected and none worked since. */
+  needs_check: boolean
 }
 
 /** What the form edits; an empty `password` keeps the stored one on update. */

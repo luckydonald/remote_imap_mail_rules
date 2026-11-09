@@ -453,6 +453,18 @@ button {
   .row {
     flex-wrap: wrap;
   }
+
+  .login-history {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 2px 12px;
+    margin: 4px 0 0;
+
+    dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+  }
 }
 
 .git {
