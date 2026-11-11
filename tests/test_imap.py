@@ -280,6 +280,55 @@ async def test_close_cancels_leftover_tasks_when_logout_fails() -> None:
 # end def
 
 
+@pytest.mark.parametrize("failure", ["rejected", "timeout", "cancelled"])
+async def test_connect_closes_the_connection_when_the_login_does_not_succeed(failure: str) -> None:
+    """A connection that never became the client's own would be dropped with its tasks still pending."""
+    server = FakeServer()
+    opened = []
+
+    def factory(settings: ImapSettings) -> object:
+        connection = server.connect(settings)
+        connection.tasks.add(asyncio.ensure_future(asyncio.Event().wait()))
+        opened.append(connection)
+        return connection
+    # end def
+
+    if failure == "rejected":
+        server.login_answer = aioimaplib.Response("NO", [b"authentication failed"])
+    else:
+        async def login(self_user: str, password: str) -> aioimaplib.Response:
+            if failure == "timeout":
+                raise TimeoutError
+            # end if
+            await asyncio.Event().wait()
+            raise AssertionError("unreachable")
+        # end def
+
+        original = server.connect
+
+        def connect(settings: ImapSettings) -> object:
+            connection = original(settings)
+            connection.login = login  # type: ignore[method-assign]
+            return connection
+        # end def
+
+        server.connect = connect  # type: ignore[method-assign]
+    # end if
+    client = ImapClient(make_settings(), factory)  # type: ignore[arg-type]
+    attempt = asyncio.create_task(client.connect())
+    await asyncio.sleep(0.01)
+    if failure == "cancelled":
+        attempt.cancel()
+    # end if
+    with pytest.raises((ImapError, TimeoutError, asyncio.CancelledError)):
+        await attempt
+    # end with
+    [connection] = opened
+    assert client.connection is None
+    assert not [task for task in connection.tasks if not task.done()]
+# end def
+
+
 async def test_watch_falls_back_to_polling_without_idle() -> None:
     server = FakeServer(capabilities={"IMAP4REV1"})
     server.add("INBOX", 1, "one")
