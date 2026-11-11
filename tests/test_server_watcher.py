@@ -682,3 +682,33 @@ async def test_cancelling_the_recorder_never_logs_a_pool_error(
     await asyncio.sleep(0.1)
     assert [record.getMessage() for record in caplog.records if record.name.startswith("sqlalchemy")] == []
 # end def
+
+
+class FailingRunner:
+    def __init__(self, error: Exception) -> None:
+        self.error = error
+
+    async def run(self, mail: object) -> None:
+        raise self.error
+# end class
+
+
+@pytest.mark.parametrize("error", [TimeoutError(), OSError("down")])
+async def test_imap_error_of_the_actions_is_a_warning(
+    factory: async_sessionmaker[AsyncSession], error: Exception, caplog: pytest.LogCaptureFixture
+) -> None:
+    watcher = make_watcher(factory, FakeServer())
+    queue: asyncio.Queue[Act] = asyncio.Queue()
+    mail = SimpleNamespace(account_id=UUID(int=1), folder="INBOX", uid=7, uidvalidity=1, flags=[])
+    queue.put_nowait(Act(mail))  # type: ignore[arg-type]
+    with caplog.at_level(logging.WARNING):
+        recorder = asyncio.create_task(watcher.record(queue, FailingRunner(error)))  # type: ignore[arg-type]
+        try:
+            await asyncio.wait_for(queue.join(), 5)
+            assert not recorder.done()
+        finally:
+            recorder.cancel()
+        # end try
+    # end with
+    assert [record.levelname for record in caplog.records if record.name == "remote_imap_mail_rules.server.watcher"] == ["WARNING"]
+# end def

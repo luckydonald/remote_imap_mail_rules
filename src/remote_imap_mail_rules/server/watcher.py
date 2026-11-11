@@ -364,6 +364,9 @@ class Watcher:
                     # end if
                 # end if
                 await uncancellable(self.commit_entry(entry, runner is not None, result))
+            except (ImapError, AioImapException, OSError, TimeoutError) as error:
+                # A slow or dropped server is expected, so a warning, not an event for Sentry.
+                logger.warning("Could not process a %s entry of the action log: %r", type(entry).__name__, error)
             except Exception:
                 logger.exception("Could not write the action log entry")
             finally:
