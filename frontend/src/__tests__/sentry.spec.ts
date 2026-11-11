@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from 'vue'
 import { createAppRouter } from '@/router'
 import { createMemoryHistory } from 'vue-router'
-import { fetchSentryConfig, setUpSentry } from '@/sentry'
+import { fetchSentryConfig, IGNORED_ERRORS, setUpSentry } from '@/sentry'
 
 vi.mock('@sentry/vue', async (original) => ({
   ...(await original<typeof import('@sentry/vue')>()),
@@ -59,7 +59,15 @@ describe('sentry', () => {
         release: 'abc',
         environment: 'production',
         integrations: [],
+        ignoreErrors: IGNORED_ERRORS,
       }),
     )
+  })
+
+  it('ignores only the rejection without a value', () => {
+    const ignored = (message: string): boolean => IGNORED_ERRORS.some((re) => re.test(message))
+    expect(ignored('Non-Error promise rejection captured with value: undefined')).toBe(true)
+    expect(ignored('Non-Error promise rejection captured with value: "boom"')).toBe(false)
+    expect(ignored('TypeError: undefined is not a function')).toBe(false)
   })
 })

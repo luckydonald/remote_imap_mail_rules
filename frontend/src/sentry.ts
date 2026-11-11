@@ -3,6 +3,12 @@ import * as Sentry from '@sentry/vue'
 import type { App } from 'vue'
 import type { Router } from 'vue-router'
 
+/**
+ * A promise rejected with `undefined` has no stack and no source in our code (REMOTE-IMAP-MAIL-RULES-VUE-1, Safari),
+ * so it cannot be acted on. Rejections with any other value are still reported.
+ */
+export const IGNORED_ERRORS = [/^Non-Error promise rejection captured with value: undefined$/]
+
 export interface SentryClientConfig {
   dsn: string
   environment: string | null
@@ -40,6 +46,7 @@ export function initSentry(app: App, router: Router, config: SentryClientConfig)
     dsn: config.dsn,
     environment: config.environment ?? undefined,
     release: config.release,
+    ignoreErrors: IGNORED_ERRORS,
     integrations:
       config.traces_sample_rate > 0 ? [Sentry.browserTracingIntegration({ router })] : [],
     tracesSampleRate: config.traces_sample_rate,
