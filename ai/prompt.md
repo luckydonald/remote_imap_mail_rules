@@ -993,3 +993,28 @@ And composable files inside one store sounds useful to organize it well, still.
 
 ❯ Plan accepted, auto mode.
 
+❯ Command denied: `Bash`
+
+❯ Question answered.
+> <details><summary>
+>
+>> 1. The todo 'optional Account check when creating & editing an account' is open (the Vue-1 subtask is parked). How should the check work?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Check mode** (1/1) <kbd>Single Select</kbd><br>
+>> The todo 'optional Account check when creating & editing an account' is open (the Vue-1 subtask is parked). How should the check work?
+> - [ ] 1\. Test button only (Recommended)
+>   - _'Test connection' button in the account form calls a new POST /api/accounts/check with the form values (stored password when editing and left blank). It reports ok, rejected or unreachable and writes nothing, including no login history. Saving is never blocked._
+> - [ ] 2\. Button plus 'check on save' checkbox
+>   - _As above, plus a checkbox (default on) that runs the check when you press Save. A failed check keeps the form open and offers 'Save anyway'._
+> - [ ] 3\. Check on save only
+>   - _No button: Save always checks first, and a failed check offers 'Save anyway'._
+> - [x] 4\. _Type something:_
+>   - > 1+3
+>
+> </details>
+>
+
