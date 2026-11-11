@@ -82,6 +82,21 @@ async def cancel_leftover_tasks(connection: ImapConnection) -> None:
 # end def
 
 
+async def release(connection: ImapConnection) -> None:
+    """Ends `IDLE`, logs out (best effort) and cancels the tasks `aioimaplib` leaves behind, so nothing is garbage collected while pending."""
+    try:
+        if connection.has_pending_idle():
+            connection.idle_done()
+        # end if
+        await connection.logout()
+    except (TimeoutError, aioimaplib.AioImapException, OSError):
+        pass
+    finally:
+        await cancel_leftover_tasks(connection)
+    # end try
+# end def
+
+
 def check(response: aioimaplib.Response, what: str) -> aioimaplib.Response:
     if response.result != "OK":
         raise ImapError(f"{what} failed: {response.result} {response.lines!r}")
@@ -133,26 +148,22 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
 
     async def connect(self) -> None:
         connection = self.factory(self.settings)
-        await connection.wait_hello_from_server()
-        check_login(await connection.login(self.settings.imap_username, self.settings.imap_password.get_secret_value()))
+        try:
+            await connection.wait_hello_from_server()
+            check_login(await connection.login(self.settings.imap_username, self.settings.imap_password.get_secret_value()))
+        except BaseException:
+            # Not ours yet, so `close()` would never see it: a rejected, timed out or cancelled login must not leave its tasks pending.
+            await release(connection)
+            raise
+        # end try
         self.connection = connection
     # end def
 
     async def close(self) -> None:
         connection, self.connection = self.connection, None
-        if connection is None:
-            return
+        if connection is not None:
+            await release(connection)
         # end if
-        try:
-            if connection.has_pending_idle():
-                connection.idle_done()
-            # end if
-            await connection.logout()
-        except (TimeoutError, aioimaplib.AioImapException, OSError):
-            pass
-        finally:
-            await cancel_leftover_tasks(connection)
-        # end try
     # end def
 
     @property

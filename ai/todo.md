@@ -77,7 +77,7 @@ To complete one:
   > - detete on an wrapping element asks if we should keep the children
 - [x] Mail viewer: The dropdown menus overlap and don't close each other — `todo:e5b32090-adbc-4b99-9dd6-7b990a41ebdf` _(done)_
 - [x] Adding an account is not immediately reflected in the account list. — `todo:892f49ef-c48d-4744-91c5-b28ca614ae0d` _(done)_
-- [ ] fix Bigsink issues — `todo:420b2ab0-94b6-4181-a233-dd46416379cc`
+- [x] fix Bigsink issues — `todo:420b2ab0-94b6-4181-a233-dd46416379cc` _(done)_
   > (Create subtasks)
   - [x] Bugsink REMOTE-IMAP-MAIL-RULES-4/-5: mail browser EXAMINE of `Boxed In/Updates` fails with "nonexistent namespace (prefix INBOX.)" — `todo:6b1a79f8-187a-48e6-bdbe-576c51545427` _(done)_
     > Issues a03... : 04f/af9 (REMOTE-IMAP-MAIL-RULES-4 and -5), `/api/mail/accounts/{id}/messages` and `.../messages/{uid}`. The browser passes the folder name as given, not resolved through `ImapClient.resolve_folder`.
@@ -88,6 +88,8 @@ To complete one:
   - [x] Bugsink REMOTE-IMAP-MAIL-RULES-VUE-1: UnhandledRejection "Non-Error promise rejection captured with value: undefined" — `todo:3c2db7b4-c683-46bc-ba31-08c320ffbba3` _(done)_
   - [x] Bugsink REMOTE-IMAP-MAIL-RULES-11: TimeoutError on /api/accounts/{account_id} — `todo:ae994924-0740-483b-8c5a-2765ad3eda16` _(done)_
     > Issue c77351b4-685c-4bf5-ba0e-315ce5096428, one event, 2026-11-11T02:54Z, transaction /api/accounts/{account_id}.
+  - [x] Bugsink REMOTE-IMAP-MAIL-RULES-10: "Task was destroyed but it is pending!" on /api/accounts/{account_id} — `todo:21d3bc22-3197-4262-9a4d-45f2283dc2d6` _(done)_
+    > Issue e2080c65-c820-4f24-a950-c4a884dc6636, 8 events, 2026-11-10 to 2026-11-11T15:25Z, transaction /api/accounts/{account_id}.
 - [x] optional Account check when crating & editing an account — `todo:77326de9-35af-42c6-8194-67746b52a1ad` _(done)_
 - [ ] make it work offline, — `todo:28440a19-e45a-4c5c-9db5-c9367ce64dc4`
   > and cache mails until marked read.
