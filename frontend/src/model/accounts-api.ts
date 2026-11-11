@@ -41,6 +41,13 @@ export interface AccountInput {
   poll_interval: number
 }
 
+/** The outcome of trying the login with the form's values; a failed login is a normal answer, not an error. */
+export interface AccountCheckResult {
+  ok: boolean
+  kind: 'ok' | 'rejected' | 'unreachable' | 'timeout'
+  message: string
+}
+
 export { ApiError as AccountError } from './http'
 
 function body(input: AccountInput, update: boolean): string {
@@ -81,4 +88,15 @@ export async function updateAccount(id: string, input: AccountInput): Promise<Ac
 export async function deleteAccount(id: string): Promise<void> {
   const response = await fetch(`${BASE}/${id}`, { method: 'DELETE' })
   if (!response.ok) throw await failure(response)
+}
+
+/** Tries the login with the form's values. An empty password uses the stored one of `input.id`; nothing is saved or noted on the account. */
+export async function checkAccount(input: AccountInput): Promise<AccountCheckResult> {
+  const response = await fetch(`${BASE}/check`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: body(input, true),
+  })
+  if (!response.ok) throw await failure(response)
+  return (await response.json()) as AccountCheckResult
 }

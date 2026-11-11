@@ -77,6 +77,7 @@ def create_app(
     app.state.settings = settings
     app.state.session_factory = session_factory
     app.state.env_account = env_account
+    app.state.raw_imap_factory = imap_factory
     imap_factory = recording_factory(imap_factory, session_factory)
     app.state.imap_factory = imap_factory
     store: RulesStore = FileRulesStore(settings.rules_path) if settings.rules_path else DatabaseRulesStore(session_factory, settings.git_dir)

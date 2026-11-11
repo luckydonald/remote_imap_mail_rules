@@ -4,8 +4,11 @@ from collections.abc import AsyncIterator
 from datetime import datetime
 from uuid import UUID
 
+from typing import Literal
+
+import aioimaplib
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...config import ImapSettings
@@ -14,6 +17,7 @@ from ...db.crypto import CryptoError
 from ...db.engine import iter_session
 from ...db.models import Account
 from ...db.models.account import as_utc
+from ...imap.client import ConnectionFactory, ImapClient, ImapError, ImapLoginError
 from .. import rules_file
 from ..rules_store import RulesStore, replace_account_id, rules_referencing
 from ..settings import ServerSettings
@@ -39,6 +43,17 @@ class AccountCreate(AccountIn):
 class AccountUpdate(AccountIn):
     id: UUID | None = Field(default=None, description="Omitted keeps the id; a new one is written into the rules too.")
     password: str | None = Field(default=None, description="Omitted keeps the stored password.")
+
+
+class AccountCheck(AccountIn):
+    id: UUID | None = Field(default=None, description="The stored account whose password is used when none is given.")
+    password: str | None = Field(default=None, min_length=1, description="Omitted uses the stored password of `id`.")
+
+
+class AccountCheckResult(BaseModel):
+    ok: bool
+    kind: Literal["ok", "rejected", "unreachable", "timeout"]
+    message: str
 
 
 class AccountOut(AccountIn):
@@ -127,6 +142,53 @@ async def create_account(request: Request, background: BackgroundTasks, body: Ac
     # end try
     background.add_task(request.app.state.watcher.restart)
     return to_out(request, account)
+# end def
+
+
+@router.post("/check")
+async def check_account(request: Request, body: AccountCheck, session: AsyncSession = Depends(get_session)) -> AccountCheckResult:
+    """Tries the login with the form's values. Always 200, a failed login is an expected result and not a 5xx for Sentry.
+
+    Uses the plain connection factory, so the result is not noted on the account's login history.
+    """
+    secret_key = get_settings(request).secret_key
+    password = body.password
+    if password is None:
+        account = None if body.id is None else await repository.get_account(session, body.id)
+        if account is None:
+            raise HTTPException(status_code=422, detail=["A password is needed."])
+        # end if
+        try:
+            password = repository.imap_settings(account, secret_key).imap_password.get_secret_value()
+        except CryptoError as e:
+            raise no_key() from e
+        # end try
+    # end if
+    imap_settings = ImapSettings(
+        _env_file=None,  # type: ignore[call-arg]
+        imap_account_id=body.id or UUID(int=0),
+        imap_host=body.host,
+        imap_port=body.port,
+        imap_ssl=body.ssl,
+        imap_username=body.username,
+        imap_password=SecretStr(password),
+    )
+    factory: ConnectionFactory = request.app.state.raw_imap_factory
+    try:
+        async with ImapClient(imap_settings, factory):
+            pass
+        # end async with
+    except TimeoutError:
+        return AccountCheckResult(ok=False, kind="timeout", message="The mail server did not answer in time.")
+    except ImapLoginError as e:
+        if not e.transient:
+            return AccountCheckResult(ok=False, kind="rejected", message=e.server_text)
+        # end if
+        return AccountCheckResult(ok=False, kind="unreachable", message=f"The mail server failed: {e.server_text}")
+    except (ImapError, aioimaplib.AioImapException, OSError) as e:
+        return AccountCheckResult(ok=False, kind="unreachable", message=f"The mail server failed: {e}")
+    # end try
+    return AccountCheckResult(ok=True, kind="ok", message="Login works.")
 # end def
 
 

@@ -10,17 +10,23 @@ from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from sqlalchemy import create_engine, text
 
+from aioimaplib import Response
+
+from remote_imap_mail_rules.config import ImapSettings
+from remote_imap_mail_rules.imap.client import ConnectionFactory
+from remote_imap_mail_rules.imap.connection import ImapConnection
 from remote_imap_mail_rules.server.app import create_app
 from remote_imap_mail_rules.server.auth import SESSION_COOKIE, make_session_token
 from remote_imap_mail_rules.server.settings import ServerSettings
 from tests.conftest import ACCOUNT_ID
+from tests.fake_imap import FakeServer
 from tests.settings import TestImapSettings
 
 KEY = Fernet.generate_key().decode()
 BODY = {"name": "Work", "host": "imap.work.example", "port": 993, "ssl": True, "username": "me@work.example", "password": "secret"}
 
 
-def make_client(tmp_path: Path, key: str | None = KEY, env: TestImapSettings | None = None) -> TestClient:
+def make_client(tmp_path: Path, key: str | None = KEY, env: TestImapSettings | None = None, factory: ConnectionFactory | None = None) -> TestClient:
     settings = ServerSettings(
         _env_file=None,
         rules_path=tmp_path / "rules.yml",
@@ -28,7 +34,7 @@ def make_client(tmp_path: Path, key: str | None = KEY, env: TestImapSettings | N
         frontend_dist=tmp_path / "missing",
         secret_key=SecretStr(key) if key else None, admin_username="admin", admin_password=SecretStr("admin-secret"),
     )
-    client = TestClient(create_app(settings, env))
+    client = TestClient(create_app(settings, env) if factory is None else create_app(settings, env, factory))
     if key:
         client.cookies.set(SESSION_COOKIE, make_session_token(settings))
     # end if
@@ -194,5 +200,94 @@ def test_mail_events_follow_the_id(tmp_path: Path) -> None:
         with engine.begin() as connection:
             assert connection.execute(text("SELECT account_id FROM mail_events")).scalar_one() == NEW_ID.replace("-", "")
         # end with
+    # end with
+# end def
+
+
+@pytest.fixture
+def check_server() -> FakeServer:
+    return FakeServer()
+# end def
+
+
+@pytest.fixture
+def check_client(tmp_path: Path, check_server: FakeServer) -> Iterator[tuple[TestClient, list[ImapSettings]]]:
+    seen: list[ImapSettings] = []
+
+    def factory(imap_settings: ImapSettings) -> ImapConnection:
+        seen.append(imap_settings)
+        return check_server.connect(imap_settings)
+    # end def
+
+    with make_client(tmp_path, factory=factory) as test_client:
+        yield test_client, seen
+    # end with
+# end def
+
+
+def test_check_ok_does_not_touch_the_login_history(check_client: tuple[TestClient, list[ImapSettings]]) -> None:
+    client, seen = check_client
+    account = client.post("/api/accounts", json=BODY).json()
+    response = client.post("/api/accounts/check", json={**BODY, "id": account["id"]})
+    assert response.status_code == 200
+    assert response.json() == {"ok": True, "kind": "ok", "message": "Login works."}
+    assert [s.imap_username for s in seen] == ["me@work.example"]
+    after = client.get(f"/api/accounts/{account['id']}").json()
+    assert (after["auth_ok_at"], after["auth_failed_at"], after["auth_fail_count"]) == (None, None, 0)
+# end def
+
+
+def test_check_rejected_keeps_the_server_text_and_counts_nothing(check_client: tuple[TestClient, list[ImapSettings]], check_server: FakeServer) -> None:
+    client, _ = check_client
+    account = client.post("/api/accounts", json=BODY).json()
+    check_server.login_answer = Response("NO", [b"authentication failed"])
+    result = client.post("/api/accounts/check", json={**BODY, "id": account["id"]}).json()
+    assert (result["ok"], result["kind"], result["message"]) == (False, "rejected", "authentication failed")
+    after = client.get(f"/api/accounts/{account['id']}").json()
+    assert (after["needs_check"], after["auth_fail_count"], after["auth_failed_at"]) == (False, 0, None)
+# end def
+
+
+def test_check_transient_refusal_is_unreachable(check_client: tuple[TestClient, list[ImapSettings]], check_server: FakeServer) -> None:
+    client, _ = check_client
+    check_server.login_answer = Response("NO", [b"[UNAVAILABLE] try later"])
+    result = client.post("/api/accounts/check", json=BODY).json()
+    assert (result["ok"], result["kind"]) == (False, "unreachable")
+# end def
+
+
+def test_check_without_password_uses_the_stored_one(check_client: tuple[TestClient, list[ImapSettings]]) -> None:
+    client, seen = check_client
+    account = client.post("/api/accounts", json=BODY).json()
+    body = {key: value for key, value in BODY.items() if key != "password"}
+    assert client.post("/api/accounts/check", json={**body, "id": account["id"], "host": "other.example"}).json()["ok"] is True
+    assert (seen[-1].imap_password.get_secret_value(), seen[-1].imap_host) == ("secret", "other.example")
+# end def
+
+
+def test_check_without_password_and_account_is_422(check_client: tuple[TestClient, list[ImapSettings]]) -> None:
+    client, _ = check_client
+    body = {key: value for key, value in BODY.items() if key != "password"}
+    assert client.post("/api/accounts/check", json=body).status_code == 422
+# end def
+
+
+@pytest.mark.parametrize(("error", "kind"), [(TimeoutError(), "timeout"), (OSError("down"), "unreachable")])
+def test_check_failures_are_a_200(tmp_path: Path, error: Exception, kind: str) -> None:
+    def broken(imap_settings: ImapSettings) -> ImapConnection:
+        raise error
+    # end def
+
+    with make_client(tmp_path, factory=broken) as client:
+        response = client.post("/api/accounts/check", json=BODY)
+        assert (response.status_code, response.json()["kind"]) == (200, kind)
+    # end with
+# end def
+
+
+def test_check_needs_the_login(tmp_path: Path) -> None:
+    with make_client(tmp_path) as client:
+        client.cookies.clear()
+        assert client.post("/api/accounts/check", json=BODY).status_code == 401
     # end with
 # end def
