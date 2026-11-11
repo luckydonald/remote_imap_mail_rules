@@ -86,3 +86,10 @@ To complete one:
   - [x] Bugsink REMOTE-IMAP-MAIL-RULES-9: "login failed: NO authentication failed" on /api/mail/accounts/{id}/folders is reported as an error (expected user-config problem, should not be a Sentry event) — `todo:97650feb-165f-4eff-bf6d-71427ae7bcba` _(done)_
   - [x] Bugsink REMOTE-IMAP-MAIL-RULES-1: CancelledError on /api/editor/rules — `todo:d1caceac-5747-42e2-8e47-d4113963d02b` _(done)_
   - [ ] Bugsink REMOTE-IMAP-MAIL-RULES-VUE-1: UnhandledRejection "Non-Error promise rejection captured with value: undefined" — `todo:3c2db7b4-c683-46bc-ba31-08c320ffbba3`
+  - [x] Bugsink REMOTE-IMAP-MAIL-RULES-11: TimeoutError on /api/accounts/{account_id} — `todo:ae994924-0740-483b-8c5a-2765ad3eda16` _(done)_
+    > Issue c77351b4-685c-4bf5-ba0e-315ce5096428, one event, 2026-11-11T02:54Z, transaction /api/accounts/{account_id}.
+- [ ] optional Account check when crating & editing an account — `todo:77326de9-35af-42c6-8194-67746b52a1ad`
+- [ ] make it work offline, — `todo:28440a19-e45a-4c5c-9db5-c9367ce64dc4`
+  > and cache mails until marked read.
+- [ ] create MCP server to easily create, update, edit, improve rules — `todo:81f52e67-d921-4c4f-8ffd-e30fc734e066`
+  > - tokens in user settings subpage
