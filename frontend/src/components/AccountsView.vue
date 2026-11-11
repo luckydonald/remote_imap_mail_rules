@@ -2,10 +2,12 @@
 import { onMounted, ref } from 'vue'
 import {
   AccountError,
+  checkAccount,
   createAccount,
   deleteAccount,
   updateAccount,
   type Account,
+  type AccountCheckResult,
   type AccountInput,
 } from '@/model/accounts-api'
 import { useStore } from '@/model/store'
@@ -30,6 +32,9 @@ const emptyForm = (): AccountInput => ({
   poll_interval: 60,
 })
 const form = ref<AccountInput>(emptyForm())
+/** The last login check of the form; a failed one on Save keeps the form open and offers `Save anyway`. */
+const check = ref<AccountCheckResult | null>(null)
+const checking = ref(false)
 
 function describe(error: unknown): string {
   return error instanceof AccountError
@@ -57,6 +62,7 @@ function when(value: string | null | undefined): string {
 function add(): void {
   form.value = emptyForm()
   editing.value = 'new'
+  check.value = null
   message.value = ''
 }
 
@@ -73,12 +79,49 @@ function edit(account: Account): void {
     poll_interval: account.poll_interval,
   }
   editing.value = account.id
+  check.value = null
   message.value = ''
 }
 
 const UUID_PATTERN = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
 
+/** Whether the login depends on something the form changed; renaming an account needs no network call. */
+function loginChanged(): boolean {
+  const old = store.accounts.find((a) => a.id === editing.value)
+  if (!old) return true
+  const f = form.value
+  return (
+    f.host !== old.host ||
+    f.port !== old.port ||
+    f.ssl !== old.ssl ||
+    f.username !== old.username ||
+    f.password !== ''
+  )
+}
+
+async function runCheck(): Promise<boolean> {
+  checking.value = true
+  check.value = null
+  try {
+    check.value = await checkAccount({
+      ...form.value,
+      id: editing.value === 'new' ? '' : (editing.value ?? ''),
+    })
+  } catch (error) {
+    check.value = { ok: false, kind: 'unreachable', message: describe(error) }
+  } finally {
+    checking.value = false
+  }
+  return check.value.ok
+}
+
+/** Save checks the login first; a failure stops here and `Save anyway` calls `save` directly. */
 async function submit(): Promise<void> {
+  if (loginChanged() && !(await runCheck())) return
+  await save()
+}
+
+async function save(): Promise<void> {
   try {
     let renamed: { from: string; to: string } | undefined
     if (editing.value === 'new') await createAccount(form.value)
@@ -88,6 +131,7 @@ async function submit(): Promise<void> {
       if (updated.id !== from) renamed = { from, to: updated.id }
     }
     editing.value = null
+    check.value = null
     message.value = 'Saved.'
     await load(renamed)
   } catch (error) {
@@ -206,8 +250,17 @@ onMounted(() => void load())
         >Poll interval (s)
         <input v-model.number="form.poll_interval" name="poll_interval" type="number" min="1"
       /></label>
+      <p v-if="check" class="check-result" :class="check.ok ? 'ok' : 'error'" role="status">
+        {{ check.ok ? '✓' : '✗' }} {{ check.message }}
+      </p>
       <div class="row">
-        <button type="submit">Save</button>
+        <button type="submit" :disabled="checking">Save</button>
+        <button type="button" class="test" :disabled="checking" @click="runCheck">
+          {{ checking ? 'Testing…' : 'Test connection' }}
+        </button>
+        <button v-if="check && !check.ok" type="button" class="save-anyway" @click="save">
+          Save anyway
+        </button>
         <button type="button" class="ghost" @click="editing = null">Cancel</button>
       </div>
     </form>

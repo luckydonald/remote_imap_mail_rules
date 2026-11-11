@@ -635,6 +635,23 @@ button {
     align-items: center;
     gap: 6px;
   }
+
+  .check-result {
+    margin: 0;
+    padding: 6px 10px;
+    border-radius: 6px;
+    white-space: pre-wrap;
+
+    &.ok {
+      color: var(--ok);
+      background: color-mix(in srgb, var(--ok) 12%, transparent);
+    }
+
+    &.error {
+      color: var(--danger);
+      background: color-mix(in srgb, var(--danger) 15%, transparent);
+    }
+  }
 }
 
 .screens {

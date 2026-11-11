@@ -3,6 +3,10 @@ import { ACCOUNT_ID, logIn, mockServer as mockMailServer } from './mail-mock'
 
 interface Mock {
   requests: { method: string; body: unknown }[]
+  /** The bodies of the login checks. */
+  checks: unknown[]
+  /** The answer of the login check, ok when unset. */
+  check?: { ok: boolean; kind: string; message: string }
 }
 
 const ACCOUNT: Record<string, unknown> = {
@@ -26,7 +30,7 @@ const ACCOUNT: Record<string, unknown> = {
 
 /** Stands in for the FastAPI server: a list that follows what is created, edited and deleted. */
 const mockServer = async (page: Page, deleteError?: string[], account = ACCOUNT): Promise<Mock> => {
-  const mock: Mock = { requests: [] }
+  const mock: Mock = { requests: [], checks: [] }
   let accounts = [account]
   await page.route('**/api/editor/config', (route) =>
     route.fulfill({ json: { mode: 'server', source: 'database', file_name: null, exists: false } }),
@@ -36,6 +40,10 @@ const mockServer = async (page: Page, deleteError?: string[], account = ACCOUNT)
     const request = route.request()
     const method = request.method()
     const body = request.postData() ? JSON.parse(request.postData()!) : null
+    if (request.url().endsWith('/api/accounts/check')) {
+      mock.checks.push(body)
+      return route.fulfill({ json: mock.check ?? { ok: true, kind: 'ok', message: 'Login works.' } })
+    }
     if (method !== 'GET') mock.requests.push({ method, body })
     if (method === 'POST') {
       accounts = [...accounts, { ...ACCOUNT, ...body, id: '22222222-2222-4333-8444-555555555555', env_differs: [] }]
@@ -111,6 +119,48 @@ test('adds, edits and deletes an account', async ({ page }) => {
   await expect(page.locator('.account')).toHaveCount(0)
 })
 
+test('checks the login on Save, offers Save anyway when it fails, and skips the check for a rename', async ({ page }) => {
+  const mock = await mockServer(page)
+  mock.check = { ok: false, kind: 'rejected', message: 'authentication failed' }
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Accounts' }).click()
+
+  await page.getByRole('button', { name: 'Add account' }).click()
+  await page.locator('input[name=name]').fill('Work')
+  await page.locator('input[name=host]').fill('imap.work.example')
+  await page.locator('input[name=username]').fill('me@work.example')
+  await page.locator('input[name=password]').fill('wrong')
+  const form = page.locator('.account-form')
+  await form.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(form.locator('.check-result.error')).toContainText('authentication failed')
+  expect(mock.checks).toHaveLength(1)
+  expect(mock.requests).toHaveLength(0)
+
+  await form.getByRole('button', { name: 'Save anyway' }).click()
+  await expect(page.locator('.account')).toHaveCount(2)
+  expect(mock.requests[0]).toMatchObject({ method: 'POST', body: { name: 'Work', password: 'wrong' } })
+  expect(mock.checks).toHaveLength(1)
+
+  // A rename changes nothing about the login, so no check.
+  await page.locator('.account').first().getByRole('button', { name: 'Edit' }).click()
+  await page.locator('input[name=name]').fill('Renamed')
+  await form.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(page.locator('.account').first()).toContainText('Renamed')
+  expect(mock.checks).toHaveLength(1)
+})
+
+test('Test connection shows the result without saving', async ({ page }) => {
+  const mock = await mockServer(page)
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Accounts' }).click()
+  await page.locator('.account').first().getByRole('button', { name: 'Edit' }).click()
+  await page.getByRole('button', { name: 'Test connection' }).click()
+  await expect(page.locator('.check-result.ok')).toContainText('Login works.')
+  expect(mock.checks).toMatchObject([{ id: ACCOUNT.id, password: null }])
+  expect(mock.requests).toHaveLength(0)
+  await expect(page.getByRole('button', { name: 'Save anyway' })).toHaveCount(0)
+})
+
 test('shows why an account cannot be deleted', async ({ page }) => {
   await mockServer(page, ['Still used by the rule: Newsletters'])
   await page.goto('/')
@@ -128,6 +178,9 @@ const mockMailWithAccounts = async (page: Page): Promise<void> => {
   await page.route('**/api/accounts**', async (route) => {
     const request = route.request()
     const body = request.postData() ? JSON.parse(request.postData()!) : null
+    if (request.url().endsWith('/api/accounts/check')) {
+      return route.fulfill({ json: { ok: true, kind: 'ok', message: 'Login works.' } })
+    }
     if (request.method() === 'POST') {
       accounts = [...accounts, { ...ACCOUNT, ...body, id: '22222222-2222-4333-8444-555555555555', env_differs: [] }]
       return route.fulfill({ status: 201, json: accounts.at(-1) })

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   AccountError,
+  checkAccount,
   createAccount,
   deleteAccount,
   listAccounts,
@@ -70,5 +71,18 @@ describe('accounts api', () => {
         ),
     )
     await expect(createAccount(INPUT)).rejects.toThrow('port: too small')
+  })
+
+  it('checks the login with the form values, an empty password stays out of the request', async () => {
+    const result = { ok: false, kind: 'rejected', message: 'authentication failed' }
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(async () => json(result))
+    vi.stubGlobal('fetch', fetchMock)
+    expect(await checkAccount({ ...INPUT, id: 'a' })).toEqual(result)
+    expect(fetchMock.mock.calls[0]![0]).toBe('/api/accounts/check')
+    expect(fetchMock.mock.calls[0]![1]!.method).toBe('POST')
+    expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toMatchObject({
+      id: 'a',
+      password: null,
+    })
   })
 })
