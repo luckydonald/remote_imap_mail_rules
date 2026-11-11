@@ -1022,3 +1022,30 @@ And composable files inside one store sounds useful to organize it well, still.
 
 ❯ Plan accepted, auto mode.
 
+❯ Plan denied.
+
+❯ I remember we already worked on that issue but didn't push since then, I believe? Check our (entirely rebased!) mane against the origin/mane pushed commit (by date + message) probably
+
+❯ Question answered.
+> <details><summary>
+>
+>> 1. How should I close out REMOTE-IMAP-MAIL-RULES-10 (subtask 21d3bc22) and the plan 051 commits I left on mane?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Close out** (1/1) <kbd>Single Select</kbd><br>
+>> How should I close out REMOTE-IMAP-MAIL-RULES-10 (subtask 21d3bc22) and the plan 051 commits I left on mane?
+> - [ ] 1\. Complete subtask, drop plan 051 (Recommended)
+>   - _Mark 21d3bc22 and the parent 'fix Bugsink issues' done with a note 'covered by a59036c, verify after deploy'. Fold the plan-051 hook commits into nothing (rebase them away after a backup tag), then sync todos._
+> - [ ] 2\. Complete subtask, keep plan 051 as a record
+>   - _Mark the subtask done, keep the plan file and fold the hook commits into a single commit for the todo sync._
+> - [ ] 3\. Leave the subtask open until deployed
+>   - _Do not complete anything; I only clean up the plan 051 commits and stop._
+> - [x] 4\. _Type something:_
+>   - > You indentfied a possible chain how the issue could keep spilling. Check if that holds true and might be an oversight /improvement to the prior fix and/or compare those two approaches.
+>
+> </details>
+>
+
