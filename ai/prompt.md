@@ -1072,3 +1072,5 @@ And composable files inside one store sounds useful to organize it well, still.
 > </details>
 >
 
+❯ Clean up older unpushed history (since `base/base`), too. Once everything is clean write me a summary. If i then send a _continue_, you may push, including a sha-gated & leased force-push (which commit hash you describe in your summary beforehand)
+
