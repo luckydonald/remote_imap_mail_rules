@@ -1049,3 +1049,26 @@ And composable files inside one store sounds useful to organize it well, still.
 > </details>
 >
 
+❯ Question answered.
+> <details><summary>
+>
+>> 1. Close out subtask 21d3bc22 and the plan-051 hook commits?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Close out** (1/1) <kbd>Single Select</kbd><br>
+>> Close out subtask 21d3bc22 and the plan-051 hook commits?
+> - [ ] 1\. Complete subtask, keep plan as record (Recommended)
+>   - _Mark 21d3bc22 done with the note 'covered by a59036c, verify after deploy', fold the plan-051 hook commits into one kept 'ai: Plan:' commit, sync todos, leave the parent 420b2ab0 open until the deploy shows no new events._
+> - [ ] 2\. Complete subtask and parent, drop plan
+>   - _Mark both done and rebase the plan-051 commits away after a backup tag._
+> - [ ] 3\. Leave everything open until deployed
+>   - _Complete nothing on CalDAV and only tidy the plan commits._
+> - [x] 4\. _Type something:_
+>   - > If it's still a leak waiting to happen we should carefully close it regardless. Build & commit a failing test first, to TTD it.
+>
+> </details>
+>
+
