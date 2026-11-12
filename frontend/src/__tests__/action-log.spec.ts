@@ -46,7 +46,7 @@ function stubServer(events: (query: URLSearchParams) => unknown, status: unknown
   return fetchMock
 }
 
-async function mountView(path = '/log') {
+async function mountView(path = '/settings/log') {
   const router = createAppRouter(createMemoryHistory())
   await router.push(path)
   const wrapper = mount(ActionLogView, { global: { plugins: [router, createPinia()] } })
@@ -152,9 +152,15 @@ describe('ActionLogView', () => {
     )
   })
 
+  it('redirects the old /log path and keeps its filters', async () => {
+    const router = createAppRouter(createMemoryHistory())
+    await router.push('/log?q=bill')
+    expect(router.currentRoute.value.fullPath).toBe('/settings/log?q=bill')
+  })
+
   it('reads the filters from the url and asks again when one changes', async () => {
     const fetchMock = stubServer(() => ({ items: [], next: null }))
-    const { wrapper, router } = await mountView('/log?q=bill&kind=action')
+    const { wrapper, router } = await mountView('/settings/log?q=bill&kind=action')
     const first = fetchMock.mock.calls
       .map(([url]) => String(url))
       .find((url) => url.includes('/events'))!

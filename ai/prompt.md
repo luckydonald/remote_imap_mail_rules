@@ -1195,3 +1195,7 @@ Tools:
 
 ❯ Insert picker, yes. It seems to be exactly as wide as the window is, but the other controls are to the left. Your prior plan explanation sounded reasonable.  Under Mails > Rule > Add to existing rule….
 
+❯ Also git and log
+
+❯ Plan accepted, auto mode.
+

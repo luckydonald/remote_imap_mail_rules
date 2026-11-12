@@ -1489,6 +1489,51 @@ button {
   }
 }
 
+.settings-index {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 16px;
+
+  h2 {
+    margin: 0 0 12px;
+  }
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  li + li {
+    border-top: 1px solid var(--border);
+  }
+
+  a {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    color: var(--text);
+    text-decoration: none;
+
+    &::after {
+      content: '›';
+      color: var(--muted, var(--text));
+      font-size: 1.3em;
+    }
+  }
+}
+
+.settings-back {
+  display: inline-block;
+  margin: 10px 16px 0;
+  color: var(--accent);
+  text-decoration: none;
+}
+
 .settings-view {
   max-width: 560px;
   margin: 0 auto;

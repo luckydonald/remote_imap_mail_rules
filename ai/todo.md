@@ -97,3 +97,19 @@ To complete one:
   > - tokens in user settings subpage
 - [x] **Add to a rule** shall be above the graphical selector — `todo:31571edc-cabf-49ca-99ca-2280ade7360b` _(done)_
   > Not left of it, which forces the overlay to scroll sidewards
+- [x] move accounts & git & log as sub-routes of settings — `todo:c522abcf-a5a5-4c66-a731-c1958dd4e2a2` _(done)_
+  > - iOS style drilling it down
+- [ ] “Filled from the mail“ values should be an list — `todo:ad4bd404-7e8c-46ee-87e6-23e4e0f7aae7`
+  > - with one item per line
+  > - currently is appended to the label text without any whitespaces between the items
+- [ ] _Add to a rule_ edit overlay shall have a ToC for the rules under the “click where it should go” — `todo:cbf5477d-93f0-4693-986f-727a02a69fe9`
+- [ ] _Add to a rule_ overlay’s Graphical Picker should use the same colors and AND/OR/NOT formatting as the main viewer — `todo:6e1d2a66-8117-4757-9c0d-05b26e6adfce`
+  > - maybe the two components could be merged with the main viewer, having slots for the different actions needed.
+  > - though I kinda like how clean the current chooser variant looks generally.
+- [ ] _Add to a rule_ overlay shall repeat the current email preview up top — `todo:dc73499f-d661-4656-be05-c593da6658b3`
+- [ ] button actions like _Mark read_ shall have a loading spinner, and be disabled until done — `todo:fdbbd2c4-d369-4c87-99db-00061eb7d070`
+- [ ] keep the last _Add to rule_ settings (type, e.g. template + which) in the store — `todo:340ec332-701e-47da-b60c-73208152b829`
+  > - to easily add multiple mails with the same field types
+- [ ] “Unread mails of the folders I opened” should me Zion that it doesn’t include INBOX. — `todo:66ef1a9b-d91a-4179-8a00-7779272f6844`
+- [ ] new token is an overlay of its own — `todo:724a7f97-b485-4c53-8365-c55f974adf98`
+- [ ] make the _all headers_ table mobile friendly on small screens — `todo:526faa83-2054-43f2-99f4-6beb7c7a3902`

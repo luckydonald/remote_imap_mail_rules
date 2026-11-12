@@ -10,7 +10,7 @@ import type { Place } from '@/model/store'
 import type { View } from '@/model/store/rules'
 
 /** The top level screens of the app; a route names the one it shows in `meta.screen`. */
-export type Screen = 'rules' | 'accounts' | 'git' | 'mail' | 'log' | 'settings' | 'sample-error'
+export type Screen = 'rules' | 'mail' | 'settings' | 'sample-error'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -31,8 +31,6 @@ export const routes: RouteRecordRaw[] = [
     meta: { screen: 'rules' },
   },
   { path: '/rules/:index(\\d+)', name: 'rule', component: empty, meta: { screen: 'rules' } },
-  { path: '/accounts', name: 'accounts', component: empty, meta: { screen: 'accounts' } },
-  { path: '/git', name: 'git', component: empty, meta: { screen: 'git' } },
   // The mail browser nests account, folder and message. A folder name goes in as one encoded segment.
   {
     path: '/mail',
@@ -55,8 +53,23 @@ export const routes: RouteRecordRaw[] = [
       },
     ],
   },
-  { path: '/log', name: 'log', component: empty, meta: { screen: 'log' } },
-  { path: '/settings', name: 'settings', component: empty, meta: { screen: 'settings' } },
+  // Accounts, git and the action log are parts of the settings. The old paths keep working.
+  {
+    path: '/settings',
+    component: empty,
+    meta: { screen: 'settings' },
+    children: [
+      { path: '', name: 'settings', component: empty },
+      { path: 'general', name: 'settings-general', component: empty },
+      { path: 'accounts', name: 'settings-accounts', component: empty },
+      { path: 'git', name: 'settings-git', component: empty },
+      { path: 'log', name: 'settings-log', component: empty },
+    ],
+  },
+  { path: '/accounts', redirect: { name: 'settings-accounts' } },
+  { path: '/git', redirect: { name: 'settings-git' } },
+  // The log keeps its filters in the query, so the redirect carries it along.
+  { path: '/log', redirect: (to) => ({ name: 'settings-log', query: to.query }) },
   {
     path: '/sample-error',
     name: 'sample-error',

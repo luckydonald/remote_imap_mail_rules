@@ -1,6 +1,16 @@
 import { expect, test, type Page } from '@playwright/test'
 import { ACCOUNT_ID, logIn, mockServer as mockMailServer } from './mail-mock'
 
+/** The accounts live under Settings: the top bar link, then the section link. */
+const openAccounts = async (page: Page): Promise<void> => {
+  await page.getByRole('link', { name: 'Settings', exact: true }).click()
+  await page
+    .getByRole('list', { name: 'Settings sections' })
+    .getByRole('link', { name: 'Accounts' })
+    .click()
+  await expect(page).toHaveURL(/\/settings\/accounts$/)
+}
+
 interface Mock {
   requests: { method: string; body: unknown }[]
   /** The bodies of the login checks. */
@@ -70,7 +80,7 @@ test('lists accounts with the drift badge, and the database shows as the source'
   await mockServer(page)
   await page.goto('/')
   await expect(page.locator('.notice')).toContainText('the database has no rules yet')
-  await page.getByRole('link', { name: 'Accounts' }).click()
+  await openAccounts(page)
   await expect(page.locator('.account')).toContainText('Private')
   await expect(page.locator('.badge.error')).toContainText('differs from env: password')
 })
@@ -86,7 +96,7 @@ test('flags an account whose login was rejected, with its history', async ({ pag
     needs_check: true,
   })
   await page.goto('/')
-  await page.getByRole('link', { name: 'Accounts' }).click()
+  await openAccounts(page)
   await expect(page.locator('.badge.needs-check')).toContainText('Please check')
   await expect(page.locator('.login-history')).toContainText('3× since the credentials were set')
   await expect(page.locator('.login-history')).toContainText('authentication failed')
@@ -95,7 +105,7 @@ test('flags an account whose login was rejected, with its history', async ({ pag
 test('adds, edits and deletes an account', async ({ page }) => {
   const mock = await mockServer(page)
   await page.goto('/')
-  await page.getByRole('link', { name: 'Accounts' }).click()
+  await openAccounts(page)
 
   await page.getByRole('button', { name: 'Add account' }).click()
   await page.locator('input[name=name]').fill('Work')
@@ -123,7 +133,7 @@ test('checks the login on Save, offers Save anyway when it fails, and skips the 
   const mock = await mockServer(page)
   mock.check = { ok: false, kind: 'rejected', message: 'authentication failed' }
   await page.goto('/')
-  await page.getByRole('link', { name: 'Accounts' }).click()
+  await openAccounts(page)
 
   await page.getByRole('button', { name: 'Add account' }).click()
   await page.locator('input[name=name]').fill('Work')
@@ -152,7 +162,7 @@ test('checks the login on Save, offers Save anyway when it fails, and skips the 
 test('Test connection shows the result without saving', async ({ page }) => {
   const mock = await mockServer(page)
   await page.goto('/')
-  await page.getByRole('link', { name: 'Accounts' }).click()
+  await openAccounts(page)
   await page.locator('.account').first().getByRole('button', { name: 'Edit' }).click()
   await page.getByRole('button', { name: 'Test connection' }).click()
   await expect(page.locator('.check-result.ok')).toContainText('Login works.')
@@ -164,7 +174,7 @@ test('Test connection shows the result without saving', async ({ page }) => {
 test('shows why an account cannot be deleted', async ({ page }) => {
   await mockServer(page, ['Still used by the rule: Newsletters'])
   await page.goto('/')
-  await page.getByRole('link', { name: 'Accounts' }).click()
+  await openAccounts(page)
   await page.getByRole('button', { name: 'Delete' }).click()
   await page.getByRole('button', { name: 'Really delete' }).click()
   await expect(page.locator('.message')).toContainText('Not deleted: Still used by the rule: Newsletters')
@@ -202,7 +212,7 @@ test('an added account shows in the mail screen picker', async ({ page }) => {
   await expect(page.locator('.row-mail')).toHaveCount(2)
   await expect(page.locator('.account-pick')).toHaveCount(0)
 
-  await page.getByRole('link', { name: 'Accounts' }).click()
+  await openAccounts(page)
   await page.getByRole('button', { name: 'Add account' }).click()
   await page.locator('input[name=name]').fill('Work')
   await page.locator('input[name=host]').fill('imap.work.example')
@@ -225,7 +235,7 @@ test('the open mail account follows a changed id', async ({ page }) => {
   await page.locator('.row-mail', { hasText: 'Subject 3' }).click()
   await expect(page).toHaveURL(new RegExp(ACCOUNT_ID))
 
-  await page.getByRole('link', { name: 'Accounts' }).click()
+  await openAccounts(page)
   await page.locator('.account').first().getByRole('button', { name: 'Edit' }).click()
   await page.locator('input[name=id]').fill(renamed)
   await page.locator('.account-form').getByRole('button', { name: 'Save' }).click()

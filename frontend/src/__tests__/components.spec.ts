@@ -182,7 +182,9 @@ describe('AppShell', () => {
     expect(wrapper.find('.templates').exists()).toBe(true)
     await router.push('/accounts')
     await flushPromises()
+    expect(router.currentRoute.value.fullPath).toBe('/settings/accounts')
     expect(wrapper.find('.body').exists()).toBe(false)
+    expect(wrapper.find('.settings-back').text()).toBe('‹ Settings')
   })
 })
 

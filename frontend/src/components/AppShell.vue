@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import AccountsView from './AccountsView.vue'
-import ActionLogView from './ActionLogView.vue'
-import GitView from './GitView.vue'
 import MailLogin from './MailLogin.vue'
 import MailView from './MailView.vue'
 import RuleEditor from './RuleEditor.vue'
@@ -18,7 +15,6 @@ import { logout } from '@/model/mail-api'
 import { clearAll } from '@/model/offline/db'
 import { setOnline } from '@/model/online'
 import ConfirmLogout from './ConfirmLogout.vue'
-import OnlineOnly from './OnlineOnly.vue'
 import OfflineBanner from './OfflineBanner.vue'
 import UpdateBanner from './UpdateBanner.vue'
 import { useStore } from '@/model/store'
@@ -241,20 +237,8 @@ onBeforeUnmount(() => {
         <RouterLink :to="rulesLink" class="ghost" :class="{ current: screen === 'rules' }">
           Rules
         </RouterLink>
-        <RouterLink
-          :to="{ name: 'accounts' }"
-          class="ghost"
-          :class="{ current: screen === 'accounts' }"
-          >Accounts</RouterLink
-        >
-        <RouterLink :to="{ name: 'git' }" class="ghost" :class="{ current: screen === 'git' }"
-          >Git</RouterLink
-        >
         <RouterLink :to="{ name: 'mail' }" class="ghost" :class="{ current: screen === 'mail' }"
           >Mail</RouterLink
-        >
-        <RouterLink :to="{ name: 'log' }" class="ghost" :class="{ current: screen === 'log' }"
-          >Log</RouterLink
         >
         <RouterLink
           :to="{ name: 'settings' }"
@@ -274,7 +258,7 @@ onBeforeUnmount(() => {
       >
         Example mail
       </button>
-      <template v-if="screen !== 'mail' && screen !== 'log' && screen !== 'settings'">
+      <template v-if="screen !== 'mail' && screen !== 'settings'">
         <button type="button" @click="fileInput?.click()">Open…</button>
         <input ref="fileInput" type="file" accept=".yml,.yaml,text/yaml" hidden @change="onPick" />
         <button type="button" class="ghost" @click="reset">New</button>
@@ -333,12 +317,7 @@ onBeforeUnmount(() => {
     <MailLogin v-if="loginRequired" @logged-in="loggedIn" />
     <SampleErrorView v-else-if="screen === 'sample-error'" />
     <MailView v-else-if="screen === 'mail'" @unauthorized="logOut()" />
-    <OnlineOnly v-else-if="screen === 'log'">
-      <ActionLogView @unauthorized="logOut()" />
-    </OnlineOnly>
-    <SettingsView v-else-if="screen === 'settings'" />
-    <OnlineOnly v-else-if="screen === 'accounts'"><AccountsView /></OnlineOnly>
-    <OnlineOnly v-else-if="screen === 'git'"><GitView /></OnlineOnly>
+    <SettingsView v-else-if="screen === 'settings'" @unauthorized="logOut()" />
     <div v-else class="body" :class="{ 'with-mail': online && store.panelOpen }">
       <RuleList />
       <main>
