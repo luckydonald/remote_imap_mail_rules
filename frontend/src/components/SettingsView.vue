@@ -74,9 +74,19 @@ const store = useStore()
         />
         INBOX mails of each account
       </label>
+      <label class="check">
+        Drop mails not viewed for
+        <input
+          v-model.number="store.cacheMaxAgeDays"
+          type="number"
+          min="0"
+          aria-label="Days after which an unviewed mail leaves the cache"
+        />
+        days (0 keeps them)
+      </label>
       <p class="hint">
         A mail leaves the cache once it is read, unless it is one of the newest INBOX mails, and
-        after 30 days without a visit. Attachments are never cached.
+        after the days above without a visit. Attachments are never cached.
       </p>
     </section>
     <h2>Rule editor</h2>

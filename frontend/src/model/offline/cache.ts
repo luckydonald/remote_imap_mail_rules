@@ -15,11 +15,12 @@ export interface CacheRules {
   cacheOpenedUnread: boolean
   cacheInbox: boolean
   cacheInboxCount: number
+  /** Mails not viewed for this many days are dropped (outside the INBOX window); 0 keeps them for ever. */
+  cacheMaxAgeDays: number
 }
 
 export const PAGE_SIZE = 50
-/** Mails not viewed for this long (and not in the INBOX window) are dropped. */
-export const MAX_AGE_MS = 30 * 24 * 3600 * 1000
+export const DAY_MS = 24 * 3600 * 1000
 
 interface FoldersRecord {
   key: string
@@ -274,7 +275,9 @@ export async function purge(rules: CacheRules, now = new Date()): Promise<number
     const seen = row ? row.seen : record.seen
     const opened = record.reasons.includes('opened')
     const reasons = reasonsFor(rules, record.folder, seen, opened, rank >= 0 ? rank : null)
-    const old = now.getTime() - new Date(record.lastViewedAt).getTime() > MAX_AGE_MS
+    const old =
+      rules.cacheMaxAgeDays > 0 &&
+      now.getTime() - new Date(record.lastViewedAt).getTime() > rules.cacheMaxAgeDays * DAY_MS
     if (reasons.length === 0 || (old && !reasons.includes('inbox'))) {
       await dbDelete('details', record.key)
       removed += 1

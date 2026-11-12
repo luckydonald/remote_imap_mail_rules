@@ -148,6 +148,7 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
       cacheOpenedUnread: prefs.cacheOpenedUnread.value,
       cacheInbox: prefs.cacheInbox.value,
       cacheInboxCount: prefs.cacheInboxCount.value,
+      cacheMaxAgeDays: prefs.cacheMaxAgeDays.value,
     }
   }
 

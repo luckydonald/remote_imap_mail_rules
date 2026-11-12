@@ -1139,3 +1139,5 @@ And composable files inside one store sounds useful to organize it well, still.
 
 ❯ Plan accepted, auto mode.
 
+❯ 30-day purge age shall be a setting too. ￼This can be included in the same database migration, as we have not pushed yet. Still a separate commit though.
+
