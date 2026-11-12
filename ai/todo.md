@@ -107,7 +107,7 @@ To complete one:
   > - maybe the two components could be merged with the main viewer, having slots for the different actions needed.
   > - though I kinda like how clean the current chooser variant looks generally.
 - [x] _Add to a rule_ overlay shall repeat the current email preview up top — `todo:dc73499f-d661-4656-be05-c593da6658b3` _(done)_
-- [ ] button actions like _Mark read_ shall have a loading spinner, and be disabled until done — `todo:fdbbd2c4-d369-4c87-99db-00061eb7d070`
+- [x] button actions like _Mark read_ shall have a loading spinner, and be disabled until done — `todo:fdbbd2c4-d369-4c87-99db-00061eb7d070` _(done)_
 - [ ] keep the last _Add to rule_ settings (type, e.g. template + which) in the store — `todo:340ec332-701e-47da-b60c-73208152b829`
   > - to easily add multiple mails with the same field types
 - [ ] “Unread mails of the folders I opened” should me Zion that it doesn’t include INBOX. — `todo:66ef1a9b-d91a-4179-8a00-7779272f6844`

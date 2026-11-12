@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { addressList, fileSize, frameDocument, fullDate } from '@/model/mail-format'
 import { useStore } from '@/model/store'
 import type { BodyMode } from '@/model/store/prefs'
+import ButtonSpinner from './ButtonSpinner.vue'
 import MailAddCondition from './MailAddCondition.vue'
 import MailLog from './MailLog.vue'
 import MailMoveMenu from './MailMoveMenu.vue'
@@ -72,7 +73,8 @@ const unreadLabel = computed(() => (store.detail?.seen ? 'Mark unread' : 'Mark r
         <button
           type="button"
           class="ghost toggle-seen"
-          :disabled="!store.actionsEnabled"
+          :disabled="!store.actionsEnabled || store.mailActionBusy !== null"
+          :aria-busy="store.mailActionBusy === 'seen'"
           :title="
             store.actionsEnabled
               ? unreadLabel
@@ -80,7 +82,7 @@ const unreadLabel = computed(() => (store.detail?.seen ? 'Mark unread' : 'Mark r
           "
           @click="store.setSeen(!store.detail.seen)"
         >
-          {{ unreadLabel }}
+          <ButtonSpinner v-if="store.mailActionBusy === 'seen'" />{{ unreadLabel }}
         </button>
         <MailMoveMenu />
         <MailRuleMenu v-if="store.context" :context="store.context" />

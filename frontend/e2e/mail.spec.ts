@@ -231,6 +231,25 @@ test('marks the open mail unread and read again', async ({ page }) => {
   expect(calls).toContain('body {"add":["\\\\Seen"],"remove":[]}')
 })
 
+test('disables the mark read button with a spinner until the server answered', async ({ page }) => {
+  await mockServer(page)
+  await openThird(page)
+  let release: () => void = () => {}
+  const gate = new Promise<void>((resolve) => (release = resolve))
+  await page.route('**/api/mail/**/flags*', async (route) => {
+    await gate
+    await route.fallback()
+  })
+  const button = page.getByRole('button', { name: 'Mark read' })
+  await button.click()
+  await expect(button).toBeDisabled()
+  await expect(button.locator('.button-spinner')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Move ▾' })).toBeDisabled()
+  release()
+  await expect(page.getByRole('button', { name: 'Mark unread' })).toBeEnabled()
+  await expect(page.locator('.button-spinner')).toHaveCount(0)
+})
+
 test('moves the mail to a destination of the rules', async ({ page }) => {
   const calls = await mockServer(page, false, MOVE_RULES)
   await openThird(page)

@@ -99,6 +99,8 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
   const { isOnline } = useOnline()
   const error = ref('')
   const loading = ref(false)
+  /** The toolbar action (mark read / unread, move) that waits for the server, `null` when none does. */
+  const mailActionBusy = ref<'seen' | 'move' | null>(null)
   // True from the start until the accounts and the folders of the first account are in.
   const foldersLoading = ref(true)
   const pane = ref<Pane>('folders')
@@ -498,8 +500,23 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
     if (entry && entry.unseen !== null) entry.unseen = Math.max(0, entry.unseen + by)
   }
 
+  /** Runs one toolbar action at a time: `mailActionBusy` names it until it is done, a second one meanwhile is ignored. */
+  async function withBusy(kind: 'seen' | 'move', run: () => Promise<void>): Promise<void> {
+    if (mailActionBusy.value !== null) return
+    mailActionBusy.value = kind
+    try {
+      await run()
+    } finally {
+      mailActionBusy.value = null
+    }
+  }
+
   /** Marks the open mail read or unread on the server. */
-  async function setSeen(seen: boolean): Promise<void> {
+  function setSeen(seen: boolean): Promise<void> {
+    return withBusy('seen', () => applySeen(seen))
+  }
+
+  async function applySeen(seen: boolean): Promise<void> {
     const id = accountId.value
     const name = folder.value
     const open = detail.value
@@ -528,7 +545,11 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
   }
 
   /** Moves the open mail to another folder of the account and opens the next one, or goes back to the list. */
-  async function moveTo(target: string): Promise<void> {
+  function moveTo(target: string): Promise<void> {
+    return withBusy('move', () => applyMove(target))
+  }
+
+  async function applyMove(target: string): Promise<void> {
     const id = accountId.value
     const name = folder.value
     const open = detail.value
@@ -656,6 +677,7 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
     bodyOptions,
     setSeen,
     moveTo,
+    mailActionBusy,
     isOnline,
     eventsOffline,
     queued,
