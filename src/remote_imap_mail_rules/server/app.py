@@ -13,7 +13,8 @@ from ..db import accounts as account_repository
 from ..db.engine import create_engine, create_session_factory
 from ..db.migrate import upgrade
 from ..imap.client import ConnectionFactory, connect_aioimaplib
-from .api import accounts, auth, dry_run, editor, events, git, log, mail, public, sample_error, settings as settings_api
+from ..mcp_server.server import mount_mcp
+from .api import accounts, auth, dry_run, editor, events, git, log, mail, mcp_tokens, public, sample_error, settings as settings_api
 from .auth import require_login
 from .git_repo import GitRepo
 from .git_service import GitService
@@ -75,7 +76,9 @@ def create_app(
             raise
         # end try
         app.state.watcher.start()
-        yield
+        async with mcp_server.session_manager.run():
+            yield
+        # end with
         await app.state.watcher.stop()
         await engine.dispose()
     # end def
@@ -97,6 +100,7 @@ def create_app(
     protected = [Depends(require_login)]
     app.include_router(editor.router, prefix="/api/editor", tags=["editor"], dependencies=protected)
     app.include_router(settings_api.router, prefix="/api/settings", tags=["settings"], dependencies=protected)
+    app.include_router(mcp_tokens.router, prefix="/api/mcp-tokens", tags=["mcp-tokens"], dependencies=protected)
     app.include_router(git.router, prefix="/api/git", tags=["git"], dependencies=protected)
     app.include_router(accounts.router, prefix="/api/accounts", tags=["accounts"], dependencies=protected)
     app.include_router(mail.router, prefix="/api/mail", tags=["mail"], dependencies=protected)
@@ -104,6 +108,7 @@ def create_app(
     app.include_router(sample_error.router, prefix="/api/sample-error", tags=["sample-error"], dependencies=protected)
     app.include_router(events.router, prefix="/api/mail", tags=["mail"], dependencies=protected)
     app.include_router(log.router, prefix="/api/log", tags=["log"], dependencies=protected)
+    mcp_server = mount_mcp(app)
     if settings.frontend_dist.is_dir():
         # Mounted last, so `/api` wins; `html=True` serves `index.html` for `/`.
         app.mount("/", SpaStaticFiles(directory=settings.frontend_dist, html=True), name="frontend")

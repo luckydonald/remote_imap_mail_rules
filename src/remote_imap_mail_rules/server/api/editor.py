@@ -6,6 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response
 from pydantic import BaseModel
 
 from .. import rules_file
+from ..rules_save import after_rules_saved
 from ..rules_store import RulesStore
 
 router = APIRouter()
@@ -55,6 +56,5 @@ async def put_rules(request: Request, background: BackgroundTasks) -> None:
     except rules_file.InvalidRules as e:
         raise HTTPException(status_code=422, detail=e.messages) from e
     # end try
-    background.add_task(request.app.state.watcher.restart)
-    background.add_task(request.app.state.git.auto)
+    background.add_task(after_rules_saved, request.app)
 # end def

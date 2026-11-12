@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /** How this browser shows mails. Kept in the browser (localStorage), nothing here is sent to the server. */
 import { useStore } from '@/model/store'
+import McpTokens from './McpTokens.vue'
 import OnlineOnly from './OnlineOnly.vue'
 import SegmentedToggle from './SegmentedToggle.vue'
 
@@ -124,5 +125,9 @@ const store = useStore()
         Browsers may ask for permission to read the clipboard.
       </p>
     </section>
+    <h2>MCP server</h2>
+    <OnlineOnly>
+      <McpTokens />
+    </OnlineOnly>
   </main>
 </template>
