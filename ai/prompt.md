@@ -1141,3 +1141,5 @@ And composable files inside one store sounds useful to organize it well, still.
 
 ❯ 30-day purge age shall be a setting too. ￼This can be included in the same database migration, as we have not pushed yet. Still a separate commit though.
 
+❯ The cache settings should be server site user settings, so they are the same in every browser
+
