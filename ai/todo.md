@@ -95,5 +95,5 @@ To complete one:
   > and cache mails until marked read.
 - [x] create MCP server to easily create, update, edit, improve rules — `todo:81f52e67-d921-4c4f-8ffd-e30fc734e066` _(done)_
   > - tokens in user settings subpage
-- [ ] **Add to a rule** shall be above the graphical selector — `todo:31571edc-cabf-49ca-99ca-2280ade7360b`
+- [x] **Add to a rule** shall be above the graphical selector — `todo:31571edc-cabf-49ca-99ca-2280ade7360b` _(done)_
   > Not left of it, which forces the overlay to scroll sidewards

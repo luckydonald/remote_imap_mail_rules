@@ -1191,3 +1191,7 @@ Tools:
 
 ❯ - Use long names for r,w,d. It is on pushed so you can still change stuff into a new comment without needing migration or something like that.
 
+❯ Check that the new test fails with the old code
+
+❯ Insert picker, yes. It seems to be exactly as wide as the window is, but the other controls are to the left. Your prior plan explanation sounded reasonable.  Under Mails > Rule > Add to existing rule….
+
