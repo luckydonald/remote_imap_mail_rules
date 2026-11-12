@@ -7,7 +7,7 @@ import {
   fetchMcpTokens,
   groupScopes,
   revokeMcpToken,
-  scopeLetter,
+  scopeAction,
 } from '@/model/mcp-tokens-api'
 
 const json = (data: unknown, status = 200): Response =>
@@ -30,9 +30,9 @@ describe('mcp tokens api', () => {
   it('creates and revokes', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(json({ token: 'rimr_x' }, 201))
     vi.stubGlobal('fetch', fetchMock)
-    expect((await createMcpToken('claude', ['rules:r'])).token).toBe('rimr_x')
+    expect((await createMcpToken('claude', ['rules:read'])).token).toBe('rimr_x')
     const [, init] = fetchMock.mock.calls[0]!
-    expect(JSON.parse(String(init?.body))).toEqual({ name: 'claude', scopes: ['rules:r'] })
+    expect(JSON.parse(String(init?.body))).toEqual({ name: 'claude', scopes: ['rules:read'] })
     fetchMock.mockResolvedValue(new Response(null, { status: 204 }))
     await revokeMcpToken('abc')
     expect(fetchMock.mock.calls[1]![0]).toBe('/api/mcp-tokens/abc')
@@ -40,11 +40,11 @@ describe('mcp tokens api', () => {
   })
 
   it('groups scopes by resource', () => {
-    expect(groupScopes(['rules:r', 'rules:w', 'accounts.password:r'])).toEqual([
-      { resource: 'rules', scopes: ['rules:r', 'rules:w'] },
-      { resource: 'accounts.password', scopes: ['accounts.password:r'] },
+    expect(groupScopes(['rules:read', 'rules:write', 'accounts.password:read'])).toEqual([
+      { resource: 'rules', scopes: ['rules:read', 'rules:write'] },
+      { resource: 'accounts.password', scopes: ['accounts.password:read'] },
     ])
-    expect(scopeLetter('events:d')).toBe('delete')
+    expect(scopeAction('events:delete')).toBe('delete')
   })
 })
 
@@ -53,7 +53,10 @@ describe('McpTokens', () => {
     const tokens: Record<string, unknown>[] = []
     return vi.fn<typeof fetch>(async (url, init) => {
       if (url === '/api/mcp-tokens/scopes')
-        return json({ scopes: ['rules:r', 'rules:w'], presets: { read_only: ['rules:r'] } })
+        return json({
+          scopes: ['rules:read', 'rules:write'],
+          presets: { read_only: ['rules:read'] },
+        })
       if (url === '/api/mcp-tokens' && init?.method === 'POST') {
         const body = JSON.parse(String(init.body)) as { name: string; scopes: string[] }
         const row = {
@@ -84,7 +87,7 @@ describe('McpTokens', () => {
     const create = wrapper.find('button[type=submit]')
     expect(create.attributes('disabled')).toBeDefined()
     await wrapper.find('input[type=text]').setValue('claude')
-    await wrapper.find('input[value="rules:r"]').setValue(true)
+    await wrapper.find('input[value="rules:read"]').setValue(true)
     await wrapper.find('form').trigger('submit')
     await flushPromises()
     expect(wrapper.find('.token-value').text()).toBe('rimr_abcSECRET')
@@ -114,7 +117,11 @@ describe('McpTokens', () => {
       .findAll('button')
       .find((b) => b.text() === 'Read only')!
       .trigger('click')
-    expect((wrapper.find('input[value="rules:r"]').element as HTMLInputElement).checked).toBe(true)
-    expect((wrapper.find('input[value="rules:w"]').element as HTMLInputElement).checked).toBe(false)
+    expect((wrapper.find('input[value="rules:read"]').element as HTMLInputElement).checked).toBe(
+      true,
+    )
+    expect((wrapper.find('input[value="rules:write"]').element as HTMLInputElement).checked).toBe(
+      false,
+    )
   })
 })

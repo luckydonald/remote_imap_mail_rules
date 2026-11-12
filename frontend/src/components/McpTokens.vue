@@ -8,7 +8,7 @@ import {
   fetchMcpTokens,
   groupScopes,
   revokeMcpToken,
-  scopeLetter,
+  scopeAction,
   type McpScopes,
   type McpToken,
 } from '@/model/mcp-tokens-api'
@@ -139,7 +139,7 @@ onMounted(load)
         <legend>{{ group.resource }}</legend>
         <label v-for="scope in group.scopes" :key="scope" class="check">
           <input v-model="chosen" type="checkbox" :value="scope" />
-          {{ scopeLetter(scope) }}
+          {{ scopeAction(scope) }}
         </label>
       </fieldset>
       <button type="submit" :disabled="!name.trim() || !chosen.length">Create token</button>

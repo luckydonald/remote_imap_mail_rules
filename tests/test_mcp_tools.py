@@ -52,7 +52,7 @@ def insert_event(tmp_path: Path, account_id: str, uid: int, kind: str, created: 
 
 
 def test_accounts_read_without_password(client: TestClient, account: str) -> None:
-    token = new_token(client, ["accounts:r"])
+    token = new_token(client, ["accounts:read"])
     listed = call(client, token, "list_accounts")["structuredContent"]["accounts"]
     assert [a["id"] for a in listed] == [account] and listed[0]["has_password"] is True
     assert "secret" not in json.dumps(listed)
@@ -62,15 +62,15 @@ def test_accounts_read_without_password(client: TestClient, account: str) -> Non
 
 
 def test_password_scopes_are_separate(client: TestClient, account: str) -> None:
-    read = new_token(client, ["accounts:r", "accounts:w", "accounts:d"])
+    read = new_token(client, ["accounts:read", "accounts:write", "accounts:delete"])
     assert call(client, read, "get_account_password", {"account_id": account})["isError"] is True
     values = {"name": "Renamed"}
     assert call(client, read, "update_account", {"account_id": account, "values": values})["structuredContent"]["name"] == "Renamed"
     refused = call(client, read, "update_account", {"account_id": account, "values": {"password": "new"}})
-    assert refused["isError"] is True and "accounts.password:w" in text_of(refused)
+    assert refused["isError"] is True and "accounts.password:write" in text_of(refused)
     assert call(client, read, "create_account", {"name": "x", "host": "h", "username": "u", "password": "p"})["isError"] is True  # needs the scope
 
-    password = new_token(client, ["accounts.password:r", "accounts.password:w"])
+    password = new_token(client, ["accounts.password:read", "accounts.password:write"])
     assert call(client, password, "get_account_password", {"account_id": account})["structuredContent"] == {"password": "secret"}
     assert call(client, password, "set_account_password", {"account_id": account, "password": "other"})["isError"] is False
     assert call(client, password, "get_account_password", {"account_id": account})["structuredContent"] == {"password": "other"}
@@ -79,7 +79,7 @@ def test_password_scopes_are_separate(client: TestClient, account: str) -> None:
 
 
 def test_create_and_delete_account(client: TestClient) -> None:
-    token = new_token(client, ["accounts:r", "accounts:w", "accounts:d", "accounts.password:w"])
+    token = new_token(client, ["accounts:read", "accounts:write", "accounts:delete", "accounts.password:write"])
     created = call(client, token, "create_account", {"name": "New", "host": "imap.example", "username": "u", "password": "pw"})
     new_id = created["structuredContent"]["id"]
     assert [a["id"] for a in client.get("/api/accounts").json()] == [new_id]
@@ -89,14 +89,14 @@ def test_create_and_delete_account(client: TestClient) -> None:
 
 
 def test_delete_account_is_refused_while_a_rule_uses_it(client: TestClient, account: str) -> None:
-    token = new_token(client, ["accounts:d"])
+    token = new_token(client, ["accounts:delete"])
     result = call(client, token, "delete_account", {"account_id": account})
     assert result["isError"] is True and "invoices" in text_of(result)
 # end def
 
 
 def test_list_folders(client: TestClient, account: str) -> None:
-    token = new_token(client, ["folders:r"])
+    token = new_token(client, ["folders:read"])
     folders = call(client, token, "list_folders", {"account_id": account})["structuredContent"]["folders"]
     assert {"INBOX", "Archive"} <= {folder["name"] for folder in folders}
 # end def
@@ -105,7 +105,7 @@ def test_list_folders(client: TestClient, account: str) -> None:
 def test_events_list_filter_and_clear(client: TestClient, tmp_path: Path, account: str) -> None:
     insert_event(tmp_path, account, 1, "first_seen", "2026-11-03 10:00:00.000000", {"type": "x"})
     insert_event(tmp_path, account, 2, "rule_match", "2026-11-03 10:00:05.000000", {"type": "y"})
-    token = new_token(client, ["events:r", "events:d"])
+    token = new_token(client, ["events:read", "events:delete"])
     page = call(client, token, "list_events", {"limit": 1})["structuredContent"]
     assert [item["uid"] for item in page["items"]] == [2] and page["next"]
     following = call(client, token, "list_events", {"limit": 1, "before": page["next"]})["structuredContent"]
@@ -121,27 +121,27 @@ def test_events_list_filter_and_clear(client: TestClient, tmp_path: Path, accoun
 def test_events_hide_mail_titles_without_mails_r(client: TestClient, tmp_path: Path, account: str) -> None:
     detail = {"type": "flags", "subject": "Secret invoice", "from": "Max <max@example.com>"}
     insert_event(tmp_path, account, 1, "user_action", "2026-11-03 10:00:00.000000", detail, "<abc@example.com>")
-    hidden = call(client, new_token(client, ["events:r"]), "list_events")["structuredContent"]["items"][0]
+    hidden = call(client, new_token(client, ["events:read"]), "list_events")["structuredContent"]["items"][0]
     assert "Secret" not in json.dumps(hidden) and "max@example.com" not in json.dumps(hidden) and "abc@example.com" not in json.dumps(hidden)
     assert hidden["detail"]["type"] == "flags"
-    shown = call(client, new_token(client, ["events:r", "mails:r"]), "list_events")["structuredContent"]["items"][0]
+    shown = call(client, new_token(client, ["events:read", "mails:read"]), "list_events")["structuredContent"]["items"][0]
     assert shown["detail"] == detail and shown["message_id"] == "<abc@example.com>"
 # end def
 
 
 def test_dry_run_masks_titles_without_mails_r(client: TestClient, server: FakeServer, account: str) -> None:
     commands = len(server.commands)
-    hidden = call(client, new_token(client, ["rules:r"]), "dry_run", {"rule": "invoices"})["structuredContent"]
+    hidden = call(client, new_token(client, ["rules:read"]), "dry_run", {"rule": "invoices"})["structuredContent"]
     assert hidden["affected"] == 1 and "invoice one" not in json.dumps(hidden)
-    shown = call(client, new_token(client, ["rules:r", "mails:r"]), "dry_run", {"rule": "invoices"})["structuredContent"]
+    shown = call(client, new_token(client, ["rules:read", "mails:read"]), "dry_run", {"rule": "invoices"})["structuredContent"]
     assert shown["mails"][0]["subject"] == "invoice one"
     assert not any(word in command for command in server.commands[commands:] for word in ("STORE", "MOVE", "COPY", "EXPUNGE"))
-    assert call(client, new_token(client, ["rules:r"]), "dry_run", {"rule": "missing"})["isError"] is True
+    assert call(client, new_token(client, ["rules:read"]), "dry_run", {"rule": "missing"})["isError"] is True
 # end def
 
 
 def test_edits_in_database_mode(client: TestClient, account: str) -> None:
-    token = new_token(client, ["rules:r", "rules:w", "rules:d"])
+    token = new_token(client, ["rules:read", "rules:write", "rules:delete"])
     assert call(client, token, "add_action", {"rule": "everything", "action": {"type": "mark_read"}})["isError"] is False
     assert call(client, token, "move_rule", {"name": "everything", "index": 0})["structuredContent"] == {"index": 0}
     assert [r["name"] for r in call(client, token, "list_rules")["structuredContent"]["rules"]] == ["everything", "invoices"]

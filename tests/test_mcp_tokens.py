@@ -31,18 +31,18 @@ def client(tmp_path: Path) -> Iterator[TestClient]:
 def test_needs_login(client: TestClient) -> None:
     client.cookies.clear()
     assert client.get("/api/mcp-tokens").status_code == 401
-    assert client.post("/api/mcp-tokens", json={"name": "x", "scopes": ["rules:r"]}).status_code == 401
+    assert client.post("/api/mcp-tokens", json={"name": "x", "scopes": ["rules:read"]}).status_code == 401
     assert client.get("/api/mcp-tokens/scopes").status_code == 401
 # end def
 
 
 def test_token_is_shown_once_and_only_the_hash_is_stored(client: TestClient) -> None:
-    created = client.post("/api/mcp-tokens", json={"name": "claude", "scopes": ["rules:w", "rules:r", "rules:r"]})
+    created = client.post("/api/mcp-tokens", json={"name": "claude", "scopes": ["rules:write", "rules:read", "rules:read"]})
     assert created.status_code == 201
     body = created.json()
     token = body["token"]
     assert token.startswith("rimr_") and body["prefix"] == token[:8]
-    assert body["scopes"] == ["rules:r", "rules:w"]
+    assert body["scopes"] == ["rules:read", "rules:write"]
     listed = client.get("/api/mcp-tokens").json()
     assert [row["id"] for row in listed] == [body["id"]]
     assert "token" not in listed[0]
@@ -64,7 +64,7 @@ def test_scope_list_has_every_scope_and_presets(client: TestClient) -> None:
 
 
 def test_revoke(client: TestClient) -> None:
-    token_id = client.post("/api/mcp-tokens", json={"name": "claude", "scopes": ["rules:r"]}).json()["id"]
+    token_id = client.post("/api/mcp-tokens", json={"name": "claude", "scopes": ["rules:read"]}).json()["id"]
     assert client.delete(f"/api/mcp-tokens/{token_id}").status_code == 204
     assert client.get("/api/mcp-tokens").json()[0]["revoked_at"] is not None
     assert client.delete("/api/mcp-tokens/6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11").status_code == 404
