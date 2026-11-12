@@ -103,7 +103,7 @@ To complete one:
   > - with one item per line
   > - currently is appended to the label text without any whitespaces between the items
 - [x] _Add to a rule_ edit overlay shall have a ToC for the rules under the “click where it should go” — `todo:cbf5477d-93f0-4693-986f-727a02a69fe9` _(done)_
-- [ ] _Add to a rule_ overlay’s Graphical Picker should use the same colors and AND/OR/NOT formatting as the main viewer — `todo:6e1d2a66-8117-4757-9c0d-05b26e6adfce`
+- [x] _Add to a rule_ overlay’s Graphical Picker should use the same colors and AND/OR/NOT formatting as the main viewer — `todo:6e1d2a66-8117-4757-9c0d-05b26e6adfce` _(done)_
   > - maybe the two components could be merged with the main viewer, having slots for the different actions needed.
   > - though I kinda like how clean the current chooser variant looks generally.
 - [ ] _Add to a rule_ overlay shall repeat the current email preview up top — `todo:dc73499f-d661-4656-be05-c593da6658b3`
