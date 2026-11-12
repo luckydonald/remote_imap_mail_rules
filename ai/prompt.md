@@ -1143,3 +1143,5 @@ And composable files inside one store sounds useful to organize it well, still.
 
 ❯ The cache settings should be server site user settings, so they are the same in every browser
 
+❯ While actually offline, we don't need to run any cleanup, but rather should keep all the mails we currently have available!
+

@@ -78,11 +78,12 @@ async function connect(): Promise<void> {
   online.value = true
   store.active = true
   store.actionsEnabled = config.actions_enabled === true
+  // Offline from the start: known before the background round runs, which then cleans nothing up.
+  if (config.offline) setOnline(false)
   store.startOffline()
   const label = config.file_name ?? 'the database'
   store.backend = { kind: config.source, name: config.file_name }
   if (config.offline) {
-    setOnline(false)
     notice.value = 'The server cannot be reached, showing the cached mails.'
     return
   }

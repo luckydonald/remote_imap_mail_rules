@@ -355,8 +355,9 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
 
   /** One round of the background work. */
   async function background(): Promise<void> {
-    await purge(cacheRules())
+    // Offline nothing is cleaned up: every mail we have stays available until the server is back.
     if (!isOnline.value) return
+    await purge(cacheRules())
     await sendQueue()
     await reloadFolders()
     await prefetch()
@@ -518,7 +519,7 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
       await enqueue({ kind: 'flag', accountId: id, folder: name, uid: open.uid, ...change })
     }
     await markSeen(id, name, open.uid, seen)
-    if (seen) void purge(cacheRules())
+    if (seen && isOnline.value) void purge(cacheRules())
     open.seen = seen
     open.flags = seen ? [...open.flags, '\\Seen'] : open.flags.filter((flag) => flag !== '\\Seen')
     const row = messages.value.find((item) => item.uid === open.uid)
