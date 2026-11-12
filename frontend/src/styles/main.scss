@@ -1620,3 +1620,11 @@ button {
     text-align: left;
   }
 }
+
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+}

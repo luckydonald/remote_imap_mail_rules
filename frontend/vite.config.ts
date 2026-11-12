@@ -12,7 +12,8 @@ export default defineConfig({
     vueDevTools(),
     // The app shell works offline; the mail cache itself lives in IndexedDB (`src/model/offline/`), `/api` is never cached by the worker.
     VitePWA({
-      registerType: 'autoUpdate',
+      // A new worker waits until the user agrees (`model/update.ts`), so a running page never loses its assets or unsaved edits.
+      registerType: 'prompt',
       injectRegister: false,
       manifest: {
         name: 'Mail Rules Editor',

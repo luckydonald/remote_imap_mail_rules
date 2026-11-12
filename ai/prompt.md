@@ -1145,3 +1145,5 @@ And composable files inside one store sounds useful to organize it well, still.
 
 ❯ While actually offline, we don't need to run any cleanup, but rather should keep all the mails we currently have available!
 
+❯ The service worker should be able to handle a newly deployed version of the app (shell) and itself.
+
