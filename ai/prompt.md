@@ -1074,3 +1074,57 @@ And composable files inside one store sounds useful to organize it well, still.
 
 ❯ Clean up older unpushed history (since `base/base`), too. Once everything is clean write me a summary. If i then send a _continue_, you may push, including a sha-gated & leased force-push (which commit hash you describe in your summary beforehand)
 
+❯ Question answered.
+> <details><summary>
+>
+>> 1. What should 'work offline' cover in the first version of this todo?
+>> 2. Which mails should be cached, and when do they leave the cache?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Scope** (1/2) <kbd>Single Select</kbd><br>
+>> What should 'work offline' cover in the first version of this todo?
+> - [ ] 1\. Read cached mails + app shell (Recommended)
+>   - _Service worker caches the built app so it opens without network; unread mails are kept in IndexedDB and stay readable offline. No writes offline._
+> - [x] 2\. Also queue actions offline
+>   - _As above, plus mark read/unread and moves done offline are queued and replayed when the connection returns (needs conflict handling)._
+> - [ ] 3\. Only cache mails, no app shell
+>   - _Just the mail cache in the existing browser storage; the app itself still needs the network to load._
+> - [ ] 4\. _Type something._
+>
+>> **Cache rule** (2/2) <kbd>Single Select</kbd><br>
+>> Which mails should be cached, and when do they leave the cache?
+> - [ ] 1\. Unread mails of the folders opened (Recommended)
+>   - _Full mail (body and attachments up to a size cap) of every unread mail in the lists you opened; dropped once it is marked read (here or on the server)._
+> - [ ] 2\. All unread mails of all folders
+>   - _Background prefetch of every unread mail of every account; heavier on bandwidth and storage._
+> - [ ] 3\. Only mails I opened
+>   - _Keep a mail you opened while it is unread; drop when marked read._
+> - [x] 4\. _Type something:_
+>   - > 1, 3, and the 200 newest INBOX mails, for each account.
+>
+> </details>
+>
+
+❯ Plan denied.
+
+❯ - For the service worker, are their commonly used vue bootstraps? I haven't really touched service workers before, so I assume I have no knowledge.
+- does it make sense to expose `uidvalidity` in the API? What does it do? ￼
+￼- _one request at a time_ sounds like waiting for overhead, probably we should run a few simultaneously.￼
+- the offline cache also should record when the email was cached & last viewed, so we can periodically purge too old mails if they don't fit the rules for storing mails
+- _the log of a mail is just empty offline_: no it should say that it is offline
+- all functions not available online should be disabled. 
+  - A `￼const { isOnline } = useOnline()` composable sharing one computed ref into its usages would probably help.
+- log out checks for not yet completed (uploaded) actions and asks the user before actually killing anything/everything.
+  - this needs tests
+- _A queued entry for one mail collapses (read then unread cancels, later move wins)._: ￼ just to be clear in wording, it should not cancel both but keep only the later one.
+  - this needs tests for every case
+- in the settings I want to set the caching rules. Toggles for each mentioned case, and the 200 is a numeric field.
+- The currently open email field can be removed in favor of the cache?
+- the folder structure should be kept
+  - not fetchefd fresh every time
+  - instead￼ periodically and on page load fetched again
+  - which overrides the ￼one in pinia, writing the new data reactivity-friendly
+
