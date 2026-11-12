@@ -17,6 +17,10 @@ interface Saved {
   mailStyles: Policy
   copyCut: Toggle
   readPaste: Toggle
+  cacheUnread: boolean
+  cacheOpenedUnread: boolean
+  cacheInbox: boolean
+  cacheInboxCount: number
 }
 
 function readSaved(): Partial<Saved> {
@@ -39,20 +43,57 @@ export function usePrefs() {
   /** Read the clipboard when pasting a rule block (can spam permission prompts). */
   const readPaste = ref<Toggle>(saved.readPaste === 'off' ? 'off' : 'on')
 
-  watch([bodyMode, remoteImages, mailStyles, copyCut, readPaste], () => {
-    try {
-      const value: Saved = {
-        bodyMode: bodyMode.value,
-        remoteImages: remoteImages.value,
-        mailStyles: mailStyles.value,
-        copyCut: copyCut.value,
-        readPaste: readPaste.value,
-      }
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
-    } catch {
-      // A blocked storage only means the settings are forgotten with the tab.
-    }
-  })
+  // What the offline cache keeps (see `offline/cache.ts`).
+  const cacheUnread = ref(saved.cacheUnread !== false)
+  const cacheOpenedUnread = ref(saved.cacheOpenedUnread !== false)
+  const cacheInbox = ref(saved.cacheInbox !== false)
+  const cacheInboxCount = ref(
+    Number.isInteger(saved.cacheInboxCount) && (saved.cacheInboxCount as number) >= 0
+      ? (saved.cacheInboxCount as number)
+      : 200,
+  )
 
-  return { bodyMode, remoteImages, mailStyles, copyCut, readPaste }
+  watch(
+    [
+      bodyMode,
+      remoteImages,
+      mailStyles,
+      copyCut,
+      readPaste,
+      cacheUnread,
+      cacheOpenedUnread,
+      cacheInbox,
+      cacheInboxCount,
+    ],
+    () => {
+      try {
+        const value: Saved = {
+          bodyMode: bodyMode.value,
+          remoteImages: remoteImages.value,
+          mailStyles: mailStyles.value,
+          copyCut: copyCut.value,
+          readPaste: readPaste.value,
+          cacheUnread: cacheUnread.value,
+          cacheOpenedUnread: cacheOpenedUnread.value,
+          cacheInbox: cacheInbox.value,
+          cacheInboxCount: cacheInboxCount.value,
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
+      } catch {
+        // A blocked storage only means the settings are forgotten with the tab.
+      }
+    },
+  )
+
+  return {
+    bodyMode,
+    remoteImages,
+    mailStyles,
+    copyCut,
+    readPaste,
+    cacheUnread,
+    cacheOpenedUnread,
+    cacheInbox,
+    cacheInboxCount,
+  }
 }

@@ -21,6 +21,8 @@ class FolderOut(BaseModel):
     selectable: bool
     messages: int | None = None
     unseen: int | None = None
+    #: The folder's UIDVALIDITY: UIDs are only stable while it stays the same (the offline cache keys on it).
+    uidvalidity: int | None = None
 
 
 class AddressOut(BaseModel):
@@ -38,6 +40,7 @@ class SummaryOut(BaseModel):
     answered: bool
     has_attachments: bool
     size: int | None
+    uidvalidity: int | None = None
 
 
 class AttachmentOut(BaseModel):
@@ -87,6 +90,7 @@ class PageOut(BaseModel):
     messages: list[SummaryOut]
     total: int
     next_before_uid: int | None
+    uidvalidity: int | None = None
 
 
 def folder_out(info: FolderInfo, counts: FolderCounts | None) -> FolderOut:
@@ -98,6 +102,7 @@ def folder_out(info: FolderInfo, counts: FolderCounts | None) -> FolderOut:
         selectable=info.selectable,
         messages=counts.messages if counts else None,
         unseen=counts.unseen if counts else None,
+        uidvalidity=counts.uidvalidity if counts else None,
     )
 # end def
 
@@ -137,6 +142,7 @@ def summary_fields(mail: Mail) -> dict[str, object]:
         answered=mail.has_flag("\\Answered"),
         has_attachments=any(not attachment.inline for attachment in mail.attachments),
         size=mail.size,
+        uidvalidity=mail.uidvalidity,
     )
 # end def
 

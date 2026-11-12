@@ -54,10 +54,11 @@ class RawMessage:
 
 @dataclass(frozen=True)
 class FolderCounts:
-    """`STATUS (MESSAGES UNSEEN)` of a folder."""
+    """`STATUS (MESSAGES UNSEEN UIDVALIDITY)` of a folder."""
 
     messages: int
     unseen: int
+    uidvalidity: int | None = None
 # end class
 
 

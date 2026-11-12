@@ -377,7 +377,7 @@ class ImapClient(AbstractAsyncContextManager["ImapClient"]):
 
     async def folder_counts(self, folder: str) -> FolderCounts:
         """Total and unseen mails of a folder without selecting it."""
-        response = check(await self.conn.status(quote_folder(folder), "(MESSAGES UNSEEN)"), f"status {folder}")
+        response = check(await self.conn.status(quote_folder(folder), "(MESSAGES UNSEEN UIDVALIDITY)"), f"status {folder}")
         counts = parse_folder_counts(response.lines)
         if counts is None:
             raise ImapError(f"status {folder} gave no counts: {response.lines!r}")

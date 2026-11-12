@@ -132,7 +132,7 @@ def parse_folder_counts(lines: list[Chunk]) -> FolderCounts | None:
     if messages is None:
         return None
     # end if
-    return FolderCounts(messages=messages, unseen=find_number(lines, "UNSEEN") or 0)
+    return FolderCounts(messages=messages, unseen=find_number(lines, "UNSEEN") or 0, uidvalidity=find_number(lines, "UIDVALIDITY"))
 # end def
 
 

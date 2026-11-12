@@ -4,6 +4,7 @@ import ActionsEditor from './ActionsEditor.vue'
 import ConditionNode from './ConditionNode.vue'
 import FieldValue from './FieldValue.vue'
 import DryRunPanel from './DryRunPanel.vue'
+import OnlineOnly from './OnlineOnly.vue'
 import LocationsEditor from './LocationsEditor.vue'
 import { useStore } from '@/model/store'
 import MailChip from './MailChip.vue'
@@ -54,6 +55,6 @@ function setDescription(text: string): void {
     <ConditionNode v-model="model.when" />
     <h3>Then</h3>
     <ActionsEditor :actions="actions()" />
-    <DryRunPanel v-if="store.active" :rule="model" />
+    <OnlineOnly v-if="store.active"><DryRunPanel :rule="model" /></OnlineOnly>
   </section>
 </template>

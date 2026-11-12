@@ -98,6 +98,8 @@ test('keeps the open mail after a reload', async ({ page }) => {
   await page.reload()
   await expect(page.locator('.notice')).toContainText('Loaded')
   await page.locator('.rule-list li .select').first().click()
+  // The mail comes back from the server (or the offline cache) after the reload.
+  await expect(page.locator('.mail-chip')).toBeVisible()
   await page.locator('.rule-editor .fill-from-mail').first().click()
   await expect.poll(() => inputValues(page)).toContain('Subject 3')
 })

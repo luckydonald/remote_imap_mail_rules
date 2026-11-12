@@ -1581,3 +1581,42 @@ button {
   border: 1px solid var(--danger);
   border-radius: 6px;
 }
+
+.offline-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: color-mix(in srgb, orange 25%, transparent);
+
+  .state {
+    font-weight: 600;
+  }
+
+  .queue-count {
+    min-width: 2em;
+    border: 1px solid currentcolor;
+    border-radius: 1em;
+  }
+
+  .notice-text {
+    cursor: pointer;
+  }
+}
+
+.queue-overlay {
+  max-width: 90vw;
+  overflow: auto;
+
+  table {
+    border-collapse: collapse;
+    font-family: monospace;
+    font-size: 0.8em;
+  }
+
+  th,
+  td {
+    padding: 2px 8px;
+    text-align: left;
+  }
+}

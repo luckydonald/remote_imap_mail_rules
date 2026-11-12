@@ -156,7 +156,6 @@ describe('mail store', () => {
     setActivePinia(createPinia())
     const second = useStore()
     expect(second.selectedUid).toBe(3)
-    expect(second.detail?.text).toBe('hi')
     await second.loadAccounts()
     expect(second.folder).toBe('INBOX')
     expect(second.selectedUid).toBe(3)

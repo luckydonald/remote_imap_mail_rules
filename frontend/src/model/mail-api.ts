@@ -13,6 +13,8 @@ export interface Folder {
   selectable: boolean
   messages: number | null
   unseen: number | null
+  /** UIDs of the folder are only stable while this stays the same. */
+  uidvalidity?: number | null
 }
 
 export interface Address {
@@ -30,6 +32,7 @@ export interface Summary {
   answered: boolean
   has_attachments: boolean
   size: number | null
+  uidvalidity?: number | null
 }
 
 export interface Attachment {
@@ -79,6 +82,7 @@ export interface Page {
   messages: Summary[]
   total: number
   next_before_uid: number | null
+  uidvalidity?: number | null
 }
 
 async function json<T>(response: Response): Promise<T> {
@@ -148,20 +152,26 @@ export async function setFlags(
   if (!response.ok) throw await failure(response)
 }
 
+/** Where a moved mail is now; `uid` is `null` when the server could not tell (no `UIDPLUS`). */
+export interface Moved {
+  folder: string
+  uid: number | null
+}
+
 /** Moves one mail to another folder of the same account. */
 export async function moveMessage(
   accountId: string,
   folder: string,
   uid: number,
   target: string,
-): Promise<void> {
+): Promise<Moved> {
   const query = new URLSearchParams({ folder })
   const response = await fetch(`${MAIL}/accounts/${accountId}/messages/${uid}/move?${query}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ folder: target }),
   })
-  if (!response.ok) throw await failure(response)
+  return json<Moved>(response)
 }
 
 /** One entry of the action log of a mail, written by the server's watcher. */

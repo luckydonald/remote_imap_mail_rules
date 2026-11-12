@@ -88,10 +88,14 @@ def test_serves_built_frontend(rules_path: Path, tmp_path: Path) -> None:
     dist = tmp_path / "dist"
     dist.mkdir()
     (dist / "index.html").write_text("<html>editor</html>", encoding="utf-8")
+    (dist / "sw.js").write_text("// worker", encoding="utf-8")
     settings = ServerSettings(_env_file=None, rules_path=rules_path, database_url=f"sqlite+aiosqlite:///{tmp_path.parent / (tmp_path.name + '-db.sqlite3')}", frontend_dist=dist, secret_key=SecretStr(KEY), admin_username="admin", admin_password=SecretStr("admin-secret"))
     with TestClient(create_app(settings)) as test_client:
         test_client.cookies.set(SESSION_COOKIE, make_session_token(settings))
         assert "editor" in test_client.get("/").text
+        # The service worker and the shell are revalidated, so an update reaches the browser.
+        assert test_client.get("/sw.js").headers["cache-control"] == "no-cache"
+        assert test_client.get("/index.html").headers["cache-control"] == "no-cache"
         # Deep links of the frontend router get the app, API and asset misses stay 404.
         assert "editor" in test_client.get("/mail/some-account/INBOX%2FSub/12").text
         assert "editor" in test_client.get("/mail/some-account/INBOX.Sub").text

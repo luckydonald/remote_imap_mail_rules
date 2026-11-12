@@ -2,11 +2,12 @@
 import { eventLabel, fullDate } from '@/model/mail-format'
 import type { MailEvent } from '@/model/mail-api'
 
-defineProps<{ events: MailEvent[] }>()
+defineProps<{ events: MailEvent[]; offline?: boolean }>()
 </script>
 
 <template>
-  <details v-if="events.length" class="mail-log" open>
+  <p v-if="offline" class="hint mail-log-offline">Offline, the log is not available.</p>
+  <details v-else-if="events.length" class="mail-log" open>
     <summary>Log</summary>
     <ol>
       <li v-for="event in events" :key="event.id" :class="event.kind">
