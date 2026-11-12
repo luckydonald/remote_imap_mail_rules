@@ -106,7 +106,7 @@ To complete one:
 - [x] _Add to a rule_ overlay’s Graphical Picker should use the same colors and AND/OR/NOT formatting as the main viewer — `todo:6e1d2a66-8117-4757-9c0d-05b26e6adfce` _(done)_
   > - maybe the two components could be merged with the main viewer, having slots for the different actions needed.
   > - though I kinda like how clean the current chooser variant looks generally.
-- [ ] _Add to a rule_ overlay shall repeat the current email preview up top — `todo:dc73499f-d661-4656-be05-c593da6658b3`
+- [x] _Add to a rule_ overlay shall repeat the current email preview up top — `todo:dc73499f-d661-4656-be05-c593da6658b3` _(done)_
 - [ ] button actions like _Mark read_ shall have a loading spinner, and be disabled until done — `todo:fdbbd2c4-d369-4c87-99db-00061eb7d070`
 - [ ] keep the last _Add to rule_ settings (type, e.g. template + which) in the store — `todo:340ec332-701e-47da-b60c-73208152b829`
   > - to easily add multiple mails with the same field types

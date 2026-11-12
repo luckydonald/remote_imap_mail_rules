@@ -337,6 +337,9 @@ for (const width of [1366, 1280, 900, 700, 390]) {
     expect(inside).toBe(true)
     await page.getByRole('menuitem', { name: 'Add to existing rule …' }).click()
     await expect(page.getByRole('dialog', { name: 'Add to a rule' })).toBeVisible()
+    await expect(
+      page.getByRole('dialog', { name: 'Add to a rule' }).getByLabel('Current mail'),
+    ).toContainText('Subject 3')
     // Safari on an iPad clips a fixed dialog to the scrolling pane around it, which desktop engines (and so this test) do not.
     // So check the cause instead: the dialog sits directly in the body and no ancestor of it clips.
     await expect(page.locator('body > .modal-backdrop')).toHaveCount(1)
