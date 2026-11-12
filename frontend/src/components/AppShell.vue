@@ -15,6 +15,11 @@ import TemplatesView from './TemplatesView.vue'
 import YamlPanel from './YamlPanel.vue'
 import { fetchConfig, fetchRules, saveRules, SaveError } from '@/model/api'
 import { logout } from '@/model/mail-api'
+import { clearAll } from '@/model/offline/db'
+import { setOnline } from '@/model/online'
+import ConfirmLogout from './ConfirmLogout.vue'
+import OnlineOnly from './OnlineOnly.vue'
+import OfflineBanner from './OfflineBanner.vue'
 import { useStore } from '@/model/store'
 import { locationOfView, viewOfRoute } from '@/router'
 
@@ -26,6 +31,7 @@ const dragging = ref(false)
 const saving = ref(false)
 const online = ref(false)
 const loginRequired = ref(false)
+const askLogout = ref(false)
 const route = useRoute()
 const router = useRouter()
 const screen = computed(() => route.meta.screen ?? 'rules')
@@ -72,8 +78,14 @@ async function connect(): Promise<void> {
   online.value = true
   store.active = true
   store.actionsEnabled = config.actions_enabled === true
+  store.startOffline()
   const label = config.file_name ?? 'the database'
   store.backend = { kind: config.source, name: config.file_name }
+  if (config.offline) {
+    setOnline(false)
+    notice.value = 'The server cannot be reached, showing the cached mails.'
+    return
+  }
   try {
     const text = await fetchRules()
     if (text !== null) store.load(text, label)
@@ -93,8 +105,28 @@ async function loggedIn(): Promise<void> {
   await connect()
 }
 
-async function logOut(): Promise<void> {
-  await logout()
+/** The Log out button: unsent offline changes are asked about first. */
+function logOutClicked(): void {
+  if (store.queued.length > 0) askLogout.value = true
+  else void logOut(true)
+}
+
+async function sendThenLogOut(): Promise<void> {
+  await store.sendQueue()
+  if (store.queued.length > 0) return
+  askLogout.value = false
+  await logOut(true)
+}
+
+/** `wipe` forgets the offline cache too; an expired session keeps it, the queue is sent after the next login. */
+async function logOut(wipe = false): Promise<void> {
+  askLogout.value = false
+  try {
+    await logout()
+  } catch {
+    // Offline: the session cookie stays, but the screens are locked all the same.
+  }
+  if (wipe) await clearAll()
   online.value = false
   store.active = false
   store.clear()
@@ -228,7 +260,7 @@ onBeforeUnmount(() => {
           :class="{ current: screen === 'settings' }"
           >Settings</RouterLink
         >
-        <button type="button" class="ghost" @click="logOut">Log out</button>
+        <button type="button" class="ghost" @click="logOutClicked">Log out</button>
       </nav>
       <button
         v-if="online && screen === 'rules'"
@@ -268,8 +300,10 @@ onBeforeUnmount(() => {
           v-if="store.serverFile !== null"
           type="button"
           class="save"
-          :disabled="saving || !store.dirty || store.problems.length > 0"
-          :title="`Write ${store.serverFile} on the server`"
+          :disabled="saving || !store.dirty || store.problems.length > 0 || !store.isOnline"
+          :title="
+            store.isOnline ? `Write ${store.serverFile} on the server` : 'Not available offline'
+          "
           @click="save"
         >
           Save to {{ store.backend?.kind === 'database' ? 'Database' : store.serverFile
@@ -285,13 +319,23 @@ onBeforeUnmount(() => {
       </template>
     </header>
     <p v-if="notice" class="notice" @click="notice = ''">{{ notice }}</p>
+    <OfflineBanner />
+    <ConfirmLogout
+      v-if="askLogout"
+      :count="store.queued.length"
+      @send="sendThenLogOut"
+      @logout="logOut(true)"
+      @cancel="askLogout = false"
+    />
     <MailLogin v-if="loginRequired" @logged-in="loggedIn" />
     <SampleErrorView v-else-if="screen === 'sample-error'" />
-    <MailView v-else-if="screen === 'mail'" @unauthorized="logOut" />
-    <ActionLogView v-else-if="screen === 'log'" @unauthorized="logOut" />
+    <MailView v-else-if="screen === 'mail'" @unauthorized="logOut()" />
+    <OnlineOnly v-else-if="screen === 'log'">
+      <ActionLogView @unauthorized="logOut()" />
+    </OnlineOnly>
     <SettingsView v-else-if="screen === 'settings'" />
-    <AccountsView v-else-if="screen === 'accounts'" />
-    <GitView v-else-if="screen === 'git'" />
+    <OnlineOnly v-else-if="screen === 'accounts'"><AccountsView /></OnlineOnly>
+    <OnlineOnly v-else-if="screen === 'git'"><GitView /></OnlineOnly>
     <div v-else class="body" :class="{ 'with-mail': online && store.panelOpen }">
       <RuleList />
       <main>
@@ -305,7 +349,7 @@ onBeforeUnmount(() => {
         <YamlPanel v-else />
       </main>
       <aside v-if="online && store.panelOpen" class="mail-panel">
-        <MailView compact @unauthorized="logOut" @close="store.panelOpen = false" />
+        <MailView compact @unauthorized="logOut()" @close="store.panelOpen = false" />
       </aside>
     </div>
     <div v-if="dragging" class="drop">Drop a rules file to open it</div>

@@ -24,12 +24,19 @@ from .settings import ServerSettings
 from .watcher import Watcher
 
 
+NO_CACHE = {"sw.js", "index.html", "manifest.webmanifest"}
+
+
 class SpaStaticFiles(StaticFiles):
     """Serves `index.html` for paths without a file, so the frontend router can own the URLs (`/mail/<account>/<folder>`)."""
 
     async def get_response(self, path: str, scope: Scope):
         try:
-            return await super().get_response(path, scope)
+            response = await super().get_response(path, scope)
+            if path in NO_CACHE:
+                response.headers["Cache-Control"] = "no-cache"  # the service worker and the shell must be revalidated to update
+            # end if
+            return response
         except HTTPException as exception:
             # An unknown `/api` path stays a 404, a missing built asset too; folder names may contain dots, so no check for an extension.
             if exception.status_code != 404 or path.startswith(("api/", "assets/")):

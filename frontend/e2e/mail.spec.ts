@@ -447,3 +447,43 @@ test('the picker is a full-screen overlay with a back button on a phone', async 
   await page.getByRole('button', { name: '‹ Back' }).click()
   await expect(page.getByRole('dialog', { name: 'Add to a rule' })).toHaveCount(0)
 })
+
+test('works offline from the cache and sends queued changes when the server is back', async ({
+  page,
+}) => {
+  const calls = await mockServer(page)
+  await page.goto('/')
+  await logIn(page)
+  await page.getByRole('link', { name: 'Mail', exact: true }).click()
+  await page.locator('.row-mail', { hasText: 'Subject 3' }).click()
+  await expect(page.locator('.mail-message h2')).toHaveText('Subject 3')
+  // Let the write-through to IndexedDB finish.
+  await page.waitForTimeout(300)
+
+  // The network is gone (a later route wins over the mocks).
+  await page.route('**/api/**', (route) => route.abort('failed'))
+  await page.reload()
+  await expect(page.locator('.offline-banner')).toContainText('Offline')
+  await expect(page.locator('.row-mail')).toHaveCount(2)
+  await expect(page.locator('.mail-message h2')).toHaveText('Subject 3')
+  await expect(page.locator('.mail-log-offline')).toContainText('Offline')
+  await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Mark read' }).click()
+  await expect(page.getByRole('button', { name: 'Mark unread' })).toBeVisible()
+  await expect(page.locator('.queue-count')).toHaveText('1')
+  await page.locator('.queue-count').click()
+  await expect(page.locator('.queue-row')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Close' }).click()
+
+  // Logging out with unsent changes asks first.
+  await page.getByRole('button', { name: 'Log out' }).click()
+  await expect(page.getByRole('dialog', { name: 'Unsent changes' })).toBeVisible()
+  await page.getByRole('button', { name: 'Cancel' }).click()
+
+  await page.unroute('**/api/**')
+  calls.length = 0
+  await page.reload()
+  await expect.poll(() => calls.some((call) => call.includes('/flags'))).toBe(true)
+  await expect(page.locator('.queue-count')).toHaveCount(0)
+})

@@ -4,7 +4,10 @@ import { fetchConfig, fetchRules, saveRules, SaveError } from '@/model/api'
 const reply = (body: string, status = 200): Response =>
   new Response(status === 204 ? null : body, { status })
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  localStorage.clear()
+})
 
 describe('api', () => {
   it('reads the config of a server', async () => {
@@ -18,6 +21,17 @@ describe('api', () => {
     expect(await fetchConfig()).toBeNull()
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(reply('<html>', 200)))
     expect(await fetchConfig()).toBeNull()
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(reply('', 502)))
+    expect(await fetchConfig()).toBeNull()
+  })
+
+  it('starts from the config of the last visit when the network fails', async () => {
+    const config = { mode: 'server', source: 'database', file_name: null, exists: true }
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(reply(JSON.stringify(config))))
+    await fetchConfig()
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockRejectedValue(new TypeError('offline')))
+    expect(await fetchConfig()).toEqual({ ...config, offline: true })
+    // An answer of the server, even a failing one, is not offline.
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(reply('', 502)))
     expect(await fetchConfig()).toBeNull()
   })

@@ -131,7 +131,13 @@ const unreadLabel = computed(() => (store.detail?.seen ? 'Mark unread' : 'Mark r
             <a :href="url" target="_blank" rel="noreferrer noopener">{{ url }}</a>
           </li>
         </ul>
-        <button type="button" class="load-remote" @click="store.allow({ remoteImages: true })">
+        <button
+          type="button"
+          class="load-remote"
+          :disabled="!store.isOnline"
+          :title="store.isOnline ? undefined : 'Not available offline'"
+          @click="store.allow({ remoteImages: true })"
+        >
           Load remote images
         </button>
       </details>
@@ -140,7 +146,13 @@ const unreadLabel = computed(() => (store.detail?.seen ? 'Mark unread' : 'Mark r
       </p>
       <p v-if="showHtml && store.detail.styles_blocked" class="hint styles-blocked">
         The styles of this mail are not shown.
-        <button type="button" class="ghost load-styles" @click="store.allow({ styles: true })">
+        <button
+          type="button"
+          class="ghost load-styles"
+          :disabled="!store.isOnline"
+          :title="store.isOnline ? undefined : 'Not available offline'"
+          @click="store.allow({ styles: true })"
+        >
           Load styles
         </button>
       </p>
@@ -155,7 +167,7 @@ const unreadLabel = computed(() => (store.detail?.seen ? 'Mark unread' : 'Mark r
       />
       <pre v-else-if="store.detail.text" class="body-text">{{ store.detail.text }}</pre>
       <p v-else class="hint">This message has no text.</p>
-      <MailLog :events="store.events" />
+      <MailLog :events="store.events" :offline="store.eventsOffline" />
     </template>
   </article>
 </template>

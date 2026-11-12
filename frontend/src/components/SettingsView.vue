@@ -50,6 +50,35 @@ const store = useStore()
         Allowed styles are filtered: no imports, no scripted values, nothing fixed over the page.
       </p>
     </section>
+    <h2>Offline cache</h2>
+    <section>
+      <h3>Mails kept for offline use</h3>
+      <label class="check">
+        <input v-model="store.cacheUnread" type="checkbox" />
+        Unread mails of the folders I opened
+      </label>
+      <label class="check">
+        <input v-model="store.cacheOpenedUnread" type="checkbox" />
+        Mails I opened while they were unread
+      </label>
+      <label class="check">
+        <input v-model="store.cacheInbox" type="checkbox" />
+        The newest
+        <input
+          v-model.number="store.cacheInboxCount"
+          type="number"
+          min="0"
+          step="10"
+          aria-label="Number of newest INBOX mails to keep"
+          :disabled="!store.cacheInbox"
+        />
+        INBOX mails of each account
+      </label>
+      <p class="hint">
+        A mail leaves the cache once it is read, unless it is one of the newest INBOX mails, and
+        after 30 days without a visit. Attachments are never cached.
+      </p>
+    </section>
     <h2>Rule editor</h2>
     <section>
       <h3>Copy cut blocks to the clipboard</h3>

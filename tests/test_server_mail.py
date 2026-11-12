@@ -221,3 +221,14 @@ def test_rule_style_folder_names_are_resolved(client: TestClient, server: FakeSe
     listed = client.get(url, params={"folder": "INBOX.Boxed In.Updates"})
     assert [m["uid"] for m in listed.json()["messages"]] == [7]
 # end def
+
+
+def test_uidvalidity_is_in_folders_pages_and_details(client: TestClient, server: FakeServer, account_id: str) -> None:
+    expected = server.folders["INBOX"].uidvalidity
+    folders = {folder["name"]: folder for folder in client.get(f"/api/mail/accounts/{account_id}/folders").json()}
+    assert folders["INBOX"]["uidvalidity"] == expected
+    page = client.get(f"/api/mail/accounts/{account_id}/messages", params={"folder": "INBOX"}).json()
+    assert page["uidvalidity"] == expected and page["messages"][0]["uidvalidity"] == expected
+    detail = client.get(f"/api/mail/accounts/{account_id}/messages/6", params={"folder": "INBOX"}).json()
+    assert detail["uidvalidity"] == expected
+# end def

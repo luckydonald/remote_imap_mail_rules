@@ -27,7 +27,7 @@ Decisions so far:
    The backend already has it (`ImapClient.build_mail` sets `Mail.uidvalidity`); add it to the folder list, the message page and the detail response in `server/api/mail.py` and `mail-api.ts`.
    When the cached value of a folder differs from the fresh one, the cache of that folder is dropped.
 3. **IndexedDB.**
-   New `src/model/offline/db.ts` (small wrapper, dependency free) with stores `folders` (the tree, per account), `pages`, `details` (key `accountId, folder, uid`, fields `uidvalidity`, `cachedAt`, `lastViewedAt`, `reason`: which rule keeps it) and `queue`.
+   New `src/model/offline/db.ts` (small wrapper, dependency free) with stores `folders` (the tree, per account), `pages`, `details` (key `accountId, folder, uid`, fields `uidvalidity`, `cachedAt`, `lastViewedAt`, `reasons`: the list of rules that keep it, since several can hold one mail) and `queue`.
    The localStorage entry for the open mail is removed: the open mail and the place come from the cache, the store keeps only the place (account, folder, uid) in localStorage.
    Attachments are not cached, only their metadata.
 4. **Cache rules and purge** (`offline/cache.ts`, plain functions).
@@ -59,8 +59,11 @@ Decisions so far:
    - read then unread: only unread stays.
    - unread then read: only read stays.
    - read then read (or unread twice): one entry.
-   - flag change then move: both stay (different kinds); a second move replaces the first move.
-   - move then a flag change on the same mail: the flag change is dropped because the mail is gone from the source folder (the UID changes with the move).
+   - flag change then move: both stay (different kinds, flag first); a second move replaces the first move.
+   - move then a flag change on the same mail: both stay, the flag entry is marked as following the move (`after: <move entry id>`).
+     The move endpoint answers the new folder and UID (`MoveOut`), so at flush time, once the move succeeded, the later entries of that mail are rewritten to the target folder and the new UID and then sent.
+     When the server gives no new UID (no `UIDPLUS`), those flag entries are dropped and the overlay and a one-time message say so.
+     Offline, the open mail leaves the source list as today, and a moved mail that is still cached is reachable under the target folder with a local pending marker, so the user can still flag it there; that flag is stored as a following entry too.
 10. **Log out.**
     Before it clears anything it checks the queue; with pending entries it asks (a dialog like `ConfirmUnwrap.vue`): "N actions have not been sent yet" with Log out anyway / Wait and send (flush now, then log out) / Cancel.
     A confirmed log out clears the IndexedDB stores with `clear()`, so mails never outlive the session.
@@ -73,7 +76,7 @@ Decisions so far:
 ## Tests
 
 - Vitest with `fake-indexeddb`: cache write-through, each rule on its own and combined (toggle off drops its mails on the next purge), the numeric INBOX window, `cachedAt` / `lastViewedAt` and the age purge, `uidvalidity` change drops a folder, folder refresh updates entries in place (selection and object identity of untouched entries kept).
-- Queue, one test per collapse case listed in point 9, plus flush order and the 404 / 409 / 401 / network error outcomes.
+- Queue, one test per collapse case listed in point 9 (including move then flag, rewritten to the new UID at flush, and dropped without a new UID), plus flush order and the 404 / 409 / 401 / network error outcomes.
 - `useOnline`: events, request results, the health probe, one shared ref across two callers.
 - Store: `setSeen` / `moveTo` queue instead of failing offline; log out with pending entries asks, each of the three answers, and a clean queue logs out directly.
 - Component tests: clicking the banner's number opens the overlay with one row per queued entry; controls from point 8 are disabled offline, the log shows the offline text, settings toggles and the numeric field persist.

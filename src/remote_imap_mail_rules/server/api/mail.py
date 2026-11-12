@@ -60,7 +60,9 @@ async def list_messages(
         mails, total = await client.list_page(account_id, folder, limit, before_uid)
     # end with
     last = mails[-1].uid if len(mails) == limit else None
-    return PageOut(messages=[summary_out(mail) for mail in mails], total=total, next_before_uid=last)
+    return PageOut(
+        messages=[summary_out(mail) for mail in mails], total=total, next_before_uid=last, uidvalidity=mails[0].uidvalidity if mails else None
+    )
 # end def
 
 

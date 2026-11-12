@@ -9,7 +9,11 @@ export interface EditorConfig {
   exists: boolean
   /** Whether the server applies the actions of matching rules; off, only the dry run shows them. */
   actions_enabled?: boolean
+  /** Set when the config is the one of the last visit because the server cannot be reached. */
+  offline?: boolean
 }
+
+const CONFIG_KEY = 'editor-config'
 
 export class SaveError extends Error {
   readonly messages: string[]
@@ -29,8 +33,22 @@ export async function fetchConfig(): Promise<EditorConfig | 'login' | null> {
     const data: unknown = await response.json()
     if (typeof data !== 'object' || data === null || (data as { mode?: unknown }).mode !== 'server')
       return null
+    try {
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(data))
+    } catch {
+      // Without storage there is no offline start.
+    }
     return data as EditorConfig
-  } catch {
+  } catch (caught) {
+    // A network failure (not an answer) after an earlier visit: start offline from the config of that visit.
+    if (caught instanceof TypeError) {
+      try {
+        const raw = localStorage.getItem(CONFIG_KEY)
+        if (raw) return { ...(JSON.parse(raw) as EditorConfig), offline: true }
+      } catch {
+        // fall through
+      }
+    }
     return null
   }
 }
