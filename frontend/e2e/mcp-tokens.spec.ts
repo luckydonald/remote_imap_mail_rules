@@ -22,8 +22,11 @@ const mockServer = async (page: Page): Promise<{ created: unknown[] }> => {
   await page.route('**/api/mcp-tokens/scopes', (route) =>
     route.fulfill({
       json: {
-        scopes: ['rules:r', 'rules:w', 'rules:d', 'accounts.password:r'],
-        presets: { read_only: ['rules:r'], everything: ['rules:r', 'rules:w', 'rules:d'] },
+        scopes: ['rules:read', 'rules:write', 'rules:delete', 'accounts.password:read'],
+        presets: {
+          read_only: ['rules:read'],
+          everything: ['rules:read', 'rules:write', 'rules:delete'],
+        },
       },
     }),
   )
@@ -61,7 +64,7 @@ test('creates a token with a preset, shows it once and revokes it', async ({ pag
   await page.getByRole('checkbox', { name: 'delete' }).check()
   await page.getByRole('button', { name: 'Create token' }).click()
   await expect(page.locator('.token-value')).toHaveText('rimr_xyzSECRETVALUE')
-  expect(mock.created[0]).toEqual({ name: 'my client', scopes: ['rules:r', 'rules:d'] })
+  expect(mock.created[0]).toEqual({ name: 'my client', scopes: ['rules:read', 'rules:delete'] })
   await page.getByRole('button', { name: 'Done' }).click()
   await expect(page.locator('.token-value')).toHaveCount(0)
   await expect(page.getByText('rimr_xyz…')).toBeVisible()

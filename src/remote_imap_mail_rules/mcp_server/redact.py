@@ -1,4 +1,4 @@
-"""Mail titles and addresses in answers, shown only to tokens with `mails:r`; others get the same masks as `demo --streamer-mode`."""
+"""Mail titles and addresses in answers, shown only to tokens with `mails:read`; others get the same masks as `demo --streamer-mode`."""
 
 from typing import Any
 

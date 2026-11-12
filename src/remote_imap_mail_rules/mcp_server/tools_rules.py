@@ -71,8 +71,8 @@ async def view[T](app: FastAPI, read: Callable[[RuleDocument], T]) -> T:
 
 
 def redact_dry_run(output: dict[str, Any]) -> dict[str, Any]:
-    """Without `mails:r` the affected mails show hashed subjects and reduced addresses."""
-    if has_scope(Scope.mails_r):
+    """Without `mails:read` the affected mails show hashed subjects and reduced addresses."""
+    if has_scope(Scope.mails_read):
         return output
     # end if
     for mail in output["mails"]:
@@ -88,7 +88,7 @@ def register(server: ScopedServer, app: FastAPI) -> None:
 
     # --- whole file
 
-    @server.scoped_tool(Scope.rules_r, description="The rules file as YAML text, with comments. Read it before changing anything.")
+    @server.scoped_tool(Scope.rules_read, description="The rules file as YAML text, with comments. Read it before changing anything.")
     async def get_rules_yaml() -> str:
         text = await app.state.rules_store.read_text()
         if text is None:
@@ -97,7 +97,7 @@ def register(server: ScopedServer, app: FastAPI) -> None:
         return text
     # end def
 
-    @server.scoped_tool(Scope.rules_r, description="Checks a rules YAML text without saving it. Returns {valid, messages}.")
+    @server.scoped_tool(Scope.rules_read, description="Checks a rules YAML text without saving it. Returns {valid, messages}.")
     async def validate_rules_yaml(yaml: str) -> dict[str, Any]:
         try:
             await asyncio.to_thread(rules_file.validate, yaml)
@@ -107,7 +107,7 @@ def register(server: ScopedServer, app: FastAPI) -> None:
         return {"valid": True, "messages": []}
     # end def
 
-    @server.scoped_tool(Scope.rules_w, description="Replaces the whole rules file with this YAML text. Invalid text is refused and nothing changes.")
+    @server.scoped_tool(Scope.rules_write, description="Replaces the whole rules file with this YAML text. Invalid text is refused and nothing changes.")
     async def save_rules_yaml(yaml: str) -> str:
         async with app.state.rules_lock:
             await save_text(app, yaml)
@@ -115,25 +115,25 @@ def register(server: ScopedServer, app: FastAPI) -> None:
         return "saved"
     # end def
 
-    @server.scoped_tool(Scope.rules_r, description="The JSON schema of the rules file: every field, operator and action.")
+    @server.scoped_tool(Scope.rules_read, description="The JSON schema of the rules file: every field, operator and action.")
     async def get_rules_schema() -> dict[str, Any]:
         return json.loads(schema_text())
     # end def
 
     # --- rules
 
-    @server.scoped_tool(Scope.rules_r, description="All rules in order: index, name, enabled, locations, a one-line summary per action.")
+    @server.scoped_tool(Scope.rules_read, description="All rules in order: index, name, enabled, locations, a one-line summary per action.")
     async def list_rules() -> dict[str, Any]:
         return {"rules": await view(app, lambda document: document.summaries())}
     # end def
 
-    @server.scoped_tool(Scope.rules_r, description="One rule in full, by name.")
+    @server.scoped_tool(Scope.rules_read, description="One rule in full, by name.")
     async def get_rule(name: str) -> dict[str, Any]:
         return await view(app, lambda document: plain(document.rule(name)))
     # end def
 
     @server.scoped_tool(
-        Scope.rules_w,
+        Scope.rules_write,
         description="Adds a rule (name, locations, when, actions, optional enabled / description) at a position (default: the end). "
         "A condition may be {type: template, ref: <template name>, variables: {...}}.",
     )
@@ -142,7 +142,7 @@ def register(server: ScopedServer, app: FastAPI) -> None:
     # end def
 
     @server.scoped_tool(
-        Scope.rules_w,
+        Scope.rules_write,
         description="Changes some fields of a rule: any of name, description, enabled, locations, when, actions. The given fields are replaced as a whole.",
     )
     async def update_rule(name: str, changes: dict[str, Any]) -> str:
@@ -150,18 +150,18 @@ def register(server: ScopedServer, app: FastAPI) -> None:
         return "updated"
     # end def
 
-    @server.scoped_tool(Scope.rules_w, description="Enables or disables a rule.")
+    @server.scoped_tool(Scope.rules_write, description="Enables or disables a rule.")
     async def set_rule_enabled(name: str, enabled: bool) -> str:
         await edit(app, lambda document: document.update_rule(name, {"enabled": enabled}))
         return "updated"
     # end def
 
-    @server.scoped_tool(Scope.rules_w, description="Moves a rule to another position. The first matching rule wins, so the order matters.")
+    @server.scoped_tool(Scope.rules_write, description="Moves a rule to another position. The first matching rule wins, so the order matters.")
     async def move_rule(name: str, index: int) -> dict[str, Any]:
         return {"index": await edit(app, lambda document: document.move_rule(name, index))}
     # end def
 
-    @server.scoped_tool(Scope.rules_d, description="Deletes a rule.")
+    @server.scoped_tool(Scope.rules_delete, description="Deletes a rule.")
     async def delete_rule(name: str) -> str:
         await edit(app, lambda document: document.delete_rule(name))
         return "deleted"
@@ -170,7 +170,7 @@ def register(server: ScopedServer, app: FastAPI) -> None:
     # --- conditions
 
     @server.scoped_tool(
-        Scope.rules_r,
+        Scope.rules_read,
         description="A condition of a rule's `when`. The path is a list of child indexes from `when`: [] is `when` itself, [1, 0] is the first "
         "condition of the group that is the second condition. In a `not` only index 0 exists.",
     )
@@ -178,30 +178,30 @@ def register(server: ScopedServer, app: FastAPI) -> None:
         return await view(app, lambda document: document.get_condition(rule, path))
     # end def
 
-    @server.scoped_tool(Scope.rules_w, description="Adds a condition into the all / any group at `path`, at a position (default: the end).")
+    @server.scoped_tool(Scope.rules_write, description="Adds a condition into the all / any group at `path`, at a position (default: the end).")
     async def add_condition(rule: str, path: ConditionPath, condition: Condition, index: int | None = None) -> dict[str, Any]:
         return {"index": await edit(app, lambda document: document.add_condition(rule, path, condition, index))}
     # end def
 
-    @server.scoped_tool(Scope.rules_w, description="Replaces the condition at `path` (the whole `when` for []).")
+    @server.scoped_tool(Scope.rules_write, description="Replaces the condition at `path` (the whole `when` for []).")
     async def replace_condition(rule: str, path: ConditionPath, condition: Condition) -> str:
         await edit(app, lambda document: document.replace_condition(rule, path, condition))
         return "replaced"
     # end def
 
-    @server.scoped_tool(Scope.rules_w, description="Wraps the condition at `path` in an all, any or not group.")
+    @server.scoped_tool(Scope.rules_write, description="Wraps the condition at `path` in an all, any or not group.")
     async def wrap_condition(rule: str, path: ConditionPath, combinator: str) -> str:
         await edit(app, lambda document: document.wrap_condition(rule, path, combinator))
         return "wrapped"
     # end def
 
-    @server.scoped_tool(Scope.rules_w, description="Replaces the group at `path` by its children. At the root or inside a not it needs exactly one child.")
+    @server.scoped_tool(Scope.rules_write, description="Replaces the group at `path` by its children. At the root or inside a not it needs exactly one child.")
     async def unwrap_condition(rule: str, path: ConditionPath) -> str:
         await edit(app, lambda document: document.unwrap_condition(rule, path))
         return "unwrapped"
     # end def
 
-    @server.scoped_tool(Scope.rules_d, description="Removes the condition at `path` from its all / any group.")
+    @server.scoped_tool(Scope.rules_delete, description="Removes the condition at `path` from its all / any group.")
     async def remove_condition(rule: str, path: ConditionPath) -> str:
         await edit(app, lambda document: document.remove_condition(rule, path))
         return "removed"
@@ -209,18 +209,18 @@ def register(server: ScopedServer, app: FastAPI) -> None:
 
     # --- actions
 
-    @server.scoped_tool(Scope.rules_w, description="Adds an action (move, mark_read, mark_unread, flag, keyword) at a position (default: the end).")
+    @server.scoped_tool(Scope.rules_write, description="Adds an action (move, mark_read, mark_unread, flag, keyword) at a position (default: the end).")
     async def add_action(rule: str, action: dict[str, Any], index: int | None = None) -> dict[str, Any]:
         return {"index": await edit(app, lambda document: document.add_action(rule, action, index))}
     # end def
 
-    @server.scoped_tool(Scope.rules_w, description="Replaces the action at an index.")
+    @server.scoped_tool(Scope.rules_write, description="Replaces the action at an index.")
     async def replace_action(rule: str, index: int, action: dict[str, Any]) -> str:
         await edit(app, lambda document: document.replace_action(rule, index, action))
         return "replaced"
     # end def
 
-    @server.scoped_tool(Scope.rules_d, description="Removes the action at an index.")
+    @server.scoped_tool(Scope.rules_delete, description="Removes the action at an index.")
     async def remove_action(rule: str, index: int) -> str:
         await edit(app, lambda document: document.remove_action(rule, index))
         return "removed"
@@ -228,18 +228,18 @@ def register(server: ScopedServer, app: FastAPI) -> None:
 
     # --- templates
 
-    @server.scoped_tool(Scope.rules_r, description="Names of the templates.")
+    @server.scoped_tool(Scope.rules_read, description="Names of the templates.")
     async def list_templates() -> dict[str, Any]:
         return {"templates": await view(app, lambda document: document.template_names())}
     # end def
 
-    @server.scoped_tool(Scope.rules_r, description="One template in full.")
+    @server.scoped_tool(Scope.rules_read, description="One template in full.")
     async def get_template(name: str) -> Any:
         return await view(app, lambda document: document.get_template(name))
     # end def
 
     @server.scoped_tool(
-        Scope.rules_w,
+        Scope.rules_write,
         description="Creates or replaces a template: {content: <condition with {var: name} markers>, defaults?: {...}}. Uses of it keep working.",
     )
     async def save_template(name: str, template: dict[str, Any]) -> str:
@@ -247,7 +247,7 @@ def register(server: ScopedServer, app: FastAPI) -> None:
         return "saved"
     # end def
 
-    @server.scoped_tool(Scope.rules_d, description="Deletes a template; refused while a rule uses it.")
+    @server.scoped_tool(Scope.rules_delete, description="Deletes a template; refused while a rule uses it.")
     async def delete_template(name: str) -> str:
         await edit(app, lambda document: document.delete_template(name))
         return "deleted"
@@ -256,10 +256,10 @@ def register(server: ScopedServer, app: FastAPI) -> None:
     # --- dry run
 
     @server.scoped_tool(
-        Scope.rules_r,
+        Scope.rules_read,
         description="Simulates a rule on the newest mails of its folders (nothing is written to a mailbox or the log). `yaml` takes unsaved rules "
         "text, the stored rules are used without it. Pass back `next` as `cursor` for the following page. "
-        "Mail titles and addresses are masked unless the token has mails:r.",
+        "Mail titles and addresses are masked unless the token has mails:read.",
     )
     async def dry_run(rule: str, limit: int = 50, cursor: dict[str, Any] | None = None, yaml: str | None = None) -> dict[str, Any]:
         body = dry_run_api.DryRunIn.model_validate({"rule": rule, "limit": limit, "cursor": cursor, "yaml": yaml})

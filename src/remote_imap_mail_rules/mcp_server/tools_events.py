@@ -1,4 +1,4 @@
-"""Tools for the action log. Without `mails:r` the `Message-ID`s and any mail titles in the details are masked."""
+"""Tools for the action log. Without `mails:read` the `Message-ID`s and any mail titles in the details are masked."""
 
 from datetime import datetime
 from typing import Any
@@ -18,7 +18,7 @@ from .scopes import Scope
 
 def entry_json(entry: log_api.LogEntry) -> dict[str, Any]:
     data = entry.model_dump(mode="json")
-    if not has_scope(Scope.mails_r):
+    if not has_scope(Scope.mails_read):
         data["message_id"] = mask_message_id(data["message_id"])
         data["detail"] = redact(data["detail"])
     # end if
@@ -37,7 +37,7 @@ def parse_kinds(kinds: list[str] | None) -> list[EventKind]:
 
 def register(server: ScopedServer, app: FastAPI) -> None:
     @server.scoped_tool(
-        Scope.events_r,
+        Scope.events_read,
         description="The action log, newest first. Filters: account_id, folder, kinds (first_seen, rule_match, action, user_action), rule, "
         "since / until (ISO times), q (text search). Pass back `next` as `before` for the following page.",
     )
@@ -60,7 +60,7 @@ def register(server: ScopedServer, app: FastAPI) -> None:
     # end def
 
     @server.scoped_tool(
-        Scope.events_d,
+        Scope.events_delete,
         description="Deletes log entries: the ones the filters select, or ALL of them when no filter is given. Returns how many.",
     )
     async def clear_events(

@@ -18,7 +18,7 @@ def client(tmp_path: Path, rules_file: Path) -> Iterator[TestClient]:
 def test_initialize_needs_a_valid_token(client: TestClient) -> None:
     assert rpc(client, None, "initialize").status_code == 401
     assert rpc(client, "rimr_nope", "initialize").status_code == 401
-    token = new_token(client, ["rules:r"])
+    token = new_token(client, ["rules:read"])
     response = rpc(client, token, "initialize", {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "t", "version": "1"}})
     assert response.status_code == 200, response.text
     assert response.json()["result"]["serverInfo"]["name"] == "remote_imap_mail_rules"
@@ -28,7 +28,7 @@ def test_initialize_needs_a_valid_token(client: TestClient) -> None:
 
 
 def test_revoked_token_stops_working(client: TestClient) -> None:
-    token = new_token(client, ["rules:r"])
+    token = new_token(client, ["rules:read"])
     assert rpc(client, token, "tools/list").status_code == 200
     token_id = client.get("/api/mcp-tokens").json()[0]["id"]
     client.delete(f"/api/mcp-tokens/{token_id}")
@@ -37,25 +37,25 @@ def test_revoked_token_stops_working(client: TestClient) -> None:
 
 
 def test_tools_list_follows_the_scopes(client: TestClient) -> None:
-    read = tool_names(client, new_token(client, ["rules:r"]))
+    read = tool_names(client, new_token(client, ["rules:read"]))
     assert {"list_rules", "get_rule", "get_rules_yaml", "dry_run"} <= read
     assert not read & {"create_rule", "delete_rule", "list_accounts", "list_events", "get_account_password"}
     everything = tool_names(client, new_token(client, [s["value"] if isinstance(s, dict) else s for s in client.get("/api/mcp-tokens/scopes").json()["scopes"]]))
     assert {"create_rule", "delete_rule", "list_accounts", "get_account_password", "set_account_password", "clear_events", "list_folders"} <= everything
-    assert tool_names(client, new_token(client, ["folders:w", "mails:r"])) == set()
+    assert tool_names(client, new_token(client, ["folders:write", "mails:read"])) == set()
 # end def
 
 
 def test_a_tool_without_its_scope_is_refused(client: TestClient) -> None:
-    token = new_token(client, ["rules:r"])
+    token = new_token(client, ["rules:read"])
     result = call(client, token, "delete_rule", {"name": "One"})
-    assert result["isError"] is True and "rules:d" in text_of(result)
+    assert result["isError"] is True and "rules:delete" in text_of(result)
     assert "One" in client.get("/api/editor/rules").text
 # end def
 
 
 def test_read_tools(client: TestClient) -> None:
-    token = new_token(client, ["rules:r"])
+    token = new_token(client, ["rules:read"])
     assert text_of(call(client, token, "get_rules_yaml")) == RULES
     listed = call(client, token, "list_rules")["structuredContent"]["rules"]
     assert listed[0]["name"] == "One" and listed[0]["actions"] == ["mark_read"]
@@ -69,7 +69,7 @@ def test_read_tools(client: TestClient) -> None:
 
 
 def test_edits_save_and_keep_comments(client: TestClient, rules_file: Path) -> None:
-    token = new_token(client, ["rules:r", "rules:w", "rules:d"])
+    token = new_token(client, ["rules:read", "rules:write", "rules:delete"])
     created = call(client, token, "create_rule", {"rule": {
         "name": "Two", "locations": [{"account_id": ACCOUNT}], "when": {"type": "bool", "field": "flagged"}, "actions": [{"type": "mark_read"}],
     }})
@@ -86,7 +86,7 @@ def test_edits_save_and_keep_comments(client: TestClient, rules_file: Path) -> N
 
 
 def test_an_invalid_edit_changes_nothing(client: TestClient, rules_file: Path) -> None:
-    token = new_token(client, ["rules:r", "rules:w"])
+    token = new_token(client, ["rules:read", "rules:write"])
     result = call(client, token, "update_rule", {"name": "One", "changes": {"when": {"type": "bool", "field": "nonsense"}}})
     assert result["isError"] is True and "nothing was saved" in text_of(result)
     result = call(client, token, "save_rules_yaml", {"yaml": "rules: nope"})
@@ -96,7 +96,7 @@ def test_an_invalid_edit_changes_nothing(client: TestClient, rules_file: Path) -
 
 
 def test_save_rules_yaml(client: TestClient, rules_file: Path) -> None:
-    token = new_token(client, ["rules:w"])
+    token = new_token(client, ["rules:write"])
     new = RULES.replace("One", "Renamed")
     assert call(client, token, "save_rules_yaml", {"yaml": new})["isError"] is False
     assert rules_file.read_text() == new

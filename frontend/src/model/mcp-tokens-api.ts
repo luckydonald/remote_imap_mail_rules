@@ -51,7 +51,7 @@ export async function revokeMcpToken(id: string): Promise<void> {
   if (!response.ok) throw await failure(response)
 }
 
-/** The scopes grouped by resource, in the server's order: `accounts.password:r` and `:w` are the resource `accounts.password`. */
+/** The scopes grouped by resource, in the server's order: `accounts.password:read` and `:write` are the resource `accounts.password`. */
 export function groupScopes(scopes: string[]): { resource: string; scopes: string[] }[] {
   const groups = new Map<string, string[]>()
   for (const scope of scopes) {
@@ -61,6 +61,7 @@ export function groupScopes(scopes: string[]): { resource: string; scopes: strin
   return [...groups].map(([resource, list]) => ({ resource, scopes: list }))
 }
 
-export function scopeLetter(scope: string): string {
-  return { r: 'read', w: 'write', d: 'delete' }[scope.slice(scope.lastIndexOf(':') + 1)] ?? scope
+/** The action of a scope: `rules:write` is `write`. */
+export function scopeAction(scope: string): string {
+  return scope.slice(scope.lastIndexOf(':') + 1)
 }
