@@ -6,6 +6,7 @@
  */
 
 import { defineStore } from 'pinia'
+import { useAddToRule } from './add-to-rule'
 import { useClipboard } from './clipboard'
 import { useMail } from './mail'
 import { useMenus } from './menu'
@@ -22,6 +23,7 @@ export const useStore = defineStore('app', () => {
     ...prefs,
     ...useClipboard(prefs),
     ...useMenus(),
+    ...useAddToRule(),
   }
 })
 

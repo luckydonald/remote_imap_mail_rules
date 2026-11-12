@@ -380,3 +380,21 @@ describe('mail store writes', () => {
     })
   })
 })
+
+describe('add to rule choices', () => {
+  it('starts with the defaults and keeps what was chosen', () => {
+    const store = useStore()
+    expect(store.addToRuleKind).toBe('condition')
+    expect(store.addToRuleField).toBe('from')
+    expect(store.addToRuleGranularity).toBe('address')
+    expect(store.addToRuleTemplate).toBe('')
+    store.addToRuleKind = 'template'
+    store.addToRuleField = 'subject'
+    store.addToRuleGranularity = 'domain'
+    store.addToRuleTemplate = 'by-sender'
+    expect(useStore().addToRuleField).toBe('subject')
+    expect(useStore().addToRuleGranularity).toBe('domain')
+    expect(useStore().addToRuleKind).toBe('template')
+    expect(useStore().addToRuleTemplate).toBe('by-sender')
+  })
+})
