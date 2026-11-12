@@ -23,6 +23,7 @@ const RULES: CacheRules = {
   cacheOpenedUnread: true,
   cacheInbox: true,
   cacheInboxCount: 2,
+  cacheMaxAgeDays: 30,
 }
 const summary = (uid: number, seen = false): Summary => ({
   uid,
@@ -86,7 +87,8 @@ describe('offline cache', () => {
   })
 
   it('each rule works on its own', async () => {
-    const off = {
+    const off: CacheRules = {
+      cacheMaxAgeDays: 30,
       cacheUnread: false,
       cacheOpenedUnread: false,
       cacheInbox: false,
@@ -135,6 +137,16 @@ describe('offline cache', () => {
     expect(await keys()).toHaveLength(1)
     await purge(RULES, new Date(t0.getTime() + 41 * DAY))
     expect(await keys()).toEqual([])
+  })
+
+  it('the age comes from the setting, and 0 never purges by age', async () => {
+    const t0 = new Date('2026-01-01T00:00:00Z')
+    await saveDetail('a', 'Far', detail(5), RULES, true, t0)
+    await purge({ ...RULES, cacheMaxAgeDays: 7 }, new Date(t0.getTime() + 8 * DAY))
+    expect(await keys()).toEqual([])
+    await saveDetail('a', 'Far', detail(5), RULES, true, t0)
+    await purge({ ...RULES, cacheMaxAgeDays: 0 }, new Date(t0.getTime() + 900 * DAY))
+    expect(await keys()).toEqual(['a|Far|5'])
   })
 
   it('old mails in the INBOX window stay', async () => {

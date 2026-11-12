@@ -21,6 +21,7 @@ interface Saved {
   cacheOpenedUnread: boolean
   cacheInbox: boolean
   cacheInboxCount: number
+  cacheMaxAgeDays: number
 }
 
 function readSaved(): Partial<Saved> {
@@ -53,6 +54,12 @@ export function usePrefs() {
       : 200,
   )
 
+  const cacheMaxAgeDays = ref(
+    Number.isInteger(saved.cacheMaxAgeDays) && (saved.cacheMaxAgeDays as number) >= 0
+      ? (saved.cacheMaxAgeDays as number)
+      : 30,
+  )
+
   watch(
     [
       bodyMode,
@@ -77,6 +84,7 @@ export function usePrefs() {
           cacheOpenedUnread: cacheOpenedUnread.value,
           cacheInbox: cacheInbox.value,
           cacheInboxCount: cacheInboxCount.value,
+          cacheMaxAgeDays: cacheMaxAgeDays.value,
         }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
       } catch {
@@ -95,5 +103,6 @@ export function usePrefs() {
     cacheOpenedUnread,
     cacheInbox,
     cacheInboxCount,
+    cacheMaxAgeDays,
   }
 }
