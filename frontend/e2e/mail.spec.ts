@@ -423,6 +423,14 @@ test('adds a template use to an existing rule with the variable filled from the 
   await page.locator('.insert-point').last().click()
   await expect(page).toHaveURL(/\/rules\/0$/)
   await expect(page.locator('.rule-editor')).toContainText('by-sender')
+
+  // The choice is kept for the next mail.
+  await page.getByRole('link', { name: 'Mail', exact: true }).click()
+  await expect(page.locator('.mail-message h2')).toHaveText('Subject 3')
+  await page.getByRole('button', { name: 'Rule ▾' }).click()
+  await page.getByRole('menuitem', { name: 'Add to existing rule …' }).click()
+  await expect(page.getByLabel('Kind of condition')).toHaveValue('template')
+  await expect(page.getByLabel('Template')).toHaveValue('by-sender')
 })
 
 const TWO_CONDITIONS = `rules:

@@ -1211,3 +1211,7 @@ Tools:
 
 ❯ Plan accepted, auto mode.
 
+❯ continue with the next todo.
+
+❯ Plan accepted, auto mode.
+

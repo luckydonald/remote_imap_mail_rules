@@ -8,7 +8,6 @@ import {
   conditionFor,
   granularities,
   templateUseFor,
-  type Granularity,
   type MailContext,
 } from '@/model/fill-from-mail'
 import { personLabel } from '@/model/mail-format'
@@ -29,14 +28,12 @@ const dialog = ref(false)
 /** The rule whose places are shown (second step); `null` shows the list of rules. A lone rule needs no list. */
 const pickedRule = ref<number | null>(null)
 const shownRule = computed(() => (store.file.rules.length === 1 ? 0 : pickedRule.value))
-const field = ref('from')
-const granularity = ref<Granularity>('address')
-const kind = ref<'condition' | 'template'>('condition')
-const templateRef = ref('')
 
 const templateNames = computed(() => Object.keys(store.file.templates))
 const chosenTemplate = computed(() =>
-  templateNames.value.includes(templateRef.value) ? templateRef.value : templateNames.value[0],
+  templateNames.value.includes(store.addToRuleTemplate)
+    ? store.addToRuleTemplate
+    : templateNames.value[0],
 )
 const templateUse = computed(() => {
   const ref = chosenTemplate.value
@@ -50,7 +47,9 @@ const fields = computed(() =>
     (name) => conditionFor(name, props.context) !== null,
   ),
 )
-const chosen = computed(() => (fields.value.includes(field.value) ? field.value : fields.value[0]))
+const chosen = computed(() =>
+  fields.value.includes(store.addToRuleField) ? store.addToRuleField : fields.value[0],
+)
 const isAddress = computed(() => chosen.value !== undefined && addressFields.includes(chosen.value))
 
 /** Makes the open mail the editor's example, without touching a rule. */
@@ -77,10 +76,10 @@ function addTo(place: { ruleIndex: number; path: number[]; index: number }): voi
   const target = store.file.rules[place.ruleIndex]
   if (!target) return
   const condition =
-    kind.value === 'template'
+    store.addToRuleKind === 'template'
       ? templateUse.value
       : chosen.value
-        ? conditionFor(chosen.value, props.context, granularity.value)
+        ? conditionFor(chosen.value, props.context, store.addToRuleGranularity)
         : null
   if (!condition) return
   target.when = appendCondition(target.when, condition, place.path, place.index)
@@ -129,18 +128,22 @@ function addTo(place: { ruleIndex: number; path: number[]; index: number }): voi
           <MailPreview :detail="context.detail" />
           <label>
             Add
-            <select v-model="kind" aria-label="Kind of condition">
+            <select v-model="store.addToRuleKind" aria-label="Kind of condition">
               <option value="condition">Condition</option>
               <option value="template" :disabled="templateNames.length === 0">Template</option>
             </select>
           </label>
-          <label v-if="kind === 'template'">
+          <label v-if="store.addToRuleKind === 'template'">
             Template
-            <select v-model="templateRef" aria-label="Template">
+            <select
+              :value="chosenTemplate"
+              aria-label="Template"
+              @change="store.addToRuleTemplate = ($event.target as HTMLSelectElement).value"
+            >
               <option v-for="name in templateNames" :key="name" :value="name">{{ name }}</option>
             </select>
           </label>
-          <div v-if="kind === 'template'" class="template-fill">
+          <div v-if="store.addToRuleKind === 'template'" class="template-fill">
             <template v-if="filledVariables.length">
               Filled from the mail:
               <ul class="template-fill-list">
@@ -151,15 +154,15 @@ function addTo(place: { ruleIndex: number; path: number[]; index: number }): voi
             </template>
             <template v-else>Nothing to fill from this mail, the defaults apply.</template>
           </div>
-          <label v-if="kind === 'condition'">
+          <label v-if="store.addToRuleKind === 'condition'">
             Field
-            <select v-model="field">
+            <select v-model="store.addToRuleField">
               <option v-for="item in fields" :key="item" :value="item">{{ item }}</option>
             </select>
           </label>
-          <label v-if="kind === 'condition' && isAddress">
+          <label v-if="store.addToRuleKind === 'condition' && isAddress">
             Part of the address
-            <select v-model="granularity">
+            <select v-model="store.addToRuleGranularity">
               <option v-for="item in granularities" :key="item.value" :value="item.value">
                 {{ item.label }}
               </option>
