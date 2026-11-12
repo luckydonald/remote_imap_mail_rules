@@ -2,6 +2,7 @@ import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 import AppShell from './components/AppShell.vue'
 import { createAppRouter } from './router'
+import { setUpUpdates } from './model/update'
 import { setUpSentry } from './sentry'
 import './styles/main.scss'
 
@@ -12,4 +13,4 @@ void setUpSentry(app, router)
 
 // The service worker only exists in the production build; the dev server has none.
 if (import.meta.env.PROD)
-  void import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true }))
+  void import('virtual:pwa-register').then(({ registerSW }) => setUpUpdates(registerSW))

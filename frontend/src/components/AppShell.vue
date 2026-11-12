@@ -20,6 +20,7 @@ import { setOnline } from '@/model/online'
 import ConfirmLogout from './ConfirmLogout.vue'
 import OnlineOnly from './OnlineOnly.vue'
 import OfflineBanner from './OfflineBanner.vue'
+import UpdateBanner from './UpdateBanner.vue'
 import { useStore } from '@/model/store'
 import { locationOfView, viewOfRoute } from '@/router'
 
@@ -320,6 +321,7 @@ onBeforeUnmount(() => {
       </template>
     </header>
     <p v-if="notice" class="notice" @click="notice = ''">{{ notice }}</p>
+    <UpdateBanner />
     <OfflineBanner />
     <ConfirmLogout
       v-if="askLogout"
