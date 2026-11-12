@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import String, cast, func, or_, select
+from sqlalchemy import Select, String, cast, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import EventKind, MailEvent
@@ -95,8 +95,8 @@ def like_pattern(text: str) -> str:
 # end def
 
 
-async def list_log(
-    session: AsyncSession,
+def filter_log(
+    query: Select[Any],
     *,
     account_id: UUID | None = None,
     folder: str | None = None,
@@ -105,14 +105,8 @@ async def list_log(
     since: datetime | None = None,
     until: datetime | None = None,
     text: str | None = None,
-    before: tuple[datetime, UUID] | None = None,
-    limit: int = 50,
-) -> list[MailEvent]:
-    """The log across all mails, newest first. `before` is the `(created_at, id)` of the last entry of the previous page.
-
-    `text` looks (case insensitive) into the rule name, folder, `Message-ID` and the detail.
-    """
-    query = select(MailEvent)
+) -> Select[Any]:
+    """The `WHERE` of the log filters, shared by listing and clearing."""
     if account_id is not None:
         query = query.where(MailEvent.account_id == account_id)
     # end if
@@ -137,11 +131,51 @@ async def list_log(
             MailEvent.rule_name, MailEvent.folder, MailEvent.message_id, cast(MailEvent.detail, String),
         ))))
     # end if
+    return query
+# end def
+
+
+async def list_log(
+    session: AsyncSession,
+    *,
+    account_id: UUID | None = None,
+    folder: str | None = None,
+    kinds: Sequence[EventKind] = (),
+    rule: str | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    text: str | None = None,
+    before: tuple[datetime, UUID] | None = None,
+    limit: int = 50,
+) -> list[MailEvent]:
+    """The log across all mails, newest first. `before` is the `(created_at, id)` of the last entry of the previous page.
+
+    `text` looks (case insensitive) into the rule name, folder, `Message-ID` and the detail.
+    """
+    query = filter_log(select(MailEvent), account_id=account_id, folder=folder, kinds=kinds, rule=rule, since=since, until=until, text=text)
     if before is not None:
         created, event_id = before
         query = query.where(or_(MailEvent.created_at < as_utc(created), (MailEvent.created_at == as_utc(created)) & (MailEvent.id < event_id)))
     # end if
     return list((await session.scalars(query.order_by(MailEvent.created_at.desc(), MailEvent.id.desc()).limit(limit))).all())
+# end def
+
+
+async def delete_log(
+    session: AsyncSession,
+    *,
+    account_id: UUID | None = None,
+    folder: str | None = None,
+    kinds: Sequence[EventKind] = (),
+    rule: str | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    text: str | None = None,
+) -> int:
+    """Deletes the entries the filters select (all of them without filters) and returns how many."""
+    ids = filter_log(select(MailEvent.id), account_id=account_id, folder=folder, kinds=kinds, rule=rule, since=since, until=until, text=text)
+    result = await session.execute(delete(MailEvent).where(MailEvent.id.in_(ids)))
+    return int(result.rowcount or 0)  # type: ignore[attr-defined]
 # end def
 
 

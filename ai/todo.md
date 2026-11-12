@@ -93,7 +93,7 @@ To complete one:
 - [x] optional Account check when crating & editing an account — `todo:77326de9-35af-42c6-8194-67746b52a1ad` _(done)_
 - [x] make it work offline, — `todo:28440a19-e45a-4c5c-9db5-c9367ce64dc4` _(done)_
   > and cache mails until marked read.
-- [ ] create MCP server to easily create, update, edit, improve rules — `todo:81f52e67-d921-4c4f-8ffd-e30fc734e066`
+- [x] create MCP server to easily create, update, edit, improve rules — `todo:81f52e67-d921-4c4f-8ffd-e30fc734e066` _(done)_
   > - tokens in user settings subpage
 - [ ] **Add to a rule** shall be above the graphical selector — `todo:31571edc-cabf-49ca-99ca-2280ade7360b`
   > Not left of it, which forces the overlay to scroll sidewards

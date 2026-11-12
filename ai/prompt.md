@@ -1147,3 +1147,47 @@ And composable files inside one store sounds useful to organize it well, still.
 
 ❯ The service worker should be able to handle a newly deployed version of the app (shell) and itself.
 
+❯ Plan denied.
+
+❯ Scopes (each having read + write + delete variants where applicable):
+- rules (r,w,d)
+- accounts (r,w,d)
+- accounts.password (r,w)
+- folders (r,w,d)
+  - currently writing folders (create, move, rename, delete) it's not yet implemented
+- events (r,d)
+  - writing means clearing
+- mails (r,w,d)
+  - reading mails currently is out of scope
+  - we should still prepare the scope.
+  - currently: already relevant for recent events containing title of emails or something like that
+
+Tools:
+- for the rules, I would also have some more direct tooling to abstract editing them.
+
+❯ Question answered.
+> <details><summary>
+>
+>> 1. The direct rule tools (create/update/delete rule, add/replace condition, ...) have to rewrite the rules text. In file mode, how should YAML comments and anchors be handled?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **YAML comments** (1/1) <kbd>Single Select</kbd><br>
+>> The direct rule tools (create/update/delete rule, add/replace condition, ...) have to rewrite the rules text. In file mode, how should YAML comments and anchors be handled?
+> - [x] 1\. Round-trip with ruamel.yaml (Recommended)
+>   - _Add ruamel.yaml, edit the parsed document in place, so comments, anchors and `!var` stay in file mode. Whole-file YAML tools stay available too._
+> - [ ] 2\. Rewrite from the model
+>   - _Edit the pydantic model and dump it (like database mode does). No new dependency, but file-mode comments and anchors are lost on every tool edit._
+> - [ ] 3\. Direct tools only in database mode
+>   - _File mode keeps only the whole-YAML get/validate/save tools; structured tools refuse there._
+> - [ ] 4\. _Type something._
+>
+> </details>
+>
+
+❯ Plan accepted, auto mode.
+
+❯ - Use long names for r,w,d. It is on pushed so you can still change stuff into a new comment without needing migration or something like that.
+
