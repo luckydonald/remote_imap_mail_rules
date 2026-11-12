@@ -74,7 +74,7 @@ const mockServer = async (page: Page): Promise<string[]> => {
 
 test('shows the status box and the log, filters and links to the mail', async ({ page }) => {
   const queries = await mockServer(page)
-  await page.goto('/log')
+  await page.goto('/settings/log')
   await expect(page.getByRole('heading', { name: 'Action log' })).toBeVisible()
   await expect(page.getByLabel('Watcher status')).toContainText('Watcher last ran')
   await expect(page.locator('[data-test=last-action]')).not.toHaveText('never')
@@ -92,7 +92,7 @@ test('shows the status box and the log, filters and links to the mail', async ({
   await page.getByLabel('Search').fill('nothing')
   await expect(page.getByText('Nothing matches these filters.')).toBeVisible()
   expect(queries.at(-1)).toContain('q=nothing')
-  await expect(page).toHaveURL(/\/log\?q=nothing/)
+  await expect(page).toHaveURL(/\/settings\/log\?q=nothing/)
 
   await page.getByRole('button', { name: 'Clear filters' }).click()
   await expect(page.locator('.entries li')).toHaveCount(2)
@@ -102,18 +102,28 @@ test('shows the status box and the log, filters and links to the mail', async ({
 
 test('a filtered link opens with the filters set', async ({ page }) => {
   const queries = await mockServer(page)
-  await page.goto('/log?kind=user_action&folder=Archive')
+  await page.goto('/settings/log?kind=user_action&folder=Archive')
   await expect(page.getByLabel('Your actions')).toBeChecked()
   await expect(page.getByLabel('Folder')).toHaveValue('Archive')
   expect(queries[0]).toContain('kind=user_action')
   expect(queries[0]).toContain('folder=Archive')
 })
 
-test('the Log link is in the navigation', async ({ page }) => {
+test('the Log link is in the settings navigation', async ({ page }) => {
   await mockServer(page)
   await page.goto('/rules')
-  await page.getByRole('link', { name: 'Log', exact: true }).click()
-  await expect(page).toHaveURL(/\/log$/)
+  await page.getByRole('link', { name: 'Settings', exact: true }).click()
+  await page
+    .getByRole('list', { name: 'Settings sections' })
+    .getByRole('link', { name: 'Action log' })
+    .click()
+  await expect(page).toHaveURL(/\/settings\/log$/)
+})
+
+test('the old /log path redirects and keeps the filters', async ({ page }) => {
+  await mockServer(page)
+  await page.goto('/log?kind=user_action')
+  await expect(page).toHaveURL(/\/settings\/log\?kind=user_action/)
 })
 
 test('reads the accounts once, they are the store’s shared list', async ({ page }) => {
@@ -123,10 +133,10 @@ test('reads the accounts once, they are the store’s shared list', async ({ pag
     requests += 1
     return route.fallback()
   })
-  await page.goto('/log')
+  await page.goto('/settings/log')
   await expect(page.getByLabel('Account')).toContainText('Private')
   await page.getByRole('link', { name: 'Settings', exact: true }).click()
-  await page.getByRole('link', { name: 'Log', exact: true }).click()
+  await page.getByRole('link', { name: 'Action log' }).click()
   await expect(page.locator('.entries li')).toHaveCount(2)
   await expect(page.getByLabel('Account')).toContainText('Private')
   expect(requests).toBe(1)

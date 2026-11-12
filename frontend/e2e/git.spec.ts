@@ -72,7 +72,7 @@ const mockServer = async (page: Page): Promise<{ saved: unknown[] }> => {
 
 test('shows the state and walks init, commit and push', async ({ page }) => {
   await mockServer(page)
-  await page.goto('/git')
+  await page.goto('/settings/git')
   await expect(page.locator('.badge.error').first()).toContainText('not initialised')
   await expect(page.getByRole('button', { name: 'Commit now' })).toBeDisabled()
   await page.getByRole('button', { name: 'Initialise' }).click()
@@ -86,7 +86,7 @@ test('shows the state and walks init, commit and push', async ({ page }) => {
 
 test('saves the check boxes, and automatic push needs automatic commit', async ({ page }) => {
   const mock = await mockServer(page)
-  await page.goto('/git')
+  await page.goto('/settings/git')
   const autoPush = page.locator('input[name=auto_push]')
   await expect(autoPush).toBeDisabled()
   await page.locator('input[name=auto_commit]').check()
@@ -102,7 +102,7 @@ test('saves the check boxes, and automatic push needs automatic commit', async (
 
 test('generates and shows the SSH key', async ({ page }) => {
   await mockServer(page)
-  await page.goto('/git')
+  await page.goto('/settings/git')
   await page.locator('select[name=auth_method]').selectOption('ssh')
   await page.getByRole('button', { name: 'Generate key' }).click()
   await expect(page.locator('.key')).toContainText('ssh-ed25519 AAAA')

@@ -57,7 +57,7 @@ const mockServer = async (page: Page): Promise<{ created: unknown[] }> => {
 
 test('creates a token with a preset, shows it once and revokes it', async ({ page }) => {
   const mock = await mockServer(page)
-  await page.goto('/settings')
+  await page.goto('/settings/general')
   await expect(page.getByText('No tokens yet.')).toBeVisible()
   await page.getByPlaceholder('Claude Code').fill('my client')
   await page.getByRole('button', { name: 'Read only' }).click()
