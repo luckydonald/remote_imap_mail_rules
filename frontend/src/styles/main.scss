@@ -1362,12 +1362,29 @@ button {
   .insert-group {
     margin-left: 12px;
     padding: 4px 6px;
-    border-left: 3px solid var(--border);
+    border-left: 4px solid var(--border);
+    border-radius: 8px;
+  }
+
+  &.type-all {
+    --group-color: var(--node-all);
+  }
+  &.type-any {
+    --group-color: var(--node-any);
+  }
+  &.type-not {
+    --group-color: var(--node-not);
+  }
+  &.type-all,
+  &.type-any,
+  &.type-not {
+    border-left-color: var(--group-color);
   }
 }
 
 .insert-head {
   font-weight: 600;
+  color: var(--group-color, inherit);
 }
 
 .insert-row {
@@ -1376,6 +1393,10 @@ button {
   background: var(--bg, transparent);
   font-family: monospace;
   overflow-wrap: anywhere;
+
+  &.type-template {
+    border-left: 4px solid var(--ok);
+  }
 }
 
 .insert-point {

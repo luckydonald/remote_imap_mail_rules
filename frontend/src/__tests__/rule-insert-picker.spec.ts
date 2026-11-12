@@ -37,4 +37,13 @@ describe('RuleInsertPicker', () => {
       [{ ruleIndex: 1, path: [], index: 1 }],
     ])
   })
+
+  it('labels groups like the editor and marks them with their type', () => {
+    const wrapper = mount(RuleInsertPicker, { props: { rules } })
+    const first = wrapper.findAll('.insert-rule')[0]!
+    const heads = first.findAll('.insert-head').map((head) => head.text())
+    expect(heads).toEqual(['All of (AND) · 2', 'Any of (OR) · 1'])
+    expect(first.findAll('.insert-group.type-all')).toHaveLength(1)
+    expect(first.findAll('.insert-group.type-any')).toHaveLength(1)
+  })
 })
