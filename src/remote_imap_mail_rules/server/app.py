@@ -13,7 +13,7 @@ from ..db import accounts as account_repository
 from ..db.engine import create_engine, create_session_factory
 from ..db.migrate import upgrade
 from ..imap.client import ConnectionFactory, connect_aioimaplib
-from .api import accounts, auth, dry_run, editor, events, git, log, mail, public, sample_error
+from .api import accounts, auth, dry_run, editor, events, git, log, mail, public, sample_error, settings as settings_api
 from .auth import require_login
 from .git_repo import GitRepo
 from .git_service import GitService
@@ -96,6 +96,7 @@ def create_app(
     # Everything else under `/api` needs the login, set here so that a new router cannot forget it.
     protected = [Depends(require_login)]
     app.include_router(editor.router, prefix="/api/editor", tags=["editor"], dependencies=protected)
+    app.include_router(settings_api.router, prefix="/api/settings", tags=["settings"], dependencies=protected)
     app.include_router(git.router, prefix="/api/git", tags=["git"], dependencies=protected)
     app.include_router(accounts.router, prefix="/api/accounts", tags=["accounts"], dependencies=protected)
     app.include_router(mail.router, prefix="/api/mail", tags=["mail"], dependencies=protected)
