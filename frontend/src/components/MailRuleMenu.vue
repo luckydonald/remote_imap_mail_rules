@@ -15,6 +15,7 @@ import { personLabel } from '@/model/mail-format'
 import { useStore } from '@/model/store'
 import { useMenu } from '@/model/menu'
 import { locationOfView } from '@/router'
+import MailPreview from './MailPreview.vue'
 import RuleIndex from './RuleIndex.vue'
 import RuleInsertPicker from './RuleInsertPicker.vue'
 
@@ -125,6 +126,7 @@ function addTo(place: { ruleIndex: number; path: number[]; index: number }): voi
             <button type="button" class="ghost back" @click="dialog = false">‹ Back</button>
             <h3>Add to a rule</h3>
           </header>
+          <MailPreview :detail="context.detail" />
           <label>
             Add
             <select v-model="kind" aria-label="Kind of condition">
