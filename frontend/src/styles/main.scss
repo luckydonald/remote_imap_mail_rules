@@ -1320,6 +1320,30 @@ button {
   gap: 12px;
 }
 
+.rule-index {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  button {
+    width: 100%;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 12px;
+
+    small {
+      color: var(--muted, inherit);
+      font-family: monospace;
+      overflow-wrap: anywhere;
+    }
+  }
+}
+
 .insert-rule {
   border: 1px solid var(--border);
   border-radius: 8px;

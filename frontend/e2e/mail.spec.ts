@@ -462,6 +462,14 @@ test('with many rules the picker stays below the controls and the dialog does no
   await openThird(page)
   await page.getByRole('button', { name: 'Rule ▾' }).click()
   await page.getByRole('menuitem', { name: 'Add to existing rule …' }).click()
+  // Many rules: first a list of them, then the places of the chosen one.
+  await expect(page.locator('.insert-picker')).toHaveCount(0)
+  await expect(page.locator('.rule-index button')).toHaveCount(12)
+  await page.locator('.rule-index button', { hasText: 'rule 3' }).click()
+  await expect(page.locator('.insert-rule')).toHaveCount(1)
+  await page.getByRole('button', { name: '‹ All rules' }).click()
+  await expect(page.locator('.rule-index button')).toHaveCount(12)
+  await page.locator('.rule-index button', { hasText: 'rule 3' }).click()
   const layout = await page.locator('.modal').evaluate((element) => {
     const picker = element.querySelector('.insert-picker')?.getBoundingClientRect()
     const controls = [...element.querySelectorAll('label')].map((l) => l.getBoundingClientRect())
