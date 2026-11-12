@@ -6,6 +6,7 @@ import ConfirmLogout from '@/components/ConfirmLogout.vue'
 import MailLog from '@/components/MailLog.vue'
 import OfflineBanner from '@/components/OfflineBanner.vue'
 import OnlineOnly from '@/components/OnlineOnly.vue'
+import { loadDetail } from '@/model/offline/cache'
 import { clearAll } from '@/model/offline/db'
 import { queued } from '@/model/offline/queue'
 import { setOnline } from '@/model/online'
@@ -211,5 +212,37 @@ describe('offline widgets', () => {
       expect.arrayContaining(['cancel', 'logout', 'send']),
     )
     wrapper.unmount()
+  })
+})
+
+describe('no cleanup while offline', () => {
+  it('keeps every cached mail offline, including one just marked read', async () => {
+    const store = useStore()
+    store.cacheOpenedUnread = true
+    await store.loadAccounts()
+    await store.openMessage(2)
+    expect(await loadDetail('acc', 'INBOX', 2)).not.toBeNull()
+    down = true
+    await store.setSeen(true)
+    store.cacheUnread = false
+    store.cacheOpenedUnread = false
+    store.cacheInbox = false
+    store.startOffline()
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(await loadDetail('acc', 'INBOX', 2)).not.toBeNull()
+    expect(await loadDetail('acc', 'INBOX', 1)).toBeNull() // never cached, nothing to lose
+    store.stopOffline()
+  })
+
+  it('cleans up again once the server is back', async () => {
+    const store = useStore()
+    await store.loadAccounts()
+    await store.openMessage(2)
+    store.cacheUnread = false
+    store.cacheOpenedUnread = false
+    store.cacheInbox = false
+    store.startOffline()
+    await vi.waitFor(async () => expect(await loadDetail('acc', 'INBOX', 2)).toBeNull())
+    store.stopOffline()
   })
 })
