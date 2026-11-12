@@ -380,6 +380,7 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
 
   /** Starts the cache's background work once the accounts are known; call after login. */
   function startOffline(): void {
+    void prefs.loadServerSettings()
     void loadQueue()
     stopReconnect ??= onReconnect(() => void background())
     if (backgroundTimer === null) backgroundTimer = setInterval(() => void background(), REFRESH_MS)
