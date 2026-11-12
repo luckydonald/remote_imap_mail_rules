@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /** How this browser shows mails. Kept in the browser (localStorage), nothing here is sent to the server. */
 import { useStore } from '@/model/store'
+import OnlineOnly from './OnlineOnly.vue'
 import SegmentedToggle from './SegmentedToggle.vue'
 
 const store = useStore()
@@ -51,44 +52,47 @@ const store = useStore()
       </p>
     </section>
     <h2>Offline cache</h2>
-    <section>
-      <h3>Mails kept for offline use</h3>
-      <label class="check">
-        <input v-model="store.cacheUnread" type="checkbox" />
-        Unread mails of the folders I opened
-      </label>
-      <label class="check">
-        <input v-model="store.cacheOpenedUnread" type="checkbox" />
-        Mails I opened while they were unread
-      </label>
-      <label class="check">
-        <input v-model="store.cacheInbox" type="checkbox" />
-        The newest
-        <input
-          v-model.number="store.cacheInboxCount"
-          type="number"
-          min="0"
-          step="10"
-          aria-label="Number of newest INBOX mails to keep"
-          :disabled="!store.cacheInbox"
-        />
-        INBOX mails of each account
-      </label>
-      <label class="check">
-        Drop mails not viewed for
-        <input
-          v-model.number="store.cacheMaxAgeDays"
-          type="number"
-          min="0"
-          aria-label="Days after which an unviewed mail leaves the cache"
-        />
-        days (0 keeps them)
-      </label>
-      <p class="hint">
-        A mail leaves the cache once it is read, unless it is one of the newest INBOX mails, and
-        after the days above without a visit. Attachments are never cached.
-      </p>
-    </section>
+    <OnlineOnly>
+      <section>
+        <h3>Mails kept for offline use</h3>
+        <label class="check">
+          <input v-model="store.cacheUnread" type="checkbox" />
+          Unread mails of the folders I opened
+        </label>
+        <label class="check">
+          <input v-model="store.cacheOpenedUnread" type="checkbox" />
+          Mails I opened while they were unread
+        </label>
+        <label class="check">
+          <input v-model="store.cacheInbox" type="checkbox" />
+          The newest
+          <input
+            v-model.number="store.cacheInboxCount"
+            type="number"
+            min="0"
+            step="10"
+            aria-label="Number of newest INBOX mails to keep"
+            :disabled="!store.cacheInbox"
+          />
+          INBOX mails of each account
+        </label>
+        <label class="check">
+          Drop mails not viewed for
+          <input
+            v-model.number="store.cacheMaxAgeDays"
+            type="number"
+            min="0"
+            aria-label="Days after which an unviewed mail leaves the cache"
+          />
+          days (0 keeps them)
+        </label>
+        <p class="hint">
+          A mail leaves the cache once it is read, unless it is one of the newest INBOX mails, and
+          after the days above without a visit. Attachments are never cached. These settings are
+          kept on the server, so every browser has the same.
+        </p>
+      </section>
+    </OnlineOnly>
     <h2>Rule editor</h2>
     <section>
       <h3>Copy cut blocks to the clipboard</h3>
