@@ -1128,3 +1128,14 @@ And composable files inside one store sounds useful to organize it well, still.
   - instead￼ periodically and on page load fetched again
   - which overrides the ￼one in pinia, writing the new data reactivity-friendly
 
+❯ Plan denied.
+
+❯ Clicking the offline banner number shall reveal an overlay/page listing the actions. Can be debug-y for now.
+
+❯ Plan denied.
+
+❯ - `reason` should probably be `reasons` as more than one rule can hold it.
+- ￼move then flag should kinda be supported still? Otherwise, the flag action should be blocked after a offline move.
+
+❯ Plan accepted, auto mode.
+
