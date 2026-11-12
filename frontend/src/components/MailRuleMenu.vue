@@ -134,15 +134,17 @@ function addTo(place: { ruleIndex: number; path: number[]; index: number }): voi
               <option v-for="name in templateNames" :key="name" :value="name">{{ name }}</option>
             </select>
           </label>
-          <p v-if="kind === 'template'" class="template-fill">
+          <div v-if="kind === 'template'" class="template-fill">
             <template v-if="filledVariables.length">
               Filled from the mail:
-              <code v-for="[name, value] in filledVariables" :key="name"
-                >{{ name }} = {{ value }}</code
-              >
+              <ul class="template-fill-list">
+                <li v-for="[name, value] in filledVariables" :key="name">
+                  <code>{{ name }} = {{ Array.isArray(value) ? value.join(', ') : value }}</code>
+                </li>
+              </ul>
             </template>
             <template v-else>Nothing to fill from this mail, the defaults apply.</template>
-          </p>
+          </div>
           <label v-if="kind === 'condition'">
             Field
             <select v-model="field">

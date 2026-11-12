@@ -99,7 +99,7 @@ To complete one:
   > Not left of it, which forces the overlay to scroll sidewards
 - [x] move accounts & git & log as sub-routes of settings — `todo:c522abcf-a5a5-4c66-a731-c1958dd4e2a2` _(done)_
   > - iOS style drilling it down
-- [ ] “Filled from the mail“ values should be an list — `todo:ad4bd404-7e8c-46ee-87e6-23e4e0f7aae7`
+- [x] “Filled from the mail“ values should be an list — `todo:ad4bd404-7e8c-46ee-87e6-23e4e0f7aae7` _(done)_
   > - with one item per line
   > - currently is appended to the label text without any whitespaces between the items
 - [ ] _Add to a rule_ edit overlay shall have a ToC for the rules under the “click where it should go” — `todo:cbf5477d-93f0-4693-986f-727a02a69fe9`
@@ -113,3 +113,11 @@ To complete one:
 - [ ] “Unread mails of the folders I opened” should me Zion that it doesn’t include INBOX. — `todo:66ef1a9b-d91a-4179-8a00-7779272f6844`
 - [ ] new token is an overlay of its own — `todo:724a7f97-b485-4c53-8365-c55f974adf98`
 - [ ] make the _all headers_ table mobile friendly on small screens — `todo:526faa83-2054-43f2-99f4-6beb7c7a3902`
+- [ ] add automatic mail read — `todo:2bb01f31-66e6-4d96-bd8f-46d8abc705cc`
+  > - settings: off / upon open / scrolled down
+- [ ] move the load images button after the load styles button — `todo:2a7dff4f-1ee0-429a-a32c-a0b9e8bfb82f`
+  > - same color as styles
+- [ ] in the settings have a subroute with stats — `todo:c96db0d2-06f9-432c-aabe-963d1da2fc96`
+  > - server stats
+  >   - including sqlite file size
+  > - browser cache stats

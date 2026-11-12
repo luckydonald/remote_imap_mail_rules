@@ -396,6 +396,8 @@ test('adds a template use to an existing rule with the variable filled from the 
   await page.getByRole('menuitem', { name: 'Add to existing rule …' }).click()
   await page.getByLabel('Kind of condition').selectOption('template')
   await expect(page.locator('.template-fill')).toContainText('sender = s3@example.com')
+  await expect(page.locator('.template-fill li')).toHaveCount(1)
+  await expect(page.locator('.template-fill li')).toContainText('sender = s3@example.com')
   await page.locator('.insert-point').last().click()
   await expect(page).toHaveURL(/\/rules\/0$/)
   await expect(page.locator('.rule-editor')).toContainText('by-sender')
