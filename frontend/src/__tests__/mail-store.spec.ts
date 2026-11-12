@@ -231,6 +231,45 @@ describe('mail store writes', () => {
     expect(JSON.parse(String(call?.[1]?.body))).toEqual({ add: ['\\Seen'], remove: [] })
   })
 
+  it('is busy while a flag change runs and ignores a second action meanwhile', async () => {
+    const fetchMock = stubServer()
+    const store = useStore()
+    await store.loadAccounts()
+    await store.openMessage(3)
+    const normal = fetchMock.getMockImplementation()!
+    let release: () => void = () => {}
+    fetchMock.mockImplementation(async (input, init) => {
+      if (String(input).includes('/flags?'))
+        await new Promise<void>((resolve) => (release = resolve))
+      return normal(input, init)
+    })
+    const first = store.setSeen(true)
+    expect(store.mailActionBusy).toBe('seen')
+    await store.moveTo('Sent')
+    await store.setSeen(false)
+    release()
+    await first
+    expect(store.mailActionBusy).toBeNull()
+    const writes = fetchMock.mock.calls.filter(([url]) => /\/(flags|move)\?/.test(String(url)))
+    expect(writes).toHaveLength(1)
+  })
+
+  it('clears the busy state when the change fails', async () => {
+    const fetchMock = stubServer()
+    const store = useStore()
+    await store.loadAccounts()
+    await store.openMessage(3)
+    const normal = fetchMock.getMockImplementation()!
+    fetchMock.mockImplementation((input, init) =>
+      String(input).includes('/flags?')
+        ? Promise.resolve(new Response(JSON.stringify({ detail: 'no' }), { status: 409 }))
+        : normal(input, init),
+    )
+    await store.setSeen(true)
+    expect(store.mailActionBusy).toBeNull()
+    expect(store.error).toContain('Could not change the mail')
+  })
+
   it('moves the open mail away and opens the next one', async () => {
     const fetchMock = stubServer()
     const store = useStore()

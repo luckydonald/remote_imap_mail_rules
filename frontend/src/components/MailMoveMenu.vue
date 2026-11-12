@@ -3,6 +3,7 @@
 import { computed, ref } from 'vue'
 import { useMenu } from '@/model/menu'
 import { useStore } from '@/model/store'
+import ButtonSpinner from './ButtonSpinner.vue'
 import MailFolderTree from './MailFolderTree.vue'
 
 const store = useStore()
@@ -18,8 +19,7 @@ const destinations = computed(() => {
     for (const action of rule.actions ?? []) {
       if (action.type !== 'move' || typeof action.folder !== 'string') continue
       const account = action.account_id
-      if (typeof account === 'string' && account !== '' && account !== store.accountId)
-        continue
+      if (typeof account === 'string' && account !== '' && account !== store.accountId) continue
       if (typeof account === 'object' && account !== null) continue
       counts.set(action.folder, (counts.get(action.folder) ?? 0) + 1)
     }
@@ -45,11 +45,12 @@ async function move(name: string): Promise<void> {
       class="ghost"
       aria-haspopup="menu"
       :aria-expanded="open"
-      :disabled="disabled"
+      :disabled="disabled || store.mailActionBusy !== null"
+      :aria-busy="store.mailActionBusy === 'move'"
       :title="disabled ? 'Moving needs ACTIONS_ENABLED=true on the server.' : 'Move this mail'"
       @click="open = !open"
     >
-      Move ▾
+      <ButtonSpinner v-if="store.mailActionBusy === 'move'" />Move ▾
     </button>
     <div v-if="open" class="menu-pop" role="menu">
       <button
