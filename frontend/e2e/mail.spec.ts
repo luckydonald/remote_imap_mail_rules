@@ -435,6 +435,43 @@ test('inserts the condition at the clicked place between two others', async ({ p
   expect(values).toContain('Subject 3')
 })
 
+const MANY_RULES = `rules:
+${Array.from(
+  { length: 12 },
+  (_, i) => `  - name: rule ${i}
+    locations:
+      - account_id: ${ACCOUNT_ID}
+        folder: INBOX
+    when:
+      type: all
+      conditions:
+        - type: bool
+          field: seen
+        - type: bool
+          field: flagged
+`,
+).join('')}`
+
+test('with many rules the picker stays below the controls and the dialog does not scroll sidewards', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await mockServer(page, false, MANY_RULES)
+  await openThird(page)
+  await page.getByRole('button', { name: 'Rule ▾' }).click()
+  await page.getByRole('menuitem', { name: 'Add to existing rule …' }).click()
+  const layout = await page.locator('.modal').evaluate((element) => {
+    const picker = element.querySelector('.insert-picker')?.getBoundingClientRect()
+    const controls = [...element.querySelectorAll('label')].map((l) => l.getBoundingClientRect())
+    return {
+      // Once the content is taller than the dialog, a wrapping column puts the picker in a second column.
+      below: controls.every((box) => (picker?.top ?? 0) >= box.bottom),
+      sideways: element.scrollWidth > element.clientWidth,
+    }
+  })
+  expect(layout).toEqual({ below: true, sideways: false })
+})
+
 test('the picker is a full-screen overlay with a back button on a phone', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 720 })
   await mockServer(page, false, TWO_CONDITIONS)

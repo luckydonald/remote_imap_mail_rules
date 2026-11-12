@@ -112,7 +112,7 @@ function addTo(place: { ruleIndex: number; path: number[]; index: number }): voi
     <Teleport to="body">
       <div v-if="dialog" class="modal-backdrop" @click.self="dialog = false">
         <div
-          class="modal modal-wide add-to-rule"
+          class="modal modal-wide add-to-rule-dialog"
           role="dialog"
           aria-modal="true"
           aria-label="Add to a rule"
