@@ -3,20 +3,23 @@
 import type { Rule } from '@/model/types'
 import RuleInsertNode from './RuleInsertNode.vue'
 
-defineProps<{ rules: Rule[] }>()
+/** `only`: show just the rule with this index (the emitted `ruleIndex` stays the real one). */
+defineProps<{ rules: Rule[]; only?: number }>()
 const emit = defineEmits<{ pick: [target: { ruleIndex: number; path: number[]; index: number }] }>()
 </script>
 
 <template>
   <ul class="insert-picker">
-    <li v-for="(rule, ruleIndex) in rules" :key="ruleIndex" class="insert-rule">
-      <h4>{{ rule.name }}<small v-if="rule.enabled === false"> (disabled)</small></h4>
-      <RuleInsertNode
-        :expr="rule.when"
-        :path="[]"
-        :rule-name="rule.name"
-        @pick="(path, index) => emit('pick', { ruleIndex, path, index })"
-      />
-    </li>
+    <template v-for="(rule, ruleIndex) in rules" :key="ruleIndex">
+      <li v-if="only === undefined || only === ruleIndex" class="insert-rule">
+        <h4>{{ rule.name }}<small v-if="rule.enabled === false"> (disabled)</small></h4>
+        <RuleInsertNode
+          :expr="rule.when"
+          :path="[]"
+          :rule-name="rule.name"
+          @pick="(path, index) => emit('pick', { ruleIndex, path, index })"
+        />
+      </li>
+    </template>
   </ul>
 </template>

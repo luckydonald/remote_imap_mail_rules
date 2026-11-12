@@ -1201,3 +1201,7 @@ Tools:
 
 ❯ Plan accepted, auto mode.
 
+❯ [/todo-loop](./skills/todo-loop/SKILL.md) but it being a sub menu drill down makes probably more sense
+
+❯ Plan accepted, auto mode.
+

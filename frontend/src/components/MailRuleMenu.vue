@@ -15,6 +15,7 @@ import { personLabel } from '@/model/mail-format'
 import { useStore } from '@/model/store'
 import { useMenu } from '@/model/menu'
 import { locationOfView } from '@/router'
+import RuleIndex from './RuleIndex.vue'
 import RuleInsertPicker from './RuleInsertPicker.vue'
 
 const props = defineProps<{ context: MailContext }>()
@@ -24,6 +25,9 @@ const router = useRouter()
 const root = ref<HTMLElement | null>(null)
 const open = useMenu('rule', root)
 const dialog = ref(false)
+/** The rule whose places are shown (second step); `null` shows the list of rules. A lone rule needs no list. */
+const pickedRule = ref<number | null>(null)
+const shownRule = computed(() => (store.file.rules.length === 1 ? 0 : pickedRule.value))
 const field = ref('from')
 const granularity = ref<Granularity>('address')
 const kind = ref<'condition' | 'template'>('condition')
@@ -103,7 +107,7 @@ function addTo(place: { ruleIndex: number; path: number[]; index: number }): voi
         type="button"
         role="menuitem"
         :disabled="store.file.rules.length === 0"
-        @click="((dialog = true), (open = false))"
+        @click="((dialog = true), (pickedRule = null), (open = false))"
       >
         Add to existing rule …
       </button>
@@ -160,7 +164,22 @@ function addTo(place: { ruleIndex: number; path: number[]; index: number }): voi
             </select>
           </label>
           <h4 class="pick-title">Click where it should go</h4>
-          <RuleInsertPicker :rules="store.file.rules" @pick="addTo" />
+          <RuleIndex
+            v-if="shownRule === null"
+            :rules="store.file.rules"
+            @open="pickedRule = $event"
+          />
+          <template v-else>
+            <button
+              v-if="store.file.rules.length > 1"
+              type="button"
+              class="ghost back-to-rules"
+              @click="pickedRule = null"
+            >
+              ‹ All rules
+            </button>
+            <RuleInsertPicker :rules="store.file.rules" :only="shownRule" @pick="addTo" />
+          </template>
           <footer>
             <button type="button" class="ghost" @click="dialog = false">Cancel</button>
           </footer>
