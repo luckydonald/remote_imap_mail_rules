@@ -47,6 +47,10 @@ export const DETAIL = {
   headers: [
     { name: 'Subject', value: 'Subject 3' },
     { name: 'List-Id', value: '<news.example.com>' },
+    {
+      name: 'X-Google-DKIM-Signature-Long-Header-Name',
+      value: 'v=1; a=rsa-sha256; ' + 'b'.repeat(200),
+    },
   ],
   flags: ['\\Seen'],
   keywords: [],
