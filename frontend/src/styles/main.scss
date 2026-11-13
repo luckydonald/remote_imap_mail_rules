@@ -1543,7 +1543,7 @@ button {
 
   dl {
     display: grid;
-    grid-template-columns: max-content 1fr;
+    grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
     gap: 2px 12px;
     margin: 6px 0 0;
     font-size: 12px;
@@ -1551,6 +1551,7 @@ button {
 
   dt {
     color: var(--muted);
+    overflow-wrap: anywhere;
   }
 
   dd {
@@ -1558,6 +1559,26 @@ button {
     font-family: ui-monospace, monospace;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+  }
+
+  // Name above its value: a long header name would otherwise squeeze the value column.
+  @media (width < 700px) {
+    dl {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
+
+    dt {
+      margin-top: 8px;
+      padding-top: 6px;
+      border-top: 1px solid var(--border);
+    }
+
+    dt:first-child {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: 0;
+    }
   }
 }
 
