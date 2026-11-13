@@ -1243,3 +1243,5 @@ Tools:
 
 ❯ Plan accepted, auto mode.
 
+❯ Plan denied.
+
