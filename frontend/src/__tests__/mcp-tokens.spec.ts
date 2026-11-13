@@ -49,6 +49,32 @@ describe('mcp tokens api', () => {
 })
 
 describe('McpTokens', () => {
+  /** The dialog is teleported to the body, so it is not inside the wrapper. */
+  async function openDialog(wrapper: ReturnType<typeof mount>): Promise<void> {
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === '+ New token')!
+      .trigger('click')
+  }
+  async function clickBody(label: string): Promise<void> {
+    const button = [...document.body.querySelectorAll('button')].find(
+      (b) => b.textContent?.trim() === label,
+    )!
+    button.click()
+    await flushPromises()
+  }
+  async function setInput(selector: string, value: string): Promise<void> {
+    const input = document.body.querySelector(selector) as HTMLInputElement
+    input.value = value
+    input.dispatchEvent(new Event('input'))
+    await flushPromises()
+  }
+  async function setChecked(selector: string): Promise<void> {
+    const input = document.body.querySelector(selector) as HTMLInputElement
+    input.click()
+    await flushPromises()
+  }
+
   function server() {
     const tokens: Record<string, unknown>[] = []
     return vi.fn<typeof fetch>(async (url, init) => {
@@ -81,15 +107,18 @@ describe('McpTokens', () => {
 
   it('creates a token, shows it once and revokes it after a confirmation', async () => {
     vi.stubGlobal('fetch', server())
-    const wrapper = mount(McpTokens)
+    const wrapper = mount(McpTokens, { attachTo: document.body })
     await flushPromises()
     expect(wrapper.text()).toContain('No tokens yet.')
-    const create = wrapper.find('button[type=submit]')
-    expect(create.attributes('disabled')).toBeDefined()
-    await wrapper.find('input[type=text]').setValue('claude')
-    await wrapper.find('input[value="rules:read"]').setValue(true)
-    await wrapper.find('form').trigger('submit')
+    expect(document.body.querySelector('form')).toBeNull()
+    await openDialog(wrapper)
+    const create = document.body.querySelector('button[type=submit]')!
+    expect(create.hasAttribute('disabled')).toBe(true)
+    await setInput('input[type=text]', 'claude')
+    await setChecked('input[value="rules:read"]')
+    document.body.querySelector('form')!.dispatchEvent(new Event('submit', { cancelable: true }))
     await flushPromises()
+    expect(document.body.querySelector('form')).toBeNull()
     expect(wrapper.find('.token-value').text()).toBe('rimr_abcSECRET')
     expect(wrapper.text()).toContain('rimr_abc…')
     await wrapper
@@ -107,21 +136,39 @@ describe('McpTokens', () => {
       .trigger('click')
     await flushPromises()
     expect(wrapper.text()).toContain('revoked')
+    wrapper.unmount()
+  })
+
+  it('closes the dialog on Cancel and clears the fields', async () => {
+    vi.stubGlobal('fetch', server())
+    const wrapper = mount(McpTokens, { attachTo: document.body })
+    await flushPromises()
+    await openDialog(wrapper)
+    await setInput('input[type=text]', 'claude')
+    await setChecked('input[value="rules:read"]')
+    await clickBody('Cancel')
+    expect(document.body.querySelector('form')).toBeNull()
+    await openDialog(wrapper)
+    expect((document.body.querySelector('input[type=text]') as HTMLInputElement).value).toBe('')
+    expect(
+      (document.body.querySelector('input[value="rules:read"]') as HTMLInputElement).checked,
+    ).toBe(false)
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await flushPromises()
+    expect(document.body.querySelector('form')).toBeNull()
+    wrapper.unmount()
   })
 
   it('applies a preset', async () => {
     vi.stubGlobal('fetch', server())
-    const wrapper = mount(McpTokens)
+    const wrapper = mount(McpTokens, { attachTo: document.body })
     await flushPromises()
-    await wrapper
-      .findAll('button')
-      .find((b) => b.text() === 'Read only')!
-      .trigger('click')
-    expect((wrapper.find('input[value="rules:read"]').element as HTMLInputElement).checked).toBe(
-      true,
-    )
-    expect((wrapper.find('input[value="rules:write"]').element as HTMLInputElement).checked).toBe(
-      false,
-    )
+    await openDialog(wrapper)
+    await clickBody('Read only')
+    const checked = (value: string) =>
+      (document.body.querySelector(`input[value="${value}"]`) as HTMLInputElement).checked
+    expect(checked('rules:read')).toBe(true)
+    expect(checked('rules:write')).toBe(false)
+    wrapper.unmount()
   })
 })

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** The bearer tokens of the MCP server: created here, shown once, revoked here. */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { describeError } from '@/model/http'
 import {
   createMcpToken,
@@ -21,6 +21,7 @@ const created = ref<string | null>(null)
 const error = ref('')
 const copied = ref(false)
 const confirming = ref<string | null>(null)
+const dialog = ref(false)
 
 const groups = computed(() => groupScopes(available.value.scopes))
 const presetNames: Record<string, string> = {
@@ -38,14 +39,23 @@ async function load(): Promise<void> {
   }
 }
 
+function close(): void {
+  dialog.value = false
+  name.value = ''
+  chosen.value = []
+}
+
+function onKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Escape' && dialog.value) close()
+}
+
 async function create(): Promise<void> {
   error.value = ''
   try {
     const result = await createMcpToken(name.value.trim(), chosen.value)
     created.value = result.token
     copied.value = false
-    name.value = ''
-    chosen.value = []
+    close()
     tokens.value = await fetchMcpTokens()
   } catch (e) {
     error.value = describeError(e)
@@ -76,17 +86,22 @@ function formatTime(value: string | null): string {
   return value === null ? 'never' : new Date(value).toLocaleString()
 }
 
-onMounted(load)
+onMounted(() => {
+  document.addEventListener('keydown', onKeydown)
+  void load()
+})
+onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
   <section class="mcp-tokens">
     <h3>Tokens</h3>
+    <button type="button" class="new-token-button" @click="dialog = true">+ New token</button>
     <p class="hint">
       An MCP client (Claude Code, ...) connects to <code>/mcp</code> with
       <code>Authorization: Bearer &lt;token&gt;</code>. A token only gets the tools of its scopes.
     </p>
-    <p v-if="error" class="error" role="alert">{{ error }}</p>
+    <p v-if="error && !dialog" class="error" role="alert">{{ error }}</p>
 
     <div v-if="created" class="new-token" role="status">
       <strong>Copy the token now, it is not shown again.</strong>
@@ -118,32 +133,49 @@ onMounted(load)
     </ul>
     <p v-else class="hint">No tokens yet.</p>
 
-    <form class="token-form" @submit.prevent="create">
-      <h3>New token</h3>
-      <label>
-        Name
-        <input v-model="name" type="text" required maxlength="255" placeholder="Claude Code" />
-      </label>
-      <div class="presets">
-        Presets:
-        <button
-          v-for="(list, preset) in available.presets"
-          :key="preset"
-          type="button"
-          @click="chosen = [...list]"
-        >
-          {{ presetNames[preset] ?? preset }}
-        </button>
+    <!-- Out of the scrolling panes: Safari on an iPad clips a fixed dialog to the pane that holds it. -->
+    <Teleport to="body">
+      <div v-if="dialog" class="modal-backdrop" @click.self="close">
+        <div class="modal" role="dialog" aria-modal="true" aria-label="New token">
+          <form class="token-form" @submit.prevent="create">
+            <h3>New token</h3>
+            <p v-if="error" class="error" role="alert">{{ error }}</p>
+            <label>
+              Name
+              <input
+                v-model="name"
+                type="text"
+                required
+                maxlength="255"
+                placeholder="Claude Code"
+              />
+            </label>
+            <div class="presets">
+              Presets:
+              <button
+                v-for="(list, preset) in available.presets"
+                :key="preset"
+                type="button"
+                @click="chosen = [...list]"
+              >
+                {{ presetNames[preset] ?? preset }}
+              </button>
+            </div>
+            <fieldset v-for="group in groups" :key="group.resource">
+              <legend>{{ group.resource }}</legend>
+              <label v-for="scope in group.scopes" :key="scope" class="check">
+                <input v-model="chosen" type="checkbox" :value="scope" />
+                {{ scopeAction(scope) }}
+              </label>
+            </fieldset>
+            <footer>
+              <button type="button" class="ghost" @click="close">Cancel</button>
+              <button type="submit" :disabled="!name.trim() || !chosen.length">Create token</button>
+            </footer>
+          </form>
+        </div>
       </div>
-      <fieldset v-for="group in groups" :key="group.resource">
-        <legend>{{ group.resource }}</legend>
-        <label v-for="scope in group.scopes" :key="scope" class="check">
-          <input v-model="chosen" type="checkbox" :value="scope" />
-          {{ scopeAction(scope) }}
-        </label>
-      </fieldset>
-      <button type="submit" :disabled="!name.trim() || !chosen.length">Create token</button>
-    </form>
+    </Teleport>
   </section>
 </template>
 
