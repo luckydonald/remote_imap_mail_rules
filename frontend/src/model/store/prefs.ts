@@ -72,6 +72,7 @@ export function usePrefs() {
       cacheOpenedUnread,
       cacheInbox,
       cacheInboxCount,
+      cacheMaxAgeDays,
     ],
     () => {
       try {
