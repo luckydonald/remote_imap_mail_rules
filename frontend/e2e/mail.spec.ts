@@ -367,6 +367,9 @@ test('lists the blocked images and loads them on request', async ({ page }) => {
   await page.locator('.blocked-images summary').click()
   await expect(page.locator('.blocked-images a')).toHaveCount(2)
   await expect(page.locator('.blocked-images a').first()).toHaveText('https://t.example/a.gif')
+  // The button sits outside the disclosure, in the row of the styles button, and looks the same.
+  await expect(page.locator('.blocked-images button')).toHaveCount(0)
+  await expect(page.locator('.load-actions .load-remote')).toHaveClass(/ghost/)
   await page.getByRole('button', { name: 'Load remote images' }).click()
   await expect(page.locator('.blocked-images')).toHaveCount(0)
   expect(calls.some((call) => call.includes('remote_images=true'))).toBe(true)
