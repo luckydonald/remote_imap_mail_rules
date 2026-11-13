@@ -84,6 +84,7 @@ export const mockServer = async (
   page: Page,
   wrongPassword = false,
   rulesYaml: string | null = null,
+  autoRead: 'off' | 'open' | 'scrolled' = 'off',
 ): Promise<string[]> => {
   const calls: string[] = []
   let loggedIn = false
@@ -104,6 +105,18 @@ export const mockServer = async (
     rulesYaml === null
       ? route.fulfill({ status: 404, json: {} })
       : route.fulfill({ contentType: 'text/plain', body: rulesYaml }),
+  )
+  await page.route('**/api/settings', (route) =>
+    route.fulfill({
+      json: {
+        cache_unread: true,
+        cache_opened_unread: true,
+        cache_inbox: true,
+        cache_inbox_count: 200,
+        cache_max_age_days: 30,
+        auto_read: autoRead,
+      },
+    }),
   )
   await page.route('**/api/auth/login', (route) => {
     calls.push(`login ${route.request().postData()}`)

@@ -1,8 +1,9 @@
 /** View settings of this browser: how mails are shown and whether the rule editor uses the real clipboard. Kept in localStorage, nothing here is sent to the server. Part of the central store (`index.ts`). */
 
 import { ref, watch } from 'vue'
-import { fetchSettings, saveSettings, type CacheSettings } from '../settings-api'
+import { fetchSettings, saveSettings, type AutoRead, type UserSettings } from '../settings-api'
 
+export type { AutoRead }
 export type BodyMode = 'html' | 'text'
 /** `block` and `allow` are for every mail; `rules` is reserved for the allow rules of the rule file. */
 export type Policy = 'block' | 'allow'
@@ -23,6 +24,11 @@ interface Saved {
   cacheInbox: boolean
   cacheInboxCount: number
   cacheMaxAgeDays: number
+  autoRead: AutoRead
+}
+
+function parseAutoRead(value: unknown): AutoRead {
+  return value === 'open' || value === 'scrolled' ? value : 'off'
 }
 
 function readSaved(): Partial<Saved> {
@@ -61,6 +67,9 @@ export function usePrefs() {
       : 30,
   )
 
+  /** When the mail view marks a mail read by itself (an admin setting on the server, like the cache rules below). */
+  const autoRead = ref<AutoRead>(parseAutoRead(saved.autoRead))
+
   watch(
     [
       bodyMode,
@@ -73,6 +82,7 @@ export function usePrefs() {
       cacheInbox,
       cacheInboxCount,
       cacheMaxAgeDays,
+      autoRead,
     ],
     () => {
       try {
@@ -87,6 +97,7 @@ export function usePrefs() {
           cacheInbox: cacheInbox.value,
           cacheInboxCount: cacheInboxCount.value,
           cacheMaxAgeDays: cacheMaxAgeDays.value,
+          autoRead: autoRead.value,
         }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(value))
       } catch {
@@ -95,18 +106,19 @@ export function usePrefs() {
     },
   )
 
-  // The cache rules are the admin's settings on the server, so every browser has the same. The values above are the copy of the last
+  // The cache rules and `autoRead` are the admin's settings on the server, so every browser has the same. The values above are the copy of the last
   // visit (also what an offline start uses); `loadServerSettings` replaces them with the server's and later changes are sent to it.
   let serverCache: string | null = null
   let sendTimer: ReturnType<typeof setTimeout> | null = null
 
-  function cacheValues(): CacheSettings {
+  function serverValues(): UserSettings {
     return {
       cache_unread: cacheUnread.value,
       cache_opened_unread: cacheOpenedUnread.value,
       cache_inbox: cacheInbox.value,
       cache_inbox_count: cacheInboxCount.value,
       cache_max_age_days: cacheMaxAgeDays.value,
+      auto_read: autoRead.value,
     }
   }
 
@@ -122,12 +134,13 @@ export function usePrefs() {
       cacheInbox.value = found.cache_inbox
       cacheInboxCount.value = found.cache_inbox_count
       cacheMaxAgeDays.value = found.cache_max_age_days
+      autoRead.value = parseAutoRead(found.auto_read)
     } catch {
       // Keep what the last visit left.
     }
   }
 
-  watch([cacheUnread, cacheOpenedUnread, cacheInbox, cacheInboxCount, cacheMaxAgeDays], () => {
+  watch([cacheUnread, cacheOpenedUnread, cacheInbox, cacheInboxCount, cacheMaxAgeDays, autoRead], () => {
     // Nothing is sent before the server's values are in (they would overwrite them), nor while a number field is empty.
     if (
       serverCache === null ||
@@ -135,11 +148,11 @@ export function usePrefs() {
       !validNumber(cacheMaxAgeDays.value)
     )
       return
-    if (JSON.stringify(cacheValues()) === serverCache) return
+    if (JSON.stringify(serverValues()) === serverCache) return
     if (sendTimer !== null) clearTimeout(sendTimer)
     sendTimer = setTimeout(async () => {
       sendTimer = null
-      const values = cacheValues()
+      const values = serverValues()
       try {
         serverCache = JSON.stringify(await saveSettings(values))
       } catch {
@@ -160,5 +173,6 @@ export function usePrefs() {
     cacheInbox,
     cacheInboxCount,
     cacheMaxAgeDays,
+    autoRead,
   }
 }

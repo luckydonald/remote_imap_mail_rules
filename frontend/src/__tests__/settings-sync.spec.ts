@@ -9,6 +9,7 @@ const SERVER = {
   cache_inbox: true,
   cache_inbox_count: 50,
   cache_max_age_days: 7,
+  auto_read: 'scrolled',
 }
 
 let puts: unknown[] = []
@@ -47,6 +48,7 @@ describe('cache settings on the server', () => {
     expect(prefs.cacheUnread.value).toBe(false)
     expect(prefs.cacheInboxCount.value).toBe(50)
     expect(prefs.cacheMaxAgeDays.value).toBe(7)
+    expect(prefs.autoRead.value).toBe('scrolled')
     await nextTick()
     await vi.advanceTimersByTimeAsync(1000)
     expect(puts).toEqual([])
@@ -62,6 +64,21 @@ describe('cache settings on the server', () => {
     await nextTick()
     await vi.advanceTimersByTimeAsync(1000)
     expect(puts).toEqual([{ ...SERVER, cache_inbox_count: 10 }])
+  })
+
+  it('sends a changed automatic read setting', async () => {
+    stubServer()
+    const prefs = usePrefs()
+    await prefs.loadServerSettings()
+    prefs.autoRead.value = 'open'
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(puts).toEqual([{ ...SERVER, auto_read: 'open' }])
+  })
+
+  it('falls back to off for an unknown stored value', () => {
+    localStorage.setItem('mail-prefs', JSON.stringify({ autoRead: 'always' }))
+    expect(usePrefs().autoRead.value).toBe('off')
   })
 
   it('sends nothing before the server values are in, nor an empty number', async () => {

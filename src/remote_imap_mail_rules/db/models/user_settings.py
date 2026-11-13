@@ -1,6 +1,6 @@
 """Settings of the admin that follow them into every browser: one row, edited in the web UI."""
 
-from sqlalchemy import Boolean, Integer
+from sqlalchemy import Boolean, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..base import Base
@@ -19,4 +19,6 @@ class UserSettings(Base):
     cache_inbox_count: Mapped[int] = mapped_column(Integer, default=200)
     #: Days without a view after which a cached mail is dropped (outside the INBOX window), 0 never.
     cache_max_age_days: Mapped[int] = mapped_column(Integer, default=30)
+    #: When the mail view marks a mail read by itself: `off`, `open` (when it is opened) or `scrolled` (once scrolled to the end).
+    auto_read: Mapped[str] = mapped_column(String(16), default="off", server_default="off")
 # end class
