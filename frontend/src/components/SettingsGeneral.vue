@@ -58,7 +58,7 @@ const store = useStore()
         <h3>Mails kept for offline use</h3>
         <label class="check">
           <input v-model="store.cacheUnread" type="checkbox" />
-          Unread mails of the folders I opened
+          Unread mails of the folders I opened (not the INBOX)
         </label>
         <label class="check">
           <input v-model="store.cacheOpenedUnread" type="checkbox" />
@@ -88,8 +88,8 @@ const store = useStore()
           days (0 keeps them)
         </label>
         <p class="hint">
-          A mail leaves the cache once it is read, unless it is one of the newest INBOX mails, and
-          after the days above without a visit. Attachments are never cached. These settings are
+          The INBOX follows the newest-mails setting. A mail leaves the cache once it is read,
+          unless it is one of the newest INBOX mails, and after the days above without a visit. Attachments are never cached. These settings are
           kept on the server, so every browser has the same.
         </p>
       </section>

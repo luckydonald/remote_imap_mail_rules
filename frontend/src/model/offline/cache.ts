@@ -155,7 +155,7 @@ export function reasonsFor(
   rank: number | null,
 ): Reason[] {
   const reasons: Reason[] = []
-  if (rules.cacheUnread && !seen) reasons.push('unread')
+  if (rules.cacheUnread && !seen && !isInbox(folder)) reasons.push('unread')
   if (rules.cacheOpenedUnread && opened && !seen) reasons.push('opened')
   if (rules.cacheInbox && isInbox(folder) && rank !== null && rank < rules.cacheInboxCount)
     reasons.push('inbox')
@@ -247,7 +247,7 @@ export async function removeMail(accountId: string, folder: string, uid: number)
   }
 }
 
-/** UIDs of a folder that a background prefetch should fetch, by the rules: the INBOX window and unread mails of opened folders. */
+/** UIDs of a folder that a background prefetch should fetch, by the rules: the INBOX window and unread mails of opened folders (not the INBOX). */
 export async function wanted(
   accountId: string,
   rules: CacheRules,

@@ -1215,3 +1215,27 @@ Tools:
 
 ❯ Plan accepted, auto mode.
 
+❯ Question answered.
+> <details><summary>
+>
+>> 1. Todo 66ef1a9b says the setting "Unread mails of the folders I opened" should mention that it doesn't include INBOX. In the code (`reasonsFor` in `cache.ts`) it does include INBOX if you opened it, because the unread rule applies to every folder. What should I do?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **INBOX** (1/1) <kbd>Single Select</kbd><br>
+>> Todo 66ef1a9b says the setting "Unread mails of the folders I opened" should mention that it doesn't include INBOX. In the code (`reasonsFor` in `cache.ts`) it does include INBOX if you opened it, because the unread rule applies to every folder. What should I do?
+> - [x] 1\. Exclude INBOX in code + label
+>   - _Unread rule skips INBOX (INBOX is covered by the newest-N setting), label says "(not the INBOX)"._
+> - [ ] 2\. Label only: say INBOX has its own setting
+>   - _Behaviour unchanged. Label notes that the INBOX is handled by the newest-INBOX-mails setting below._
+> - [ ] 3\. Skip this todo
+>   - _Take the next open todo instead._
+> - [ ] 4\. _Type something._
+>
+> </details>
+>
+
+❯ Plan accepted, auto mode.
+
