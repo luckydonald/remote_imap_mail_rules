@@ -1251,3 +1251,7 @@ Tools:
 
 ❯ Plan accepted, auto mode.
 
+❯ Plan accepted, auto mode.
+
+❯ Clean up any unpushed commits to not contain unsquashed ai/todo stuff, then push
+

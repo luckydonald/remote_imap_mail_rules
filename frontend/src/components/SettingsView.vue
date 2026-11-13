@@ -7,6 +7,7 @@ import ActionLogView from './ActionLogView.vue'
 import GitView from './GitView.vue'
 import OnlineOnly from './OnlineOnly.vue'
 import SettingsGeneral from './SettingsGeneral.vue'
+import SettingsStats from './SettingsStats.vue'
 
 defineEmits<{ unauthorized: [] }>()
 
@@ -16,6 +17,7 @@ const parts = [
   { name: 'settings-accounts', label: 'Accounts' },
   { name: 'settings-git', label: 'Git' },
   { name: 'settings-log', label: 'Action log' },
+  { name: 'settings-stats', label: 'Stats' },
 ] as const
 const current = computed(() => route.name)
 </script>
@@ -36,6 +38,7 @@ const current = computed(() => route.name)
     <OnlineOnly v-else-if="current === 'settings-log'">
       <ActionLogView @unauthorized="$emit('unauthorized')" />
     </OnlineOnly>
+    <SettingsStats v-else-if="current === 'settings-stats'" />
     <SettingsGeneral v-else />
   </template>
 </template>

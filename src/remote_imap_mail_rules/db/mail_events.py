@@ -184,3 +184,17 @@ async def last_event_at(session: AsyncSession, kinds: Sequence[EventKind]) -> da
     newest = await session.scalar(select(func.max(MailEvent.created_at)).where(MailEvent.kind.in_([kind.value for kind in kinds])))
     return None if newest is None else as_utc(newest)
 # end def
+
+
+async def first_event_at(session: AsyncSession) -> datetime | None:
+    """When the oldest entry of any kind was logged."""
+    oldest = await session.scalar(select(func.min(MailEvent.created_at)))
+    return None if oldest is None else as_utc(oldest)
+# end def
+
+
+async def count_by_kind(session: AsyncSession) -> dict[str, int]:
+    """How many entries each kind has; kinds without entries are left out."""
+    rows = await session.execute(select(MailEvent.kind, func.count()).group_by(MailEvent.kind))
+    return {kind: count for kind, count in rows.all()}
+# end def

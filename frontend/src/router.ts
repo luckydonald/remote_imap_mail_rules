@@ -64,6 +64,7 @@ export const routes: RouteRecordRaw[] = [
       { path: 'accounts', name: 'settings-accounts', component: empty },
       { path: 'git', name: 'settings-git', component: empty },
       { path: 'log', name: 'settings-log', component: empty },
+      { path: 'stats', name: 'settings-stats', component: empty },
     ],
   },
   { path: '/accounts', redirect: { name: 'settings-accounts' } },
