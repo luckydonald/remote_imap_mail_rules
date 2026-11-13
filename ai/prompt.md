@@ -1245,3 +1245,7 @@ Tools:
 
 ❯ Plan denied.
 
+❯ Again, this is a user setting, so stored in the database. If there is an unpushed migration, you may add to that one.
+
+❯ Plan accepted, auto mode.
+

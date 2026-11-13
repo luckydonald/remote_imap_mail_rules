@@ -10,7 +10,8 @@ async def get_settings(session: AsyncSession) -> UserSettings:
     """The row, or a transient one with the defaults when nothing was saved yet."""
     row = await session.get(UserSettings, ROW_ID)
     if row is None:
-        row = UserSettings(id=ROW_ID, cache_unread=True, cache_opened_unread=True, cache_inbox=True, cache_inbox_count=200, cache_max_age_days=30)
+        row = UserSettings(id=ROW_ID, cache_unread=True, cache_opened_unread=True, cache_inbox=True, cache_inbox_count=200, cache_max_age_days=30,
+                           auto_read="off")
     # end if
     return row
 # end def

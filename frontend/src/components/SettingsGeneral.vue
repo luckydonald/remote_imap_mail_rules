@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** How this browser shows mails. Kept in the browser (localStorage), nothing here is sent to the server. */
+/** How this browser shows mails (kept in localStorage) and the admin's settings kept on the server: automatic read and the offline cache. */
 import { useStore } from '@/model/store'
 import McpTokens from './McpTokens.vue'
 import OnlineOnly from './OnlineOnly.vue'
@@ -52,6 +52,25 @@ const store = useStore()
         Allowed styles are filtered: no imports, no scripted values, nothing fixed over the page.
       </p>
     </section>
+    <OnlineOnly>
+      <section>
+        <h3>Mark mails read</h3>
+        <SegmentedToggle
+          v-model="store.autoRead"
+          label="Mark mails read"
+          :options="[
+            { value: 'off', label: 'Off' },
+            { value: 'open', label: 'When opened' },
+            { value: 'scrolled', label: 'When scrolled to the end' },
+          ]"
+        />
+        <p class="hint">
+          Marks an unread mail read by itself, in the full screen mail view only (not in the example mail panel of the rule editor). A mail you mark
+          unread by hand stays unread until you open it again. This needs ACTIONS_ENABLED=true on the server and is kept there, so every
+          browser has the same.
+        </p>
+      </section>
+    </OnlineOnly>
     <h2>Offline cache</h2>
     <OnlineOnly>
       <section>

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { ACCOUNT_ID, logIn, mockServer } from './mail-mock'
+import { ACCOUNT_ID, DETAIL, logIn, mockServer } from './mail-mock'
 
 test('asks for a login, then browses folders, pages and reads a message', async ({ page }) => {
   const calls = await mockServer(page)
@@ -248,6 +248,55 @@ test('marks the open mail unread and read again', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Mark unread' })).toBeVisible()
   await expect(page.locator('.row-mail.active')).not.toHaveClass(/unread/)
   expect(calls).toContain('body {"add":["\\\\Seen"],"remove":[]}')
+})
+
+test('marks an opened mail read by itself with the setting "when opened"', async ({ page }) => {
+  const calls = await mockServer(page, false, null, 'open')
+  await openThird(page)
+  await expect(page.getByRole('button', { name: 'Mark unread' })).toBeVisible()
+  await expect(page.locator('.row-mail.active')).not.toHaveClass(/unread/)
+  expect(calls).toContain('body {"add":["\\\\Seen"],"remove":[]}')
+  // Marking it unread by hand is not undone while it stays open.
+  await page.getByRole('button', { name: 'Mark unread' }).click()
+  await expect(page.getByRole('button', { name: 'Mark read' })).toBeVisible()
+  await page.waitForTimeout(300)
+  await expect(page.getByRole('button', { name: 'Mark read' })).toBeVisible()
+})
+
+test('leaves an opened mail unread with the setting off', async ({ page }) => {
+  const calls = await mockServer(page)
+  await openThird(page)
+  await page.waitForTimeout(300)
+  await expect(page.getByRole('button', { name: 'Mark read' })).toBeVisible()
+  expect(calls.some((call) => call.startsWith('body'))).toBe(false)
+})
+
+test('marks a long mail read once scrolled to the end with the setting "scrolled"', async ({
+  page,
+}) => {
+  await mockServer(page, false, null, 'scrolled')
+  await page.route('**/api/mail/**/messages/3*', (route) =>
+    route.fulfill({
+      json: {
+        ...DETAIL,
+        blocked_images: [],
+        html: Array.from({ length: 300 }, (_, i) => `<p>line ${i}</p>`).join(''),
+      },
+    }),
+  )
+  await openThird(page)
+  await page.waitForTimeout(300)
+  await expect(page.getByRole('button', { name: 'Mark read' })).toBeVisible()
+  await expect
+    .poll(() => page.locator('.body-frame').evaluate((el) => el.getBoundingClientRect().height))
+    .toBeGreaterThan(2000)
+  // The desktop layout scrolls the page, the narrow one the message column.
+  await page.evaluate(() => {
+    window.scrollTo(0, document.documentElement.scrollHeight)
+    const column = document.querySelector('.mail-message')
+    column?.scrollTo(0, column.scrollHeight)
+  })
+  await expect(page.getByRole('button', { name: 'Mark unread' })).toBeVisible()
 })
 
 test('disables the mark read button with a spinner until the server answered', async ({ page }) => {

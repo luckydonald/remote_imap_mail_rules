@@ -113,7 +113,7 @@ To complete one:
 - [x] “Unread mails of the folders I opened” should me Zion that it doesn’t include INBOX. — `todo:66ef1a9b-d91a-4179-8a00-7779272f6844` _(done)_
 - [x] new token is an overlay of its own — `todo:724a7f97-b485-4c53-8365-c55f974adf98` _(done)_
 - [x] make the _all headers_ table mobile friendly on small screens — `todo:526faa83-2054-43f2-99f4-6beb7c7a3902` _(done)_
-- [ ] add automatic mail read — `todo:2bb01f31-66e6-4d96-bd8f-46d8abc705cc`
+- [x] add automatic mail read — `todo:2bb01f31-66e6-4d96-bd8f-46d8abc705cc` _(done)_
   > - settings: off / upon open / scrolled down
 - [ ] move the load images button after the load styles button — `todo:2a7dff4f-1ee0-429a-a32c-a0b9e8bfb82f`
   > - same color as styles

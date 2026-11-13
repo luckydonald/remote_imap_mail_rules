@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { autoReadDue, reachedEnd, visibleBottom, wantsAutoRead } from '@/model/auto-read'
 import { addressList, fileSize, frameDocument, fullDate } from '@/model/mail-format'
 import { useStore } from '@/model/store'
 import type { BodyMode } from '@/model/store/prefs'
@@ -11,9 +12,10 @@ import MailRuleMenu from './MailRuleMenu.vue'
 import MailSpinner from './MailSpinner.vue'
 import SegmentedToggle from './SegmentedToggle.vue'
 
-defineProps<{ compact?: boolean }>()
+const props = defineProps<{ compact?: boolean }>()
 const store = useStore()
 
+const endMarker = ref<HTMLElement | null>(null)
 const frame = ref<HTMLIFrameElement | null>(null)
 let observer: ResizeObserver | null = null
 
@@ -35,12 +37,14 @@ const showHtml = computed(() => mode.value === 'html' && !!store.detail?.html)
 function fit(): void {
   const body = frame.value?.contentDocument?.body
   if (frame.value && body) frame.value.style.height = `${body.scrollHeight}px`
+  void nextTick(checkAutoRead)
 }
 
 /** Follows the content while images and fonts arrive, so the page scrolls as one and the frame never has a scrollbar of its own. */
 function track(): void {
   observer?.disconnect()
   observer = null
+  frameLoaded = true
   fit()
   const body = frame.value?.contentDocument?.body
   if (body && typeof ResizeObserver !== 'undefined') {
@@ -49,12 +53,51 @@ function track(): void {
   }
 }
 
-onBeforeUnmount(() => observer?.disconnect())
+// The page (desktop) or the message column (narrow) scrolls; scroll events do not bubble, so listen in the capture phase of the window.
+onMounted(() => window.addEventListener('scroll', checkAutoRead, { capture: true, passive: true }))
+onBeforeUnmount(() => {
+  observer?.disconnect()
+  window.removeEventListener('scroll', checkAutoRead, { capture: true })
+})
 
 watch(
   () => [store.detail?.uid, showHtml.value] as const,
   () => void nextTick(fit),
 )
+
+// Automatic read (the admin's `auto_read` setting): decided once per opening, so `Mark unread` afterwards stays. Only the full screen does it.
+let waitingUid: number | null = null
+let frameLoaded = false
+
+watch(
+  () => store.detail?.uid,
+  (uid) => {
+    frameLoaded = false
+    waitingUid = null
+    const detail = store.detail
+    if (props.compact || uid === undefined || !detail) return
+    if (wantsAutoRead(store.autoRead, detail.seen, store.actionsEnabled)) waitingUid = uid
+    void nextTick(checkAutoRead)
+  },
+  { immediate: true },
+)
+
+watch(showHtml, () => {
+  frameLoaded = false
+})
+
+/** Marks the waiting mail read when the setting says so: when opened, or once the end of the mail is in view (the HTML frame has to be sized first). */
+function checkAutoRead(): void {
+  const detail = store.detail
+  if (detail === null || waitingUid !== detail.uid) return
+  const ready = !showHtml.value || frameLoaded
+  const marker = endMarker.value
+  const atEnd =
+    ready && marker !== null && reachedEnd(marker.getBoundingClientRect().bottom, visibleBottom(marker))
+  if (!autoReadDue(store.autoRead, atEnd)) return
+  waitingUid = null
+  void store.setSeen(true)
+}
 
 const remote = computed(() => store.detail?.remote_images_allowed ?? false)
 const unreadLabel = computed(() => (store.detail?.seen ? 'Mark unread' : 'Mark read'))
@@ -170,6 +213,7 @@ const unreadLabel = computed(() => (store.detail?.seen ? 'Mark unread' : 'Mark r
       <pre v-else-if="store.detail.text" class="body-text">{{ store.detail.text }}</pre>
       <p v-else class="hint">This message has no text.</p>
       <MailLog :events="store.events" :offline="store.eventsOffline" />
+      <div ref="endMarker" class="end-marker" aria-hidden="true"></div>
     </template>
   </article>
 </template>

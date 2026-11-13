@@ -16,6 +16,7 @@ const mockServer = async (page: Page): Promise<{ created: unknown[] }> => {
         cache_inbox: true,
         cache_inbox_count: 200,
         cache_max_age_days: 30,
+        auto_read: 'off',
       },
     }),
   )
