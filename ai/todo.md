@@ -115,7 +115,7 @@ To complete one:
 - [x] make the _all headers_ table mobile friendly on small screens — `todo:526faa83-2054-43f2-99f4-6beb7c7a3902` _(done)_
 - [x] add automatic mail read — `todo:2bb01f31-66e6-4d96-bd8f-46d8abc705cc` _(done)_
   > - settings: off / upon open / scrolled down
-- [ ] move the load images button after the load styles button — `todo:2a7dff4f-1ee0-429a-a32c-a0b9e8bfb82f`
+- [x] move the load images button after the load styles button — `todo:2a7dff4f-1ee0-429a-a32c-a0b9e8bfb82f` _(done)_
   > - same color as styles
 - [ ] in the settings have a subroute with stats — `todo:c96db0d2-06f9-432c-aabe-963d1da2fc96`
   > - server stats

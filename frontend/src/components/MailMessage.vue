@@ -176,29 +176,35 @@ const unreadLabel = computed(() => (store.detail?.seen ? 'Mark unread' : 'Mark r
             <a :href="url" target="_blank" rel="noreferrer noopener">{{ url }}</a>
           </li>
         </ul>
+      </details>
+      <p v-if="showHtml && store.detail.broken_embeds.length" class="hint broken-embeds">
+        {{ store.detail.broken_embeds.length }} embedded image(s) are missing from this mail.
+      </p>
+      <p
+        v-if="showHtml && (store.detail.styles_blocked || store.detail.blocked_images.length)"
+        class="hint load-actions"
+      >
+        <template v-if="store.detail.styles_blocked">
+          <span class="styles-blocked">The styles of this mail are not shown.</span>
+          <button
+            type="button"
+            class="ghost load-styles"
+            :disabled="!store.isOnline"
+            :title="store.isOnline ? undefined : 'Not available offline'"
+            @click="store.allow({ styles: true })"
+          >
+            Load styles
+          </button>
+        </template>
         <button
+          v-if="store.detail.blocked_images.length"
           type="button"
-          class="load-remote"
+          class="ghost load-remote"
           :disabled="!store.isOnline"
           :title="store.isOnline ? undefined : 'Not available offline'"
           @click="store.allow({ remoteImages: true })"
         >
           Load remote images
-        </button>
-      </details>
-      <p v-if="showHtml && store.detail.broken_embeds.length" class="hint broken-embeds">
-        {{ store.detail.broken_embeds.length }} embedded image(s) are missing from this mail.
-      </p>
-      <p v-if="showHtml && store.detail.styles_blocked" class="hint styles-blocked">
-        The styles of this mail are not shown.
-        <button
-          type="button"
-          class="ghost load-styles"
-          :disabled="!store.isOnline"
-          :title="store.isOnline ? undefined : 'Not available offline'"
-          @click="store.allow({ styles: true })"
-        >
-          Load styles
         </button>
       </p>
       <iframe

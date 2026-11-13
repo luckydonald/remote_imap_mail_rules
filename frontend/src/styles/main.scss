@@ -1535,6 +1535,13 @@ button {
   }
 }
 
+.load-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .all-headers {
   margin: 8px 16px;
   padding: 6px 10px;
