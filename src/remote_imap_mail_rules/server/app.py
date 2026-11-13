@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -14,7 +15,7 @@ from ..db.engine import create_engine, create_session_factory
 from ..db.migrate import upgrade
 from ..imap.client import ConnectionFactory, connect_aioimaplib
 from ..mcp_server.server import mount_mcp
-from .api import accounts, auth, dry_run, editor, events, git, log, mail, mcp_tokens, public, sample_error, settings as settings_api
+from .api import accounts, auth, dry_run, editor, events, git, log, mail, mcp_tokens, public, sample_error, settings as settings_api, stats
 from .auth import require_login
 from .git_repo import GitRepo
 from .git_service import GitService
@@ -85,6 +86,7 @@ def create_app(
 
     app = FastAPI(title="remote_imap_mail_rules", lifespan=lifespan)
     app.state.settings = settings
+    app.state.started_at = datetime.now(UTC)
     app.state.session_factory = session_factory
     app.state.env_account = env_account
     app.state.raw_imap_factory = imap_factory
@@ -108,6 +110,7 @@ def create_app(
     app.include_router(sample_error.router, prefix="/api/sample-error", tags=["sample-error"], dependencies=protected)
     app.include_router(events.router, prefix="/api/mail", tags=["mail"], dependencies=protected)
     app.include_router(log.router, prefix="/api/log", tags=["log"], dependencies=protected)
+    app.include_router(stats.router, prefix="/api/stats", tags=["stats"], dependencies=protected)
     mcp_server = mount_mcp(app)
     if settings.frontend_dist.is_dir():
         # Mounted last, so `/api` wins; `html=True` serves `index.html` for `/`.
