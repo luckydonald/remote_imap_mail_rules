@@ -110,7 +110,7 @@ To complete one:
 - [x] button actions like _Mark read_ shall have a loading spinner, and be disabled until done — `todo:fdbbd2c4-d369-4c87-99db-00061eb7d070` _(done)_
 - [x] keep the last _Add to rule_ settings (type, e.g. template + which) in the store — `todo:340ec332-701e-47da-b60c-73208152b829` _(done)_
   > - to easily add multiple mails with the same field types
-- [ ] “Unread mails of the folders I opened” should me Zion that it doesn’t include INBOX. — `todo:66ef1a9b-d91a-4179-8a00-7779272f6844`
+- [x] “Unread mails of the folders I opened” should me Zion that it doesn’t include INBOX. — `todo:66ef1a9b-d91a-4179-8a00-7779272f6844` _(done)_
 - [ ] new token is an overlay of its own — `todo:724a7f97-b485-4c53-8365-c55f974adf98`
 - [ ] make the _all headers_ table mobile friendly on small screens — `todo:526faa83-2054-43f2-99f4-6beb7c7a3902`
 - [ ] add automatic mail read — `todo:2bb01f31-66e6-4d96-bd8f-46d8abc705cc`

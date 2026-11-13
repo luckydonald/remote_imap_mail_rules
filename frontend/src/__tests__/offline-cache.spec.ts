@@ -98,9 +98,12 @@ describe('offline cache', () => {
     await saveDetail('a', 'INBOX', detail(2), off, false)
     expect(await keys()).toEqual([])
     await saveDetail('a', 'INBOX', detail(2), { ...off, cacheUnread: true }, false)
+    expect(await keys()).toEqual([])
+    await savePage('a', 'Other', null, page([9, 8]))
+    await saveDetail('a', 'Other', detail(8), { ...off, cacheUnread: true }, false)
     await saveDetail('a', 'INBOX', detail(1), { ...off, cacheInbox: true }, false)
     await saveDetail('a', 'Other', detail(9), { ...off, cacheOpenedUnread: true }, true)
-    expect(await keys()).toEqual(['a|INBOX|1', 'a|INBOX|2', 'a|Other|9'])
+    expect(await keys()).toEqual(['a|INBOX|1', 'a|Other|8', 'a|Other|9'])
   })
 
   it('a mail opened while unread is kept without its list, and leaves when read', async () => {
@@ -161,7 +164,13 @@ describe('offline cache', () => {
     await savePage('a', 'INBOX', null, page([2, 1]))
     await saveDetail('a', 'INBOX', detail(2), RULES, true)
     const [record] = await dbAll<{ reasons: string[] }>('details')
-    expect(record!.reasons).toEqual(['unread', 'opened', 'inbox'])
+    expect(record!.reasons).toEqual(['opened', 'inbox'])
+    await savePage('a', 'Other', null, page([9]))
+    await saveDetail('a', 'Other', detail(9), RULES, true)
+    const other = (await dbAll<{ key: string; reasons: string[] }>('details')).find(
+      (r) => r.key === 'a|Other|9',
+    )
+    expect(other!.reasons).toEqual(['unread', 'opened'])
   })
 
   it('drops a folder when its UIDVALIDITY changed', async () => {
