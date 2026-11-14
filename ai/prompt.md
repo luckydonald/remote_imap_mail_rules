@@ -1283,3 +1283,7 @@ Tools:
 
 ❯ Plan accepted, auto mode.
 
+❯ Yeah, add a template, and then save. Now change the template block to use another template instead - it does not change the yml, and going to a different view and back displays the old template again, too.
+
+❯ no it was before the template in template change.
+
