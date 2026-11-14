@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
+import FieldValue from '../FieldValue.vue'
+import { CURRENT_TEMPLATE } from '@/model/context'
 import { refillTemplateUse } from '@/model/fill-from-mail'
 import { useStore } from '@/model/store'
 import { parseValue as parse, showValue as show } from '@/model/values'
-import { templateVariables } from '@/model/validate'
+import { templateVariables, usableTemplates } from '@/model/validate'
 import type { TemplateUse } from '@/model/types'
 
 const model = defineModel<TemplateUse>('node', { required: true })
 const store = useStore()
 
-const names = computed(() => Object.keys(store.file.templates))
+const currentTemplate = inject(CURRENT_TEMPLATE, undefined)
+const names = computed(() => usableTemplates(store.file, currentTemplate))
 const variables = computed(() => templateVariables(store.file, model.value.ref))
 const defaults = computed(() => store.file.templates[model.value.ref]?.defaults ?? {})
 
@@ -44,10 +47,13 @@ function changeRef(ref: string): void {
   else model.value.ref = ref
 }
 
+function setValue(name: string, value: unknown): void {
+  if (value === undefined || value === '') delete model.value.variables[name]
+  else model.value.variables[name] = value
+}
+
 function set(name: string, event: Event): void {
-  const text = (event.target as HTMLInputElement).value
-  if (text === '') delete model.value.variables[name]
-  else model.value.variables[name] = parse(text)
+  setValue(name, parse((event.target as HTMLInputElement).value))
 }
 </script>
 
@@ -68,11 +74,18 @@ function set(name: string, event: Event): void {
     <div v-for="name in variables" :key="name" class="variable">
       <label>
         <code>{{ name }}</code>
-        <input
-          :value="show(model.variables[name])"
-          :placeholder="name in defaults ? `default: ${show(defaults[name])}` : 'required'"
-          @input="set(name, $event)"
-        />
+        <FieldValue
+          :model-value="model.variables[name]"
+          :fallback="undefined"
+          :var-name="name"
+          @update:model-value="setValue(name, $event)"
+        >
+          <input
+            :value="show(model.variables[name])"
+            :placeholder="name in defaults ? `default: ${show(defaults[name])}` : 'required'"
+            @input="set(name, $event)"
+          />
+        </FieldValue>
       </label>
     </div>
     <div v-for="key in orphans" :key="key" class="orphan" role="alert">

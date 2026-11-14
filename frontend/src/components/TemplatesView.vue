@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { provide, ref } from 'vue'
-import ConditionNode from './ConditionNode.vue'
+import TemplateContent from './TemplateContent.vue'
 import TemplateRenameBox from './TemplateRenameBox.vue'
 import { newExpression } from '@/model/catalog'
 import { ALLOW_VARS } from '@/model/context'
@@ -104,7 +104,7 @@ function setDefault(defaults: Record<string, unknown>, name: string, event: Even
         </div>
       </template>
       <h3>Content</h3>
-      <ConditionNode v-model="def.content" />
+      <TemplateContent v-model="def.content" :template="String(name)" />
     </article>
     <form class="row" @submit.prevent="create">
       <input v-model="newName" placeholder="New template name" />

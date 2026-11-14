@@ -62,6 +62,30 @@ function walkUses(
   }
 }
 
+/** Whether the content of template `from` uses `target`, directly or through other templates. */
+export function leadsTo(file: RuleFile, from: string, target: string): boolean {
+  const seen = new Set<string>()
+  const visit = (name: string): boolean => {
+    if (seen.has(name)) return false
+    seen.add(name)
+    const def = file.templates[name]
+    if (!def) return false
+    let found = false
+    walkUses(def.content, '', (use) => {
+      if (use.ref === target || visit(use.ref)) found = true
+    })
+    return found
+  }
+  return visit(from)
+}
+
+/** Templates a use inside template `inside` may point at: not itself and none that uses it. */
+export function usableTemplates(file: RuleFile, inside: string | undefined): string[] {
+  return Object.keys(file.templates).filter(
+    (name) => inside === undefined || (name !== inside && !leadsTo(file, name, inside)),
+  )
+}
+
 export function validateRules(file: RuleFile): Problem[] {
   const problems: Problem[] = []
   const expanded = expandRules(file)
@@ -79,6 +103,14 @@ export function validateRules(file: RuleFile): Problem[] {
   }
   walkUses(file.rules, '/rules', (use, path) => checkUse(file, use, path, problems))
   walkUses(file.templates, '/templates', (use, path) => checkUse(file, use, path, problems))
+  for (const name of Object.keys(file.templates)) {
+    if (leadsTo(file, name, name))
+      problems.push({
+        path: `/templates/${name}`,
+        message: `template \`${name}\` uses itself`,
+        ...locate(`/templates/${encodeURIComponent(name)}`),
+      })
+  }
   return problems
 }
 

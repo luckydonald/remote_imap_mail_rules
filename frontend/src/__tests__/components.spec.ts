@@ -11,7 +11,8 @@ import TemplateRenameBox from '@/components/TemplateRenameBox.vue'
 import SourceMenu from '@/components/SourceMenu.vue'
 import { useStore } from '@/model/store'
 import { defineComponent, h, reactive } from 'vue'
-import { ALLOW_VARS } from '@/model/context'
+import TemplateUseEditor from '@/components/condition/TemplateUseEditor.vue'
+import { ALLOW_VARS, CURRENT_TEMPLATE } from '@/model/context'
 import type { Expression } from '@/model/types'
 
 beforeEach(() => setActivePinia(createPinia()))
@@ -158,6 +159,59 @@ describe('FieldValue', () => {
     await wrapper.setProps({ modelValue: { var: 'name' } })
     expect(wrapper.find('.literal').exists()).toBe(false)
     expect((wrapper.find('input.var-name').element as HTMLInputElement).value).toBe('name')
+  })
+})
+
+describe('template use inside a template', () => {
+  function setup(provide: Record<symbol, unknown>) {
+    const node = reactive({ type: 'template', ref: 'inner', variables: {} }) as never
+    const { store, wrapper } = withStore(() =>
+      h(
+        defineComponent({
+          setup: () => () => h(TemplateUseEditor, { node }),
+          provide,
+        }),
+      ),
+    )
+    store.file.templates.inner = {
+      type: 'template',
+      defaults: {},
+      content: { type: 'text', field: 'subject', operator: 'contains', value: { var: 'word' } },
+    } as never
+    store.file.templates.other = {
+      type: 'template',
+      defaults: {},
+      content: { type: 'text', field: 'subject', operator: 'contains', value: 'x' },
+    } as never
+    return { node: node as { variables: Record<string, unknown> }, wrapper }
+  }
+
+  it('names a new !var like the variable of the nested template, and can drop it again', async () => {
+    const { node, wrapper } = setup({ [ALLOW_VARS as symbol]: true })
+    await flushPromises()
+    await wrapper.find('.variable button').trigger('click')
+    expect(node.variables).toEqual({ word: { var: 'word' } })
+    await wrapper.find('input.var-name').setValue('topic')
+    expect(node.variables).toEqual({ word: { var: 'topic' } })
+    await wrapper.find('.variable button').trigger('click')
+    expect(node.variables).toEqual({})
+  })
+
+  it('has no var toggle in a rule', async () => {
+    const { wrapper } = setup({})
+    await flushPromises()
+    expect(wrapper.find('.variable').exists()).toBe(true)
+    expect(wrapper.find('.variable button').exists()).toBe(false)
+  })
+
+  it('does not offer the template that is being edited', async () => {
+    const { wrapper } = setup({
+      [ALLOW_VARS as symbol]: true,
+      [CURRENT_TEMPLATE as symbol]: 'other',
+    })
+    await flushPromises()
+    const options = wrapper.findAll('select option').map((option) => option.attributes('value'))
+    expect(options).toEqual(['inner'])
   })
 })
 

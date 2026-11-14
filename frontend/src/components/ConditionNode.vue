@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
 import ConfirmUnwrap from './ConfirmUnwrap.vue'
 import AddressEditor from './condition/TextLikeEditor.vue'
 import BoolEditor from './condition/BoolEditor.vue'
@@ -9,7 +9,9 @@ import NumberEditor from './condition/NumberEditor.vue'
 import PresenceEditor from './condition/PresenceEditor.vue'
 import TemplateUseEditor from './condition/TemplateUseEditor.vue'
 import { expressionTypes, newExpression, typeLabels, type ExpressionType } from '@/model/catalog'
+import { CURRENT_TEMPLATE } from '@/model/context'
 import { useStore } from '@/model/store'
+import { usableTemplates } from '@/model/validate'
 import { fillExpression, type Granularity } from '@/model/fill-from-mail'
 import type { Expression } from '@/model/types'
 
@@ -20,6 +22,7 @@ const emit = defineEmits<{
   unwrap: []
 }>()
 const store = useStore()
+const currentTemplate = inject(CURRENT_TEMPLATE, undefined)
 
 const node = computed(() => props.modelValue)
 const isGroup = computed(() => ['all', 'any', 'not'].includes(node.value.type))
@@ -30,7 +33,7 @@ function changeType(type: ExpressionType): void {
     emit('update:modelValue', { ...current, type })
     return
   }
-  const created = newExpression(type, Object.keys(store.file.templates))
+  const created = newExpression(type, usableTemplates(store.file, currentTemplate))
   // With a mail open the new condition starts from it.
   emit(
     'update:modelValue',

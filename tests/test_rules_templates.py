@@ -126,6 +126,38 @@ rules:
     assert when.condition.value == "spam"
 
 
+NESTED_HEAD = """
+templates:
+  inner: &inner
+    type: template
+    content: {{type: text, field: subject, operator: contains, value: {{var: word}}}}
+  outer: &outer
+    type: template
+    defaults: {{topic: news}}
+    content:
+      <<: *inner
+      variables: {{word: {{var: topic}}}}
+rules:
+  - name: r
+    locations: [{{account_id: {ACCOUNT}}}]
+    when:
+      <<: *outer
+"""
+
+
+def test_nested_template_uses_default_of_the_outer_one() -> None:
+    assert parse_rules(NESTED_HEAD.format(ACCOUNT=ACCOUNT)).rules[0].when.value == "news"
+# end def
+
+
+def test_nested_template_outer_variable_without_value_is_refused() -> None:
+    text = NESTED_HEAD.format(ACCOUNT=ACCOUNT).replace("defaults: {topic: news}", "")
+    with pytest.raises(ValueError, match="topic"):
+        parse_rules(text)
+    # end with
+# end def
+
+
 def test_nothing_templated_is_left_after_loading() -> None:
     dumped = load_rules(EXAMPLE).model_dump_json()
     assert '"template"' not in dumped

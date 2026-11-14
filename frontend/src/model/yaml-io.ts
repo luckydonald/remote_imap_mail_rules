@@ -174,8 +174,11 @@ export function expandRules(file: RuleFile): unknown {
   const walk = (node: unknown, seen: string[]): unknown => {
     if (Array.isArray(node)) return node.map((item) => walk(item, seen))
     if (!isObject(node) || isVar(node)) return node
-    if (node.type === 'template' && typeof node.ref === 'string')
-      return walk(expandExpression(node as unknown as Expression, seen), seen)
+    if (node.type === 'template' && typeof node.ref === 'string') {
+      // A use that leads back to a template being expanded stays a bare reference, `validateRules` reports the cycle.
+      if (seen.includes(node.ref)) return node
+      return walk(expandExpression(node as unknown as Expression, seen), [...seen, node.ref])
+    }
     return Object.fromEntries(Object.entries(node).map(([key, value]) => [key, walk(value, seen)]))
   }
   return {

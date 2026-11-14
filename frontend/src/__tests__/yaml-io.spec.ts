@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parseRules, parseRulesWithComments, stringifyRules } from '@/model/yaml-io'
-import { validateRules } from '@/model/validate'
+import { usableTemplates, validateRules } from '@/model/validate'
 
 const read = (name: string) => readFileSync(resolve(process.cwd(), '../rules', name), 'utf-8')
 
@@ -26,6 +26,43 @@ describe('templates', () => {
     expect(text).toContain('&template-anonaddy-forward')
     expect(text).toContain('<<: *template-anonaddy-forward')
     expect(text).toContain('value: !var forward_address')
+  })
+})
+
+describe('nested templates', () => {
+  const NESTED = `templates:
+  inner: &inner
+    type: template
+    content: {type: text, field: subject, operator: contains, value: !var word}
+  outer: &outer
+    type: template
+    content:
+      type: not
+      condition:
+        <<: *inner
+        variables: {word: !var topic}
+rules: []
+`
+
+  it('round trips !var inside the variables of a nested use', () => {
+    const file = parseRules(NESTED)
+    expect(validateRules(file)).toEqual([])
+    expect(stringifyRules(file)).toContain('word: !var topic')
+  })
+
+  it('reports a template that uses itself, also through another one', () => {
+    const file = parseRules(NESTED)
+    file.templates.inner!.content = { type: 'template', ref: 'outer', variables: {} } as never
+    const problems = validateRules(file).map((problem) => problem.message)
+    expect(problems).toContain('template `inner` uses itself')
+    expect(problems).toContain('template `outer` uses itself')
+  })
+
+  it('offers only templates that do not lead back', () => {
+    const file = parseRules(NESTED)
+    expect(usableTemplates(file, 'inner')).toEqual([])
+    expect(usableTemplates(file, 'outer')).toEqual(['inner'])
+    expect(usableTemplates(file, undefined)).toEqual(['inner', 'outer'])
   })
 })
 

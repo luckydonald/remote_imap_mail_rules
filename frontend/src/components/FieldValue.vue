@@ -3,12 +3,15 @@ import { inject } from 'vue'
 import { ALLOW_VARS } from '@/model/context'
 import { isVar } from '@/model/types'
 
-const props = defineProps<{ modelValue: unknown; fallback: unknown }>()
+const props = withDefaults(
+  defineProps<{ modelValue: unknown; fallback: unknown; varName?: string }>(),
+  { varName: '' },
+)
 const emit = defineEmits<{ 'update:modelValue': [value: unknown] }>()
 const allowVars = inject(ALLOW_VARS, false)
 
 function toggle(): void {
-  emit('update:modelValue', isVar(props.modelValue) ? props.fallback : { var: '' })
+  emit('update:modelValue', isVar(props.modelValue) ? props.fallback : { var: props.varName })
 }
 
 function rename(event: Event): void {
