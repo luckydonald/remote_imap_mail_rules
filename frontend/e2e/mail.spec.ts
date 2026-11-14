@@ -387,6 +387,36 @@ test('the header and the body scroll as one', async ({ page }) => {
   expect(sizes.content).toBeLessThanOrEqual(sizes.frame)
 })
 
+test('a mail wider than the pane scrolls sideways inside its frame, never vertically', async ({
+  page,
+}) => {
+  await mockServer(page)
+  await page.route('**/api/mail/**/messages/3*', (route) =>
+    route.fulfill({
+      json: {
+        ...DETAIL,
+        blocked_images: [],
+        html: '<table style="width:1500px"><tr><td>wide</td></tr></table><p>last line</p>',
+      },
+    }),
+  )
+  await openThird(page)
+  const frame = page.locator('iframe.body-frame')
+  await expect(frame.contentFrame().locator('p')).toHaveText('last line')
+  const result = await frame.evaluate((element: HTMLIFrameElement) => {
+    const root = element.contentDocument!.documentElement
+    const before = root.scrollLeft
+    root.scrollLeft = 100
+    return {
+      wider: root.scrollWidth > root.clientWidth,
+      moved: root.scrollLeft > before,
+      // All of the height is visible, the frame needs no vertical scrolling.
+      fits: root.scrollHeight <= root.clientHeight,
+    }
+  })
+  expect(result).toEqual({ wider: true, moved: true, fits: true })
+})
+
 test('the rule button starts a rule from the mail', async ({ page }) => {
   await mockServer(page, false, MOVE_RULES)
   await openThird(page)

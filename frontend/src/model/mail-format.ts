@@ -63,7 +63,7 @@ export function fileSize(bytes: number | null): string {
 }
 
 const FRAME_STYLE =
-  'html{overflow:hidden}body{font:14px/1.5 -apple-system,system-ui,sans-serif;margin:0;word-wrap:break-word;color:#1d1d1f;background:#fff}' +
+  'html{overflow-x:auto;overflow-y:hidden}body{font:14px/1.5 -apple-system,system-ui,sans-serif;margin:0;word-wrap:break-word;color:#1d1d1f;background:#fff}' +
   'img{max-width:100%;height:auto}a{color:#0a66d6}blockquote{margin:0 0 0 8px;padding-left:12px;border-left:3px solid #ddd;color:#555}'
 
 /** The policy of the mail iframe: nothing loads except our own parts, embedded images and, when allowed, remote images. The server's sanitizer is the first layer, this the second. */

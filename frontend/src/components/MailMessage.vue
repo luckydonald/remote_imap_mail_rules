@@ -35,8 +35,14 @@ const showHtml = computed(() => mode.value === 'html' && !!store.detail?.html)
 
 /** Grows the iframe to its content, the sandbox allows this because it keeps the origin but runs no scripts. */
 function fit(): void {
-  const body = frame.value?.contentDocument?.body
-  if (frame.value && body) frame.value.style.height = `${body.scrollHeight}px`
+  const doc = frame.value?.contentDocument
+  const body = doc?.body
+  if (frame.value && doc && body) {
+    frame.value.style.height = `${body.scrollHeight}px`
+    // A mail wider than the frame scrolls sideways inside it; a classic scrollbar takes room from the height, so add it.
+    const bar = frame.value.clientHeight - doc.documentElement.clientHeight
+    if (bar > 0) frame.value.style.height = `${body.scrollHeight + bar}px`
+  }
   void nextTick(checkAutoRead)
 }
 

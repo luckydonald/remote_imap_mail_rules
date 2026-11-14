@@ -1255,3 +1255,29 @@ Tools:
 
 ❯ Clean up any unpushed commits to not contain unsquashed ai/todo stuff, then push
 
+❯ Question answered.
+> <details><summary>
+>
+>> 1. I can't reproduce "allow vertical scroll for too-big mails". Mails 14k px and 105k px tall scroll fine in the full screen view, on a phone, and in the editor's side panel, in Chromium and in iPad WebKit. Where does it fail for you?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Repro** (1/1) <kbd>Single Select</kbd><br>
+>> I can't reproduce "allow vertical scroll for too-big mails". Mails 14k px and 105k px tall scroll fine in the full screen view, on a phone, and in the editor's side panel, in Chromium and in iPad WebKit. Where does it fail for you?
+> - [ ] 1\. Real iPad / touch
+>   - _It only fails with touch scrolling on a real device, which Playwright can't simulate. I'd harden the layout for iOS (for example `-webkit-overflow-scrolling`, and no nested scroll containers around the iframe)._
+> - [ ] 2\. Mail with its own height
+>   - _It happens with HTML that sets its own height (`height:100vh`, fixed-size tables or wrappers), where the frame gets cut off or grows without end. I'd need an example mail or sender to reproduce it._
+> - [x] 3\. Horizontal overflow
+>   - _It happens with mails wider than the pane. I'd treat it as a horizontal and vertical scroll fix for the mail body._
+> - [ ] 4\. Skip this todo
+>   - _Leave it open and take the next todo (templates inside templates)._
+> - [ ] 5\. _Type something._
+>
+> </details>
+>
+
+❯ Plan accepted, auto mode.
+
