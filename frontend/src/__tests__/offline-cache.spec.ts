@@ -3,10 +3,12 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import type { Detail, Folder, Page, Summary } from '@/model/mail-api'
 import {
   loadDetail,
+  loadedFor,
   loadFolders,
   loadPage,
   markSeen,
   purge,
+  rememberLoaded,
   removeMail,
   saveDetail,
   savePage,
@@ -229,5 +231,30 @@ describe('folder tree refresh', () => {
     expect(list.map((x) => x.name)).toEqual(['A', 'C'])
     expect(list[0]).toBe(a)
     expect(a.unseen).toBe(9)
+  })
+})
+
+describe('loaded images and styles', () => {
+  it('remembers per mail and never takes a choice back', async () => {
+    expect(await loadedFor('a', 'INBOX', 1)).toEqual({})
+    await rememberLoaded('a', 'INBOX', 1, { styles: true })
+    await rememberLoaded('a', 'INBOX', 1, { remoteImages: true, styles: false })
+    expect(await loadedFor('a', 'INBOX', 1)).toEqual({ remoteImages: true, styles: true })
+    expect(await loadedFor('a', 'INBOX', 2)).toEqual({})
+  })
+
+  it('stores nothing when nothing was loaded', async () => {
+    await rememberLoaded('a', 'INBOX', 1, {})
+    expect(await dbAll('loaded')).toEqual([])
+  })
+
+  it('is dropped with the mail and wiped by clearAll', async () => {
+    await rememberLoaded('a', 'INBOX', 1, { styles: true })
+    await rememberLoaded('a', 'INBOX', 2, { styles: true })
+    await removeMail('a', 'INBOX', 1)
+    expect(await loadedFor('a', 'INBOX', 1)).toEqual({})
+    expect(await loadedFor('a', 'INBOX', 2)).toEqual({ remoteImages: false, styles: true })
+    await clearAll()
+    expect(await loadedFor('a', 'INBOX', 2)).toEqual({})
   })
 })

@@ -293,3 +293,33 @@ describe('cache first', () => {
     expect(store.messages.map((m) => m.uid)).toEqual([2, 1])
   })
 })
+
+describe('remembering what was loaded', () => {
+  const request = (needle: string): boolean => calls.some((call) => call.includes(needle))
+
+  it('loads the styles of a mail again when it is opened the next time', async () => {
+    const first = useStore()
+    await first.loadAccounts()
+    await first.openMessage(2)
+    await first.allow({ styles: true })
+    calls.length = 0
+    setActivePinia(createPinia())
+    const store = useStore()
+    await store.loadAccounts()
+    await store.openMessage(2)
+    expect(request('/messages/2?') && request('styles=true')).toBe(true)
+    expect(request('remote_images=true')).toBe(false)
+    expect(store.bodyOptions).toEqual({ remoteImages: false, styles: true })
+  })
+
+  it('leaves other mails blocked', async () => {
+    const store = useStore()
+    await store.loadAccounts()
+    await store.openMessage(2)
+    await store.allow({ remoteImages: true })
+    calls.length = 0
+    await store.openMessage(1)
+    expect(request('remote_images=true')).toBe(false)
+    expect(store.bodyOptions).toEqual({ remoteImages: false, styles: false })
+  })
+})

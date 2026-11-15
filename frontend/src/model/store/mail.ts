@@ -8,10 +8,12 @@ import type { usePrefs } from './prefs'
 import { isNetworkError, onReconnect, setOnline, useOnline } from '../online'
 import {
   loadDetail,
+  loadedFor,
   loadFolders,
   loadPage,
   markSeen,
   purge,
+  rememberLoaded,
   removeMail,
   wanted,
   type CacheRules,
@@ -483,6 +485,13 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
     }
     void loadEvents(id, name, uid)
     try {
+      // What the user loaded the last time this mail was open comes back with it.
+      const loaded = await loadedFor(id, name, uid)
+      if (ticket !== detailTicket) return
+      bodyOptions.value = {
+        remoteImages: bodyOptions.value.remoteImages || Boolean(loaded.remoteImages),
+        styles: bodyOptions.value.styles || Boolean(loaded.styles),
+      }
       // The cached copy shows at once (unless it holds more than is allowed now), the server's one replaces it.
       const cached = await loadDetail(id, name, uid)
       if (
@@ -511,6 +520,7 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
     try {
       const found = await readMail(id, name, uid, bodyOptions.value, cacheRules())
       if (ticket === detailTicket) detail.value = found
+      await rememberLoaded(id, name, uid, bodyOptions.value)
     } catch (caught) {
       if (ticket === detailTicket) fail('Could not load the message', caught)
     }

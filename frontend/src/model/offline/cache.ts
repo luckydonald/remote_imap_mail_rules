@@ -5,7 +5,7 @@
  */
 
 import type { Account } from '../accounts-api'
-import type { Detail, Folder, Page, Summary } from '../mail-api'
+import type { BodyOptions, Detail, Folder, Page, Summary } from '../mail-api'
 import { dbAll, dbDelete, dbGet, dbPut } from './db'
 
 export type Reason = 'unread' | 'opened' | 'inbox'
@@ -90,6 +90,10 @@ export async function dropFolder(accountId: string, folder: string): Promise<voi
   for (const record of await dbAll<DetailRecord>('details')) {
     if (record.accountId === accountId && record.folder === folder)
       await dbDelete('details', record.key)
+  }
+  for (const record of await dbAll<LoadedRecord>('loaded')) {
+    if (record.accountId === accountId && record.folder === folder)
+      await dbDelete('loaded', record.key)
   }
 }
 
@@ -203,6 +207,52 @@ export async function loadDetail(
   return record?.detail ?? null
 }
 
+/** What the user let a mail load (remote images, its own styles); remembered apart from the cached mail, which a prefetch overwrites. */
+interface LoadedRecord {
+  key: string
+  accountId: string
+  folder: string
+  uid: number
+  remoteImages: boolean
+  styles: boolean
+  at: string
+}
+
+/** Remembers that the user loaded the remote images and / or styles of a mail; an earlier choice is never taken back. */
+export async function rememberLoaded(
+  accountId: string,
+  folder: string,
+  uid: number,
+  options: BodyOptions,
+  now = new Date(),
+): Promise<void> {
+  const key = detailKey(accountId, folder, uid)
+  const old = await dbGet<LoadedRecord>('loaded', key)
+  const remoteImages = Boolean(options.remoteImages) || (old?.remoteImages ?? false)
+  const styles = Boolean(options.styles) || (old?.styles ?? false)
+  if (!remoteImages && !styles) return
+  await dbPut('loaded', {
+    key,
+    accountId,
+    folder,
+    uid,
+    remoteImages,
+    styles,
+    at: now.toISOString(),
+  } satisfies LoadedRecord)
+}
+
+/** What the user loaded the last time this mail was open, `{}` when nothing. */
+export async function loadedFor(
+  accountId: string,
+  folder: string,
+  uid: number,
+): Promise<BodyOptions> {
+  const record = await dbGet<LoadedRecord>('loaded', detailKey(accountId, folder, uid))
+  if (!record) return {}
+  return { remoteImages: record.remoteImages, styles: record.styles }
+}
+
 /** Notes that the user looked at a cached mail. */
 export async function touchDetail(
   accountId: string,
@@ -239,6 +289,7 @@ export async function markSeen(
 /** Removes a mail that left its folder. */
 export async function removeMail(accountId: string, folder: string, uid: number): Promise<void> {
   await dbDelete('details', detailKey(accountId, folder, uid))
+  await dbDelete('loaded', detailKey(accountId, folder, uid))
   const list = await dbGet<ListRecord>('lists', listKey(accountId, folder))
   if (list) {
     list.messages = list.messages.filter((item) => item.uid !== uid)
@@ -280,6 +331,7 @@ export async function purge(rules: CacheRules, now = new Date()): Promise<number
       now.getTime() - new Date(record.lastViewedAt).getTime() > rules.cacheMaxAgeDays * DAY_MS
     if (reasons.length === 0 || (old && !reasons.includes('inbox'))) {
       await dbDelete('details', record.key)
+      await dbDelete('loaded', record.key)
       removed += 1
     } else if (reasons.join() !== record.reasons.join()) {
       await dbPut('details', { ...record, reasons, seen })

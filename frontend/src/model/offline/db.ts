@@ -1,9 +1,9 @@
 /** A small IndexedDB wrapper for the offline cache. Without IndexedDB (tests, private modes) every call does nothing. */
 
-export type StoreName = 'folders' | 'lists' | 'details' | 'queue'
+export type StoreName = 'folders' | 'lists' | 'details' | 'loaded' | 'queue'
 
 const NAME = 'mail-offline'
-const VERSION = 1
+const VERSION = 2
 let opened: Promise<IDBDatabase | null> | null = null
 
 function open(): Promise<IDBDatabase | null> {
@@ -12,10 +12,13 @@ function open(): Promise<IDBDatabase | null> {
     const request = indexedDB.open(NAME, VERSION)
     request.onupgradeneeded = () => {
       const db = request.result
-      db.createObjectStore('folders', { keyPath: 'key' })
-      db.createObjectStore('lists', { keyPath: 'key' })
-      db.createObjectStore('details', { keyPath: 'key' })
-      db.createObjectStore('queue', { keyPath: 'id', autoIncrement: true })
+      const names = db.objectStoreNames
+      if (!names.contains('folders')) db.createObjectStore('folders', { keyPath: 'key' })
+      if (!names.contains('lists')) db.createObjectStore('lists', { keyPath: 'key' })
+      if (!names.contains('details')) db.createObjectStore('details', { keyPath: 'key' })
+      if (!names.contains('loaded')) db.createObjectStore('loaded', { keyPath: 'key' })
+      if (!names.contains('queue'))
+        db.createObjectStore('queue', { keyPath: 'id', autoIncrement: true })
     }
     request.onsuccess = () => resolve(request.result)
     request.onerror = () => resolve(null)
@@ -63,5 +66,6 @@ export const dbClear = (store: StoreName): Promise<undefined> =>
 
 /** Forgets everything, e.g. on log out. */
 export async function clearAll(): Promise<void> {
-  for (const store of ['folders', 'lists', 'details', 'queue'] as const) await dbClear(store)
+  for (const store of ['folders', 'lists', 'details', 'loaded', 'queue'] as const)
+    await dbClear(store)
 }
