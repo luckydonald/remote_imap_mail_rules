@@ -246,3 +246,50 @@ describe('no cleanup while offline', () => {
     store.stopOffline()
   })
 })
+
+describe('cache first', () => {
+  /** Holds back the answers of the messages calls until `release()`, the rest answers as usual. */
+  function holdMessages(): { release: () => void } {
+    const real = globalThis.fetch
+    let release = (): void => {}
+    const gate = new Promise<void>((resolve) => (release = resolve))
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+        if (String(input).includes('/messages')) await gate
+        return real(input, init)
+      }),
+    )
+    return { release }
+  }
+
+  it('shows the cached mail and list before the server answers, then replaces them', async () => {
+    const first = useStore()
+    await first.loadAccounts()
+    await first.openMessage(2)
+    setActivePinia(createPinia())
+    const held = holdMessages()
+    const store = useStore()
+    const loading = store.loadAccounts()
+    await vi.waitFor(() => expect(store.messages.map((m) => m.uid)).toEqual([2, 1]))
+    const opening = store.openMessage(2)
+    await vi.waitFor(() => expect(store.detail?.text).toBe('body 2'))
+    held.release()
+    await Promise.all([loading, opening])
+    await flushPromises()
+    expect(store.messages.map((m) => m.uid)).toEqual([2, 1])
+    expect(store.detail?.text).toBe('body 2')
+  })
+
+  it('shows nothing before the answer when nothing is cached', async () => {
+    const held = holdMessages()
+    const store = useStore()
+    const loading = store.loadAccounts()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    expect(store.messages).toEqual([])
+    held.release()
+    await loading
+    await flushPromises()
+    expect(store.messages.map((m) => m.uid)).toEqual([2, 1])
+  })
+})

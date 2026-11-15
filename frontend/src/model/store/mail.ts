@@ -9,6 +9,7 @@ import { isNetworkError, onReconnect, setOnline, useOnline } from '../online'
 import {
   loadDetail,
   loadFolders,
+  loadPage,
   markSeen,
   purge,
   removeMail,
@@ -407,9 +408,20 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
     try {
       const before = messages.value.length > 0 ? nextBefore.value : null
       if (messages.value.length > 0 && before === null) return
+      // The first page shows from the cache at once, the server's one replaces it in place.
+      let shownCached = false
+      if (before === null) {
+        const cached = await loadPage(id, name, null)
+        if (cached && ticket === listTicket && messages.value.length === 0) {
+          messages.value = cached.messages
+          total.value = cached.total
+          nextBefore.value = cached.next_before_uid
+          shownCached = true
+        }
+      }
       const page = await readPage(id, name, before)
       if (ticket !== listTicket) return
-      messages.value = [...messages.value, ...page.messages]
+      messages.value = shownCached ? page.messages : [...messages.value, ...page.messages]
       total.value = page.total
       nextBefore.value = page.next_before_uid
     } catch (caught) {
@@ -471,6 +483,16 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
     }
     void loadEvents(id, name, uid)
     try {
+      // The cached copy shows at once (unless it holds more than is allowed now), the server's one replaces it.
+      const cached = await loadDetail(id, name, uid)
+      if (
+        cached &&
+        ticket === detailTicket &&
+        (bodyOptions.value.remoteImages || !cached.remote_images_allowed) &&
+        (bodyOptions.value.styles || !cached.styles_allowed)
+      ) {
+        detail.value = cached
+      }
       const found = await readMail(id, name, uid, bodyOptions.value, cacheRules())
       if (ticket === detailTicket) detail.value = found
     } catch (caught) {
