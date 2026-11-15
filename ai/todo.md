@@ -124,6 +124,6 @@ To complete one:
 - [x] allow vertical scroll for too-big mails — `todo:4116bd36-64c6-404f-b83c-393837b6725a` _(done)_
 - [x] Allow using a template in a template, and to set !var there — `todo:4a381196-a77e-45e6-a9d3-a9cbc0418140` _(done)_
   > - the default name for `!var` shall be the parent’s var.
-- [ ] changing the template in the editor does not update the yml. — `todo:8d1f240d-2fde-4768-a2e4-3f78e79eceaa`
+- [x] changing the template in the editor does not update the yml. — `todo:8d1f240d-2fde-4768-a2e4-3f78e79eceaa` _(done)_
 - [ ] have the frontend reuse the downladed email cache for displaying mails first — `todo:5aabe97b-54b9-4ae7-8741-e75b0e271213`
 - [ ] store in the browser, if mails have styles and images loaded, and reload them next time, too. — `todo:ed3e520a-860a-4d36-98e5-6f1485df2cc2`

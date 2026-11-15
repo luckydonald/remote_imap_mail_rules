@@ -1287,3 +1287,7 @@ Tools:
 
 ❯ no it was before the template in template change.
 
+❯ Do it TTD style. The test written must fail and later succeed. Yes, it happened with an email selected.
+
+❯ Plan accepted, auto mode.
+

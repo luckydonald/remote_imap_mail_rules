@@ -65,6 +65,21 @@ describe('template use with an example mail', () => {
     await flushPromises()
     expect(JSON.stringify(node)).toContain('"subj":"Hello"')
   })
+
+  it('points a template use at another template', async () => {
+    const node = reactive<Expression>({
+      type: 'all',
+      conditions: [{ type: 'template', ref: 't1', variables: {} }],
+    })
+    const { store, wrapper } = withStore(() => h(ConditionNode, { modelValue: node }))
+    addTemplates(store)
+    openMail()
+    await flushPromises()
+    const select = wrapper.find('.template-use select')
+    await select.setValue('t2')
+    await flushPromises()
+    expect(node.type === 'all' && node.conditions[0]).toMatchObject({ ref: 't2' })
+  })
 })
 
 describe('ConditionNode', () => {

@@ -183,6 +183,10 @@ function wrap(type: 'all' | 'any' | 'not'): void {
     <DateEditor v-else-if="node.type === 'date'" :node="node" />
     <BoolEditor v-else-if="node.type === 'bool'" :node="node" />
     <PresenceEditor v-else-if="node.type === 'presence'" :node="node" />
-    <TemplateUseEditor v-else-if="node.type === 'template'" :node="node" />
+    <TemplateUseEditor
+      v-else-if="node.type === 'template'"
+      :node="node"
+      @update:node="emit('update:modelValue', $event)"
+    />
   </div>
 </template>
