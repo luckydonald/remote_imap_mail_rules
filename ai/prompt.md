@@ -1442,3 +1442,5 @@ Tools:
 > </details>
 >
 
+❯ Follow a sync-less [/todo-loop](./skills/todo-loop/SKILL.md) but instead of a todo, add https://www.npmjs.com/package/@luckylu.cy/sync-todo-overlay to all pages.
+
