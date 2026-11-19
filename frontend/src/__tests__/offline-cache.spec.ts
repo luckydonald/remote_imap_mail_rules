@@ -1,7 +1,8 @@
 import 'fake-indexeddb/auto'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Detail, Folder, Page, Summary } from '@/model/mail-api'
 import {
+  cachedUids,
   loadDetail,
   loadedFor,
   loadFolders,
@@ -61,6 +62,27 @@ beforeEach(async () => {
 })
 
 describe('offline cache', () => {
+  it('lists only the cached UIDs of the requested account and folder', async () => {
+    await saveDetail('a', 'Work|Mail', detail(2), RULES, true)
+    await saveDetail('a', 'Work|Mail', detail(5), RULES, true)
+    await saveDetail('a', 'Work|Mail|Archive', detail(3), RULES, true)
+    await saveDetail('a', 'Work|Mailbox', detail(4), RULES, true)
+    await saveDetail('b', 'Work|Mail', detail(6), RULES, true)
+
+    expect(await cachedUids('a', 'Work|Mail')).toEqual(new Set([2, 5]))
+    expect(await cachedUids('a', 'Work|Mail|Archive')).toEqual(new Set([3]))
+  })
+
+  it('lists no cached UIDs without IndexedDB', async () => {
+    await saveDetail('a', 'Work', detail(2), RULES, true)
+    vi.stubGlobal('indexedDB', undefined)
+    try {
+      expect(await cachedUids('a', 'Work')).toEqual(new Set())
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('writes a list through and reads it back in pages', async () => {
     const uids = Array.from({ length: 120 }, (_, i) => 120 - i)
     await savePage('a', 'INBOX', null, page(uids.slice(0, 50), [], { next_before_uid: 71 }))

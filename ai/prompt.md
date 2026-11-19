@@ -1450,3 +1450,9 @@ Tools:
 
 ❯ Continue the unfinished work from where it stopped. Resume each subagent that stopped partway with its existing ID, and have it continue from its saved progress. Don't redo finished work, interrupt anything still running, or restart what the user canceled. If a subagent can't be resumed, say so.
 
+❯ [/todo-loop](./skills/todo-loop/SKILL.md) 426f337d-6325-47b4-b143-fcdd94b3999f
+
+[Plan 075](plans/075_plan-cache-indicator-in-the-mail-list-todo-426f337d.md)
+
+❯ Continue the unfinished work from where it stopped. Resume each subagent that stopped partway with its existing ID, and have it continue from its saved progress. Don't redo finished work, interrupt anything still running, or restart what the user canceled. If a subagent can't be resumed, say so.
+

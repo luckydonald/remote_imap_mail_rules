@@ -7,6 +7,7 @@ import { ApiError, describeError } from '../http'
 import type { usePrefs } from './prefs'
 import { isNetworkError, onReconnect, setOnline, useOnline } from '../online'
 import {
+  cachedUids as readCachedUids,
   loadDetail,
   loadedFor,
   loadFolders,
@@ -91,6 +92,7 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
   const folders = ref<Folder[]>([])
   const folder = ref<string | null>(null)
   const messages = ref<Summary[]>([])
+  const cachedUids = ref(new Set<number>())
   const total = ref(0)
   const nextBefore = ref<number | null>(null)
   const detail = ref<Detail | null>(null)
@@ -118,6 +120,7 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
   let listTicket = 0
   let detailTicket = 0
   let eventsTicket = 0
+  let cacheTicket = 0
 
   const hasMore = computed(() => nextBefore.value !== null)
   /** The open mail with its place, for filling conditions; `null` offline or while no mail is open. */
@@ -134,6 +137,24 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
     fillDetached.value ? null : context.value,
   )
   const currentFolder = computed(() => folders.value.find((item) => item.name === folder.value))
+
+  async function refreshCached(): Promise<void> {
+    const ticket = ++cacheTicket
+    const id = accountId.value
+    const name = folder.value
+    if (id === null || name === null) return
+    const uids = await readCachedUids(id, name)
+    if (ticket === cacheTicket) cachedUids.value = uids
+  }
+
+  watch(
+    [accountId, folder],
+    () => {
+      cachedUids.value = new Set()
+      void refreshCached()
+    },
+    { flush: 'sync' },
+  )
 
   watch([accountId, folder, selectedUid, detail], () => {
     // While the restore is pending the refs are not the saved place yet, so nothing is overwritten.
@@ -350,6 +371,7 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
       // Prefetching is best effort, the next round tries again.
     } finally {
       prefetching = false
+      await refreshCached()
     }
   }
 
@@ -366,6 +388,7 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
     await sendQueue()
     await reloadFolders()
     await prefetch()
+    await refreshCached()
   }
 
   /** Brings the mail of the last session back from the offline cache (or the server), so the rule editor can fill from it without the mail screen being open. */
@@ -430,6 +453,7 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
       if (ticket === listTicket) fail('Could not load the messages', caught)
     } finally {
       if (ticket === listTicket) loading.value = false
+      await refreshCached()
     }
   }
 
@@ -465,6 +489,7 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
       if (ticket === listTicket) fail('Could not reload the messages', caught)
     } finally {
       if (ticket === listTicket) loading.value = false
+      await refreshCached()
     }
   }
 
@@ -506,6 +531,8 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
       if (ticket === detailTicket) detail.value = found
     } catch (caught) {
       if (ticket === detailTicket) fail('Could not load the message', caught)
+    } finally {
+      await refreshCached()
     }
   }
 
@@ -521,6 +548,7 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
       const found = await readMail(id, name, uid, bodyOptions.value, cacheRules())
       if (ticket === detailTicket) detail.value = found
       await rememberLoaded(id, name, uid, bodyOptions.value)
+      await refreshCached()
     } catch (caught) {
       if (ticket === detailTicket) fail('Could not load the message', caught)
     }
@@ -568,12 +596,13 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
       await enqueue({ kind: 'flag', accountId: id, folder: name, uid: open.uid, ...change })
     }
     await markSeen(id, name, open.uid, seen)
-    if (seen && isOnline.value) void purge(cacheRules())
     open.seen = seen
     open.flags = seen ? [...open.flags, '\\Seen'] : open.flags.filter((flag) => flag !== '\\Seen')
     const row = messages.value.find((item) => item.uid === open.uid)
     if (row) row.seen = seen
     countUnseen(name, seen ? -1 : 1)
+    if (seen && isOnline.value) await purge(cacheRules())
+    await refreshCached()
   }
 
   /** Moves the open mail to another folder of the account and opens the next one, or goes back to the list. */
@@ -626,6 +655,7 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
       events.value = []
       pane.value = 'list'
     }
+    await refreshCached()
   }
 
   async function loadEvents(id: string, name: string, uid: number): Promise<void> {
@@ -682,6 +712,8 @@ export function useMail(prefs: ReturnType<typeof usePrefs>) {
     folder,
     currentFolder,
     messages,
+    cachedUids,
+    refreshCached,
     total,
     hasMore,
     detail,

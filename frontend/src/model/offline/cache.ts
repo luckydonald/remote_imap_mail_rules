@@ -6,7 +6,7 @@
 
 import type { Account } from '../accounts-api'
 import type { BodyOptions, Detail, Folder, Page, Summary } from '../mail-api'
-import { dbAll, dbDelete, dbGet, dbPut } from './db'
+import { dbAll, dbDelete, dbGet, dbKeys, dbPut } from './db'
 
 export type Reason = 'unread' | 'opened' | 'inbox'
 
@@ -57,6 +57,20 @@ const listKey = (accountId: string, folder: string): string => `${accountId}|${f
 const detailKey = (accountId: string, folder: string, uid: number): string =>
   `${accountId}|${folder}|${uid}`
 const isInbox = (folder: string): boolean => folder.toUpperCase() === 'INBOX'
+
+/** Lists cached message UIDs without reading their bodies. */
+export async function cachedUids(accountId: string, folder: string): Promise<Set<number>> {
+  const uids = new Set<number>()
+  if (typeof IDBKeyRange === 'undefined') return uids
+  const prefix = `${listKey(accountId, folder)}|`
+  const keys = await dbKeys('details', IDBKeyRange.bound(prefix, `${prefix}\uffff`))
+  for (const key of keys) {
+    // A different folder can contain the separator and share this prefix.
+    if (typeof key === 'string' && key.lastIndexOf('|') === prefix.length - 1)
+      uids.add(Number(key.slice(prefix.length)))
+  }
+  return uids
+}
 
 /** The account list is kept next to the folder trees, under a key no account id can have. */
 export async function saveAccounts(accounts: Account[]): Promise<void> {

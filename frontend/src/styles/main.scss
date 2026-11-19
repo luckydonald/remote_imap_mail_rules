@@ -812,7 +812,8 @@ button {
       color: var(--accent-text);
 
       .when,
-      .subject {
+      .subject,
+      .cached {
         color: inherit;
       }
     }
@@ -840,7 +841,7 @@ button {
     }
 
     .from,
-    .subject {
+    .subject-text {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -854,6 +855,14 @@ button {
     .subject {
       grid-column: 2 / span 2;
       color: var(--muted);
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .cached {
+      color: var(--muted);
+      font-size: 12px;
     }
   }
 

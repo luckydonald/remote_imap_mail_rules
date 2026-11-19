@@ -633,16 +633,18 @@ test('works offline from the cache and sends queued changes when the server is b
   await page.goto('/')
   await logIn(page)
   await page.getByRole('link', { name: 'Mail', exact: true }).click()
-  await page.locator('.row-mail', { hasText: 'Subject 3' }).click()
+  const cachedRow = page.locator('.row-mail', { hasText: 'Subject 3' })
+  const marker = cachedRow.getByTitle('Available offline')
+  await cachedRow.click()
   await expect(page.locator('.mail-message h2')).toHaveText('Subject 3')
-  // Let the write-through to IndexedDB finish.
-  await page.waitForTimeout(300)
+  await expect(marker).toBeVisible()
 
   // The network is gone (a later route wins over the mocks).
   await page.route('**/api/**', (route) => route.abort('failed'))
   await page.reload()
   await expect(page.locator('.offline-banner')).toContainText('Offline')
   await expect(page.locator('.row-mail')).toHaveCount(2)
+  await expect(marker).toBeVisible()
   await expect(page.locator('.mail-message h2')).toHaveText('Subject 3')
   await expect(page.locator('.mail-log-offline')).toContainText('Offline')
   await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible()

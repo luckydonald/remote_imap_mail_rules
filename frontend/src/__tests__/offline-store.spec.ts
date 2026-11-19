@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import ConfirmLogout from '@/components/ConfirmLogout.vue'
+import MailList from '@/components/MailList.vue'
 import MailLog from '@/components/MailLog.vue'
 import OfflineBanner from '@/components/OfflineBanner.vue'
 import OnlineOnly from '@/components/OnlineOnly.vue'
@@ -98,6 +99,36 @@ beforeEach(async () => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('reading offline', () => {
+  it('marks only cached rows and refreshes the marker when switching folders', async () => {
+    const store = useStore()
+    store.cacheInbox = false
+    await store.loadAccounts()
+    const wrapper = mount(MailList)
+    const marker = '[aria-label="Available offline"]'
+    const rows = () => wrapper.findAll('.row-mail')
+
+    try {
+      expect(wrapper.find(marker).exists()).toBe(false)
+      await store.openMessage(2)
+      expect(rows()[0]!.get(marker).attributes('title')).toBe('Available offline')
+      expect(rows()[1]!.find(marker).exists()).toBe(false)
+
+      const pending = store.refreshCached()
+      const switched = store.selectFolder('Archive')
+      expect(store.cachedUids.size).toBe(0)
+      await Promise.all([pending, switched])
+      expect(wrapper.find(marker).exists()).toBe(false)
+      await store.openMessage(1)
+      expect(rows()[0]!.find(marker).exists()).toBe(false)
+      expect(rows()[1]!.find(marker).exists()).toBe(true)
+
+      await store.selectFolder('INBOX')
+      expect(store.cachedUids).toEqual(new Set([2]))
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it('shows the cached folders, list and mail when the network is gone', async () => {
     const first = useStore()
     await first.loadAccounts()

@@ -49,6 +49,8 @@ export const dbGet = <T>(store: StoreName, key: IDBValidKey): Promise<T | undefi
   run<T | undefined>(store, 'readonly', (s) => s.get(key), undefined)
 export const dbAll = <T>(store: StoreName): Promise<T[]> =>
   run<T[]>(store, 'readonly', (s) => s.getAll(), [])
+export const dbKeys = (store: StoreName, range?: IDBKeyRange): Promise<IDBValidKey[]> =>
+  run<IDBValidKey[]>(store, 'readonly', (s) => s.getAllKeys(range), [])
 export const dbCount = (store: StoreName): Promise<number> =>
   run<number>(store, 'readonly', (s) => s.count(), 0)
 /** Stores a record and answers its key (the generated one for the queue). */
