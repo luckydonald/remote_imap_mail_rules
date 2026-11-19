@@ -1,0 +1,10 @@
+{
+  "metadataGeneration": {
+    "branchName": {
+      "instructions": "Branch name: `feature/mail_rules/{name-of-feature_or_start-date}`"
+    },
+    "commitMessage": {
+      "instructions": "/commit-with-lplp-style"
+    }
+  }
+}
