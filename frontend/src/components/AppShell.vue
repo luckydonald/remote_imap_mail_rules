@@ -9,6 +9,7 @@ import SampleErrorView from './SampleErrorView.vue'
 import SettingsView from './SettingsView.vue'
 import SourceMenu from './SourceMenu.vue'
 import TemplatesView from './TemplatesView.vue'
+import TodoOverlay from './TodoOverlay.vue'
 import YamlPanel from './YamlPanel.vue'
 import { fetchConfig, fetchRules, saveRules, SaveError } from '@/model/api'
 import { logout } from '@/model/mail-api'
@@ -307,6 +308,7 @@ onBeforeUnmount(() => {
     <p v-if="notice" class="notice" @click="notice = ''">{{ notice }}</p>
     <UpdateBanner />
     <OfflineBanner />
+    <TodoOverlay />
     <ConfirmLogout
       v-if="askLogout"
       :count="store.queued.length"

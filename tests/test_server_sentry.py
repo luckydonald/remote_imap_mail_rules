@@ -16,6 +16,8 @@ from tests.test_server_accounts import KEY, make_env
 from tests.test_server_auth import LOGIN
 
 DSN = "http://public@bugsink.example.com/1"
+TODO_URL = "https://todos.example.com"
+TODO_KEY = "example-embed-key"
 
 
 def make_settings(tmp_path: Path, **values: Any) -> ServerSettings:
@@ -80,7 +82,7 @@ def test_init_passes_the_settings(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 
 def test_client_config_is_off_without_a_frontend_dsn(tmp_path: Path) -> None:
     with TestClient(create_app(make_settings(tmp_path, sentry_dsn=DSN), make_env())) as client:
-        assert client.get("/api/public/client-config").json() == {"sentry": None}
+        assert client.get("/api/public/client-config").json() == {"sentry": None, "todo_overlay": None}
     # end with
 # end def
 
@@ -89,8 +91,31 @@ def test_client_config_needs_no_login(tmp_path: Path, no_git: None) -> None:
     settings = make_settings(tmp_path, vite_sentry_dsn=DSN, sentry_environment="production", source_commit="abc", vite_sentry_traces_sample_rate=0.25)
     with TestClient(create_app(settings, make_env())) as client:
         assert client.get("/api/public/client-config").json() == {
-            "sentry": {"dsn": DSN, "environment": "production", "release": "abc", "traces_sample_rate": 0.25}
+            "sentry": {"dsn": DSN, "environment": "production", "release": "abc", "traces_sample_rate": 0.25},
+            "todo_overlay": None,
         }
+    # end with
+# end def
+
+
+@pytest.mark.parametrize(("enabled", "url", "key", "expected"), [
+    (False, TODO_URL, TODO_KEY, None),
+    (True, TODO_URL, TODO_KEY, {"url": TODO_URL, "token": TODO_KEY}),
+    (True, TODO_URL, "", {"url": TODO_URL, "token": None}),
+    (True, "", TODO_KEY, {"url": None, "token": TODO_KEY}),
+    (True, "", "", {"url": None, "token": None}),
+])
+def test_client_config_gates_the_todo_overlay(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, enabled: bool, url: str, key: str,
+    expected: dict[str, str | None] | None,
+) -> None:
+    monkeypatch.setenv("SYNC_TODO_OVERLAY_ENABLE", str(enabled))
+    monkeypatch.setenv("SYNC_TODO_URL", url)
+    monkeypatch.setenv("SYNC_TODO_TOKEN", key)
+    with TestClient(create_app(make_settings(tmp_path), make_env())) as client:
+        response = client.get("/api/public/client-config")
+        assert response.status_code == 200
+        assert response.json() == {"sentry": None, "todo_overlay": expected}
     # end with
 # end def
 

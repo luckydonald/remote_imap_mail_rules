@@ -8,54 +8,62 @@ The user wants the quick-add overlay `@luckylu.cy/sync-todo-overlay` (a floating
 This is a sync-less run of `/todo-loop`, so there is no CalDAV todo to tick and no `sync_todos.py` run.
 The steps are intel, plan, implement, commit, rebase.
 
+Decisions from the user:
+
+- An environment variable guards whether the button is shown or included at all.
+- The URL and the embed key are optional environment values.
+  When one or both are unset they are not filled in, and the overlay falls back to its own localStorage based settings dialog (the gear inside the overlay).
+
 Findings about the package (latest dist-tag `1.0.0-2026.11.19-5.59.51-build5-31b1f6`, and also a plain `1.0.0`):
 
 - It has a Vue 3.5 component (`@luckylu.cy/sync-todo-overlay/vue`) and a stylesheet (`@luckylu.cy/sync-todo-overlay/style`).
-- It needs two props, `url` (the Sync Todo web origin) and `token` (an embed key created in Sync Todo under Settings, Embed keys).
-- The embed key is readable by anyone who sees the page source, so it is not a secret in the Fernet sense, but it must not be committed to the repo.
-- The default shows a floating launcher button and keeps its settings in localStorage under `sync-todo-overlay`.
+- Props `url` and `token` are optional: "Saved value or blank", and settings supplied by the host are locked, so passing nothing keeps the settings dialog editable.
+- It keeps its settings in localStorage under `sync-todo-overlay` (`persist` defaults to true).
+- The embed key is readable by anyone who sees the page source, so it is not committed to the repo, only set per deployment.
 
 ## Approach
 
-The URL and the key are deployment config, so they follow the Sentry DSN pattern: set in the environment, handed to the browser at runtime by `GET /api/public/client-config`, no build bakes them in.
-Without both values nothing is mounted, so a fresh checkout and the tests behave as before.
+Config follows the Sentry DSN pattern: environment, handed to the browser at runtime by `GET /api/public/client-config`, no build bakes it in.
 `/api/public/*` needs no login, so the overlay is also on the login screen, which makes it really "all pages".
+
+Env variables (all optional, default off):
+
+- `SYNC_TODO_OVERLAY_ENABLE` (bool, default `false`): the guard, nothing is mounted unless it is true.
+- `SYNC_TODO_URL` and `SYNC_TODO_TOKEN` (strings, default empty): passed to the overlay only when non-empty, each one independently.
 
 ### Backend
 
-- `server/settings.py`: add `sync_todo_url` and `sync_todo_embed_key` (both default empty, with descriptions).
-- `server/api/public.py`: add `TodoOverlayClientConfig(url, token)` and a field `todo_overlay: TodoOverlayClientConfig | None` on `ClientConfig`, `None` unless both settings are set.
-- `.example-env` and `docker-compose.coolify.yml`: add `SYNC_TODO_URL=${SYNC_TODO_URL:-}` and `SYNC_TODO_EMBED_KEY=${SYNC_TODO_EMBED_KEY:-}` (optional, no `:?`).
+- `server/settings.py`: add the three settings with descriptions.
+- `server/api/public.py`: add `TodoOverlayClientConfig(url: str | None, token: str | None)` and a field `todo_overlay: TodoOverlayClientConfig | None` on `ClientConfig`.
+  It is `None` when the guard is off, else an object whose empty values are `None`.
+
+- `.example-env` and `docker-compose.coolify.yml`: add the three variables, optional (`${VAR:-}`, no `:?`, the guard as `${SYNC_TODO_OVERLAY_ENABLE:-false}`).
   `tests/test_coolify_compose.py` keeps these in sync with the settings classes.
 
 ### Frontend
 
-- `yarn add @luckylu.cy/sync-todo-overlay` in `frontend/`, pinned to the stable `1.0.0` release unless the user prefers the newest build (the `latest` tag is a build version string).
-- New `frontend/src/model/todo-overlay.ts`: `fetchTodoOverlayConfig()` mirroring `fetchSentryConfig` in `sentry.ts` (type guard, `null` on any failure).
-  To avoid a second request, `client-config` is fetched once and shared: extract a small `fetchClientConfig()` that both `sentry.ts` and the overlay use.
-- New `frontend/src/components/TodoOverlay.vue`: loads the config on mount, renders `<Overlay :url :token />` only when there is one, and imports the package `/style`.
+- Pin `@luckylu.cy/sync-todo-overlay` to `1.0.0-2026.11.19-5.59.51-build5-31b1f6`, which ships the Vue component and stylesheet missing from the `1.0.0` archive.
+- Share one fetch of `client-config`: extract `fetchClientConfig()` (memoised promise, `null` on any failure) that `sentry.ts` and the overlay both use, so there is no second request.
+- New `frontend/src/components/TodoOverlay.vue`: awaits the config, renders `<Overlay>` only when `todo_overlay` is not `null`, and binds `url` / `token` only when they are set (so unset means the localStorage settings dialog).
+  The package CSS is imported there.
   Offline or without a server it renders nothing.
 - `AppShell.vue`: render `<TodoOverlay />` once at the top level, outside every screen and the login gate, so it shows on every route.
-- The overlay must not cover the mail UI: check the launcher position on the mail view and the phone layout, use `position="left"` or the `--sync-todo-z-index` variable if it collides.
+- Check the launcher position against the mail UI and the phone layout, use `position="left"` or `--sync-todo-z-index` if it collides.
 - Service worker: `/api` is never cached, the package JS and CSS go into the build and are precached like the rest.
 
 ### Tests
 
-- `tests/test_server_sentry.py` asserts `client-config` is exactly `{"sentry": None}`, update it to include `"todo_overlay": None`, and add a case for both settings set and for only one set.
-- Vitest `src/__tests__/todo-overlay.spec.ts`: config parsing (valid, missing, malformed, fetch failure), and the component mounting the overlay only with a config.
-- Playwright (mocked `/api`): the launcher shows on `/rules` and on the login screen when the config is present, and is absent when it is not.
-  The e2e tests already mock `/api`, so add `client-config` to the mock.
+- `tests/test_server_sentry.py` asserts `client-config` is exactly `{"sentry": None}`, update it to include `"todo_overlay": None`.
+  Add cases: guard off with url and key set gives `None`, guard on with both, with only one, and with neither.
+- Vitest `src/__tests__/todo-overlay.spec.ts`: config parsing (valid, partial, malformed, fetch failure), and the component mounting the overlay only with a config and binding only the set props.
+- Playwright (mocked `/api`): the launcher shows on `/rules` and on the login screen when the guard is on, is absent when it is off, and with no url or key the overlay's settings dialog opens from the gear.
 
 ### Docs
 
-`CLAUDE.md`: one sentence under Layout or Decisions about `SYNC_TODO_URL` / `SYNC_TODO_EMBED_KEY`, the optional overlay and `todo_overlay` in `client-config`.
+`CLAUDE.md`: one sentence under Layout or Decisions about the three variables, the guard, the localStorage fallback and `todo_overlay` in `client-config`.
 
 ## Verification
 
 - `uv run pytest`, then in `frontend/`: `yarn test`, `yarn lint`, `yarn build` (type check), `yarn test:e2e`.
-- Run the server on a separate port with dummy `SYNC_TODO_URL` / `SYNC_TODO_EMBED_KEY` and confirm the button in a Playwright run (never Chrome tools, never the live account).
-  The real todo creation needs the user's embed key and is left to them.
-
-## Open point
-
-The user has to supply the Sync Todo URL and an embed key as environment values after the deploy.
+- Check in Playwright against a mocked API only (never Chrome tools, never the live account).
+  Real todo creation needs the user's Sync Todo URL and embed key and is left to them.

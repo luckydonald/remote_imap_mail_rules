@@ -43,6 +43,9 @@ class ServerSettings(BaseSettings):
     vite_sentry_release: str = Field(default="", description="Frontend release; falls back to the backend's release.")
     vite_sentry_traces_sample_rate: float = Field(default=0, ge=0, le=1, description="Share of the page loads and navigations that get a tracing span.")
     source_commit: str = Field(default="", description="Commit of the deployed source, set by Coolify; the fallback for the release.")
+    sync_todo_overlay_enable: bool = Field(default=False, description="Show the Sync Todo launcher on every frontend page.")
+    sync_todo_url: str = Field(default="", description="Public Sync Todo URL; empty lets the browser use its saved setting.")
+    sync_todo_token: str = Field(default="", description="Sync Todo embed key sent to the browser; empty lets the browser use its saved setting.")
 
     @property
     def git_dir(self) -> Path:

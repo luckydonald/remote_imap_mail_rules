@@ -41,3 +41,9 @@ SENTRY_ENVIRONMENT=development
 SENTRY_RELEASE=
 # 0 to 1, 0 (default) turns tracing off.
 SENTRY_TRACES_SAMPLE_RATE=0
+
+# Sync Todo quick-add on every page. Empty values use the overlay's browser settings.
+# The URL and embed key are public in the browser when the overlay is enabled.
+SYNC_TODO_OVERLAY_ENABLE=false
+SYNC_TODO_URL=
+SYNC_TODO_TOKEN=

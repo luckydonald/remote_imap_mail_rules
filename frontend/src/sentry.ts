@@ -2,6 +2,7 @@
 import * as Sentry from '@sentry/vue'
 import type { App } from 'vue'
 import type { Router } from 'vue-router'
+import { fetchClientConfig } from './model/client-config'
 
 /**
  * A promise rejected with `undefined` has no stack and no source in our code (REMOTE-IMAP-MAIL-RULES-VUE-1, Safari),
@@ -29,14 +30,8 @@ function isConfig(value: unknown): value is SentryClientConfig {
 
 /** The reporting config of the server, `null` when it is off, the server is missing or does not answer sensibly. */
 export async function fetchSentryConfig(): Promise<SentryClientConfig | null> {
-  try {
-    const response = await fetch('/api/public/client-config')
-    if (!response.ok) return null
-    const body = (await response.json()) as { sentry?: unknown }
-    return isConfig(body.sentry) ? body.sentry : null
-  } catch {
-    return null
-  }
+  const config = (await fetchClientConfig())?.sentry
+  return isConfig(config) ? config : null
 }
 
 /** Starts the reporting; the tracing integration is only added when tracing is on. */

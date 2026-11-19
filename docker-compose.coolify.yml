@@ -47,6 +47,11 @@ services:
       - SENTRY_RELEASE=${SENTRY_RELEASE:-}
       - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0}
       - VITE_SENTRY_TRACES_SAMPLE_RATE=${VITE_SENTRY_TRACES_SAMPLE_RATE:-0}
+
+      # Sync Todo quick-add. Empty values use the overlay's browser settings.
+      - SYNC_TODO_OVERLAY_ENABLE=${SYNC_TODO_OVERLAY_ENABLE:-false}
+      - SYNC_TODO_URL=${SYNC_TODO_URL:-}
+      - SYNC_TODO_TOKEN=${SYNC_TODO_TOKEN:-}
     volumes:
       # Everything the server stores: the SQLite database (accounts, rules, action log), the rules folder that git tracks (`rules/`) and the git credentials (`git/`).
       - data:/data

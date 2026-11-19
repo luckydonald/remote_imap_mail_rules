@@ -1444,3 +1444,5 @@ Tools:
 
 ❯ Follow a sync-less [/todo-loop](./skills/todo-loop/SKILL.md) but instead of a todo, add https://www.npmjs.com/package/@luckylu.cy/sync-todo-overlay to all pages.
 
+❯ Guard the display/inclusion of that button with an env var. If the url and/or token are not set via env var, don't fill them, it will fallback to a localStorage based settings dialog.
+

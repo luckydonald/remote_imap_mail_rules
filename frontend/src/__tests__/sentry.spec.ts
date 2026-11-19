@@ -1,9 +1,15 @@
 import * as Sentry from '@sentry/vue'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from 'vue'
 import { createAppRouter } from '@/router'
 import { createMemoryHistory } from 'vue-router'
-import { fetchSentryConfig, IGNORED_ERRORS, setUpSentry } from '@/sentry'
+
+let sentry: typeof import('@/sentry')
+
+beforeEach(async () => {
+  vi.resetModules()
+  sentry = await import('@/sentry')
+})
 
 vi.mock('@sentry/vue', async (original) => ({
   ...(await original<typeof import('@sentry/vue')>()),
@@ -27,7 +33,7 @@ afterEach(() => {
 describe('sentry', () => {
   it('reads the config from the server', async () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(reply({ sentry: config })))
-    expect(await fetchSentryConfig()).toEqual(config)
+    expect(await sentry.fetchSentryConfig()).toEqual(config)
   })
 
   it.each([
@@ -36,36 +42,41 @@ describe('sentry', () => {
     ['nonsense', reply({ sentry: { dsn: '' } })],
   ])('has no config when %s', async (_name, response) => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(response))
-    expect(await fetchSentryConfig()).toBeNull()
+    expect(await sentry.fetchSentryConfig()).toBeNull()
   })
 
   it('has no config when the request fails', async () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockRejectedValue(new TypeError('offline')))
-    expect(await fetchSentryConfig()).toBeNull()
+    expect(await sentry.fetchSentryConfig()).toBeNull()
   })
 
   it('stays inert without a config', async () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(reply({ sentry: null })))
-    expect(await setUpSentry(createApp({}), createAppRouter(createMemoryHistory()))).toBe(false)
+    expect(await sentry.setUpSentry(createApp({}), createAppRouter(createMemoryHistory()))).toBe(
+      false,
+    )
     expect(Sentry.init).not.toHaveBeenCalled()
   })
 
   it('starts with the config, tracing only when asked for', async () => {
     vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(reply({ sentry: config })))
-    expect(await setUpSentry(createApp({}), createAppRouter(createMemoryHistory()))).toBe(true)
+    expect(await sentry.setUpSentry(createApp({}), createAppRouter(createMemoryHistory()))).toBe(
+      true,
+    )
     expect(Sentry.init).toHaveBeenCalledWith(
       expect.objectContaining({
         dsn: config.dsn,
         release: 'abc',
         environment: 'production',
         integrations: [],
-        ignoreErrors: IGNORED_ERRORS,
+        ignoreErrors: sentry.IGNORED_ERRORS,
       }),
     )
   })
 
   it('ignores only the rejection without a value', () => {
-    const ignored = (message: string): boolean => IGNORED_ERRORS.some((re) => re.test(message))
+    const ignored = (message: string): boolean =>
+      sentry.IGNORED_ERRORS.some((re) => re.test(message))
     expect(ignored('Non-Error promise rejection captured with value: undefined')).toBe(true)
     expect(ignored('Non-Error promise rejection captured with value: "boom"')).toBe(false)
     expect(ignored('TypeError: undefined is not a function')).toBe(false)
