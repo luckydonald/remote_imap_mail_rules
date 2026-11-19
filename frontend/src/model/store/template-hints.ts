@@ -73,10 +73,22 @@ export function useTemplateHints(file: RuleFile) {
 
   const ruleHints = computed(() => {
     const hints = new Map<string, TemplateHint>()
-    for (const hint of templateHints.value)
-      if ('rule' in hint) hints.set(locationKey(hint.rule, hint.path), hint)
+    for (const hint of templateHints.value) {
+      if (!('rule' in hint)) continue
+      const key = locationKey(hint.rule, hint.path)
+      if (!hints.has(key)) hints.set(key, hint)
+    }
     return hints
   })
+
+  const hintedConditionCount = computed(
+    () =>
+      new Set(
+        templateHints.value.map((hint) =>
+          JSON.stringify(['rule' in hint ? hint.rule : hint.templateName, hint.path]),
+        ),
+      ).size,
+  )
 
   function hintsFor(template: string): TemplateHint[] {
     return templateHints.value.filter((hint) => hint.template === template)
@@ -100,5 +112,5 @@ export function useTemplateHints(file: RuleFile) {
     onScopeDispose(() => document.removeEventListener('visibilitychange', onVisibilityChange))
   }
 
-  return { templateHints, hintsFor, hintAt, refreshTemplateHints }
+  return { templateHints, hintedConditionCount, hintsFor, hintAt, refreshTemplateHints }
 }

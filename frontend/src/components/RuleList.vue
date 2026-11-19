@@ -72,11 +72,11 @@ function isActive(index: number): boolean {
           <span class="name">Templates</span>
           <span class="badge">{{ Object.keys(store.file.templates).length }}</span>
           <span
-            v-if="store.templateHints.length > 0"
+            v-if="store.hintedConditionCount > 0"
             class="badge ok"
-            :title="`${store.templateHints.length} conditions could use a template`"
+            :title="`${store.hintedConditionCount} conditions could use a template`"
           >
-            {{ store.templateHints.length }}
+            {{ store.hintedConditionCount }}
           </span>
         </button>
       </li>

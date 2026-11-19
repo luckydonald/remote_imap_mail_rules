@@ -62,6 +62,29 @@ it('drops a hint when its condition or the replacement template changes', () => 
   expect(store.hintsFor('read')).toHaveLength(0)
 })
 
+it('counts all matching templates and counts their shared condition once', () => {
+  const store = useStore()
+  store.load(`
+templates:
+  matchingSubject:
+    type: template
+    defaults: {}
+    content: {type: text, field: subject, operator: equals, value: !var value}
+  greeting:
+    type: template
+    defaults: {}
+    content: {type: text, field: !var field, operator: equals, value: Hello}
+rules:
+  - name: greeting subject
+    locations: [{account_id: 6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11}]
+    when: {type: text, field: subject, operator: equals, value: Hello}
+`)
+  expect(store.hintsFor('matchingSubject')).toHaveLength(1)
+  expect(store.hintsFor('greeting')).toHaveLength(1)
+  expect(store.hintedConditionCount).toBe(1)
+  expect(store.hintAt(0, [])?.template).toBe('matchingSubject')
+})
+
 it('refreshes when the tab becomes visible on a new day', () => {
   vi.useFakeTimers()
   vi.setSystemTime(new Date(2026, 10, 19, 23, 55))

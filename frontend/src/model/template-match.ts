@@ -46,6 +46,7 @@ export function matchTemplate(
   candidate: Expression,
   defaults: Record<string, unknown>,
 ): Record<string, unknown> | null {
+  if (content.type !== candidate.type) return null
   const bindings = new Map<string, unknown>()
   if (!matches(content, candidate, bindings)) return null
   return Object.fromEntries(
@@ -90,14 +91,13 @@ export function findReplaceable(file: RuleFile): TemplateHint[] {
     const candidates = usable ? templates.filter(([name]) => usable.has(name)) : templates
     function visit(node: Expression, path: number[]): void {
       if (!node || node.type === 'template') return
+      const hintsBefore = hints.length
       for (const [template, def] of candidates) {
         const variables = matchTemplate(def.content, node, def.defaults ?? {})
-        if (variables !== null) {
-          hints.push({ ...owner, template, path, variables })
-          return
-        }
+        if (variables !== null) hints.push({ ...owner, template, path, variables })
       }
-      childrenOf(node).forEach((child, index) => visit(child, [...path, index]))
+      if (hints.length === hintsBefore)
+        childrenOf(node).forEach((child, index) => visit(child, [...path, index]))
     }
     visit(root, [])
   }

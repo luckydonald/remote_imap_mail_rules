@@ -84,32 +84,36 @@ test('adds, duplicates, moves and removes rules', async ({ page }) => {
   await expect(page.locator('.rule-list ul').first().locator('li .select')).toHaveCount(1)
 })
 
-test('offers a template for a matching condition in a local file', async ({ page }) => {
+test('counts all matching templates and offers a replacement in a local file', async ({ page }) => {
   await page.locator('input[type=file]').setInputFiles({
     name: 'template-hints.yml',
     mimeType: 'text/yaml',
     buffer: Buffer.from(`
 templates:
-  readMail:
+  matchingSubject:
     type: template
     defaults: {}
-    content: {type: bool, field: seen}
+    content: {type: text, field: subject, operator: equals, value: !var value}
+  greeting:
+    type: template
+    defaults: {}
+    content: {type: text, field: !var field, operator: equals, value: Hello}
 rules:
-  - name: Read mail
+  - name: Greeting subject
     locations: [{account_id: 6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11}]
-    when: {type: bool, field: seen}
+    when: {type: text, field: subject, operator: equals, value: Hello}
 `),
   })
   const sidebarBadge = page.locator('.rule-list .badge.ok')
   await expect(sidebarBadge).toHaveText('1')
   await page.getByRole('button', { name: /^Templates/ }).click()
-  await expect(page.locator('.template header .badge.ok')).toHaveText('1')
-  await expect(page.getByRole('button', { name: 'use template readMail' })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Read mail', exact: true }).click()
-  const hint = page.getByRole('button', { name: 'use template readMail' })
+  await expect(page.locator('.template header .badge.ok')).toHaveText(['1', '1'])
+  await expect(page.getByRole('button', { name: /^use template/ })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Greeting subject', exact: true }).click()
+  const hint = page.getByRole('button', { name: 'use template matchingSubject' })
   await expect(hint).toHaveClass(/badge ok/)
   await hint.click()
-  await expect(page.locator('.template-use select')).toHaveValue('readMail')
+  await expect(page.locator('.template-use select')).toHaveValue('matchingSubject')
   await expect(sidebarBadge).toHaveCount(0)
   await page.getByTitle('Undo').click()
   await expect(hint).toBeVisible()
