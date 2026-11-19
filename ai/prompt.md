@@ -1446,3 +1446,7 @@ Tools:
 
 ❯ Guard the display/inclusion of that button with an env var. If the url and/or token are not set via env var, don't fill them, it will fallback to a localStorage based settings dialog.
 
+❯ [/todo-loop](./skills/todo-loop/SKILL.md) 7d708b81-44a5-4f49-bfcc-a060343cbb47
+
+❯ Continue the unfinished work from where it stopped. Resume each subagent that stopped partway with its existing ID, and have it continue from its saved progress. Don't redo finished work, interrupt anything still running, or restart what the user canceled. If a subagent can't be resumed, say so.
+

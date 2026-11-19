@@ -4,7 +4,7 @@ from pydantic import TypeAdapter
 
 from remote_imap_mail_rules.mail import Mail
 from remote_imap_mail_rules.rules.evaluate import evaluate
-from remote_imap_mail_rules.rules.models import Expression
+from remote_imap_mail_rules.rules.models import DateCondition, Expression
 
 from .conftest import NOW, make_mail
 
@@ -111,6 +111,20 @@ async def test_number(source: str, expected: bool) -> None:
 )
 async def test_date(source: str, expected: bool) -> None:
     await check(source, expected)
+# end def
+
+
+@pytest.mark.parametrize(
+    ("relative", "value", "expected"),
+    [(True, "7d", True), (True, "8d", False), (False, "2026-10-27T08:00:00", True), (False, "2026-10-25T08:00:00", False)],
+)
+async def test_resolved_date_variables_are_evaluated(relative: bool, value: str, expected: bool) -> None:
+    condition = DateCondition.model_validate({
+        "field": "date_sent",
+        "operator": "lt",
+        "value": {"relative": {"var": "kind"}, "value": {"var": "cutoff"}},
+    })
+    assert await evaluate(condition.concrete({"kind": relative, "cutoff": value}), build(), NOW) is expected
 # end def
 
 

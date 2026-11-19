@@ -29,6 +29,46 @@ describe('templates', () => {
   })
 })
 
+describe('date template variables', () => {
+  const source = `templates:
+  cutoff: &cutoff
+    type: template
+    defaults: {kind: true}
+    content:
+      type: date
+      field: date_received
+      operator: lt
+      value: {relative: !var kind, value: !var age}
+rules:
+  - name: old mail
+    locations: [{account_id: 6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11}]
+    when:
+      <<: *cutoff
+      variables: {age: 7d}
+`
+
+  it('round trips both variables and accepts a use that binds them', () => {
+    const file = parseRules(source)
+    const text = stringifyRules(file)
+    expect(text).toContain('relative: !var kind')
+    expect(text).toContain('value: !var age')
+    expect(parseRules(text)).toEqual(file)
+    expect(validateRules(file)).toEqual([])
+  })
+
+  it('reports a missing variable inside a date value', () => {
+    const file = parseRules(source.replace('variables: {age: 7d}', 'variables: {}'))
+    expect(validateRules(file)).toEqual([
+      {
+        path: '/rules/0/when',
+        rule: 0,
+        template: null,
+        message: 'variables without value or default: age',
+      },
+    ])
+  })
+})
+
 describe('nested templates', () => {
   const NESTED = `templates:
   inner: &inner

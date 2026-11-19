@@ -28,6 +28,8 @@ def validate(text: str) -> None:
         raise InvalidRules([f"YAML: {e}"]) from e
     except ValidationError as e:
         raise InvalidRules([f"{'.'.join(str(part) for part in err['loc']) or '(root)'}: {err['msg']}" for err in e.errors()]) from e
+    except ValueError as e:
+        raise InvalidRules([str(e)]) from e
     # end try
 # end def
 

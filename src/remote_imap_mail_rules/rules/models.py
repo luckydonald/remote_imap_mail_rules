@@ -174,7 +174,7 @@ class DateCondition[V = Var](Concrete):
     type: Literal["date"] = "date"
     field: Templatable[DateField, V]
     operator: Templatable[CompareOperator, V]
-    value: Templatable[TimeValue | tuple[TimeValue, TimeValue], V]
+    value: Templatable[TimeValue[V] | tuple[TimeValue[V], TimeValue[V]], V]
 
     @model_validator(mode="after")
     def check_value(self) -> Self:
@@ -191,7 +191,12 @@ class DateCondition[V = Var](Concrete):
     # end def
 
     def concrete(self, variables: Mapping[str, Any] | None = None) -> "DateCondition[Never]":
-        return concretize(self, variables)
+        condition = concretize(self, variables)
+        remaining = used_variables(condition)
+        if remaining:
+            raise ValueError(f"unresolved date condition variables: {', '.join(sorted(remaining))}")
+        # end if
+        return condition
     # end def
 # end class
 

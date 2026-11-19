@@ -45,7 +45,10 @@ function setPart(index: 0 | 1, value: TimeValue): void {
         </option>
       </select>
     </FieldValue>
-    <FieldValue v-model="model.value" :fallback="fresh()">
+    <FieldValue
+      v-model="model.value"
+      :fallback="model.operator === 'between' ? [fresh(), fresh()] : fresh()"
+    >
       <template v-if="model.operator === 'between'">
         <TimeInput :model-value="part(0)" @update:model-value="setPart(0, $event)" />
         <span>and</span>

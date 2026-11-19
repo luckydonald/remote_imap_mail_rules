@@ -6,7 +6,7 @@ export interface Var {
 
 export type Templatable<T> = T | Var
 
-export type TimeValue = { relative: false; value: string } | { relative: true; value: string }
+export type TimeValue = { relative?: Templatable<boolean>; value: Templatable<string> }
 
 export interface GroupAll {
   type: 'all'

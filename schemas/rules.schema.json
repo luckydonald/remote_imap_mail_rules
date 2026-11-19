@@ -3,8 +3,8 @@
   "$id": "rules.schema.json",
   "title": "RuleFile",
   "$defs": {
-    "AbsoluteTime": {
-      "description": "A fixed point in time. Naive datetimes are taken as UTC.",
+    "AbsoluteTime_TypeVar_": {
+      "additionalProperties": false,
       "properties": {
         "relative": {
           "const": false,
@@ -13,15 +13,13 @@
           "type": "boolean"
         },
         "value": {
-          "format": "date-time",
-          "title": "Value",
-          "type": "string"
+          "$ref": "#/$defs/Templatable_datetime_TypeVar_"
         }
       },
       "required": [
         "value"
       ],
-      "title": "AbsoluteTime",
+      "title": "AbsoluteTime[TypeVar]",
       "type": "object"
     },
     "Action_TypeVar_": {
@@ -192,7 +190,7 @@
           "$ref": "#/$defs/Templatable_CompareOperator_TypeVar_"
         },
         "value": {
-          "$ref": "#/$defs/Templatable_Union_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____tuple_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative______TypeVar_"
+          "$ref": "#/$defs/Templatable_Union_TimeValue_V___tuple_TimeValue_V___TimeValue_V____TypeVar_"
         }
       },
       "required": [
@@ -210,6 +208,11 @@
         "date_received"
       ],
       "title": "DateField",
+      "type": "string"
+    },
+    "Duration": {
+      "description": "A number and a unit: s, m, h, d or w.",
+      "pattern": "^(\\d+)([smhdw])$",
       "type": "string"
     },
     "Expression": {
@@ -523,8 +526,8 @@
       "title": "Quantifier",
       "type": "string"
     },
-    "RelativeDuration": {
-      "description": "A moment this long before now, e.g. `7d`: `date_received lt 7d` means received more than a week ago.",
+    "RelativeDuration_TypeVar_": {
+      "additionalProperties": false,
       "properties": {
         "relative": {
           "const": true,
@@ -532,17 +535,14 @@
           "type": "boolean"
         },
         "value": {
-          "description": "A number and a unit: s, m, h, d or w.",
-          "pattern": "^(\\d+)([smhdw])$",
-          "title": "Value",
-          "type": "string"
+          "$ref": "#/$defs/Templatable_Duration_TypeVar_"
         }
       },
       "required": [
         "relative",
         "value"
       ],
-      "title": "RelativeDuration",
+      "title": "RelativeDuration[TypeVar]",
       "type": "object"
     },
     "Rule_TypeVar_": {
@@ -659,6 +659,16 @@
         }
       ]
     },
+    "Templatable_Duration_TypeVar_": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Duration"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
     "Templatable_NumberField_TypeVar_": {
       "anyOf": [
         {
@@ -720,71 +730,6 @@
         }
       ]
     },
-    "Templatable_Union_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____tuple_Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative_____Annotated_Union_AbsoluteTime__RelativeDuration___FieldInfo_annotation_NoneType__required_True__discriminator__relative______TypeVar_": {
-      "anyOf": [
-        {
-          "discriminator": {
-            "mapping": {
-              "false": "#/$defs/AbsoluteTime",
-              "true": "#/$defs/RelativeDuration"
-            },
-            "propertyName": "relative"
-          },
-          "oneOf": [
-            {
-              "$ref": "#/$defs/AbsoluteTime"
-            },
-            {
-              "$ref": "#/$defs/RelativeDuration"
-            }
-          ]
-        },
-        {
-          "maxItems": 2,
-          "minItems": 2,
-          "prefixItems": [
-            {
-              "discriminator": {
-                "mapping": {
-                  "false": "#/$defs/AbsoluteTime",
-                  "true": "#/$defs/RelativeDuration"
-                },
-                "propertyName": "relative"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/AbsoluteTime"
-                },
-                {
-                  "$ref": "#/$defs/RelativeDuration"
-                }
-              ]
-            },
-            {
-              "discriminator": {
-                "mapping": {
-                  "false": "#/$defs/AbsoluteTime",
-                  "true": "#/$defs/RelativeDuration"
-                },
-                "propertyName": "relative"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/AbsoluteTime"
-                },
-                {
-                  "$ref": "#/$defs/RelativeDuration"
-                }
-              ]
-            }
-          ],
-          "type": "array"
-        },
-        {
-          "$ref": "#/$defs/Var"
-        }
-      ]
-    },
     "Templatable_Union_TextField__AddressField__NumberField__DateField__BoolField__TypeVar_": {
       "anyOf": [
         {
@@ -801,6 +746,43 @@
         },
         {
           "$ref": "#/$defs/BoolField"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_Union_TimeValue_V___tuple_TimeValue_V___TimeValue_V____TypeVar_": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TimeValue_TypeVar_"
+        },
+        {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "$ref": "#/$defs/TimeValue_TypeVar_"
+            },
+            {
+              "$ref": "#/$defs/TimeValue_TypeVar_"
+            }
+          ],
+          "type": "array"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_Union_datetime__str__TypeVar_": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "string"
         },
         {
           "$ref": "#/$defs/Var"
@@ -850,6 +832,17 @@
       "anyOf": [
         {
           "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/Var"
+        }
+      ]
+    },
+    "Templatable_datetime_TypeVar_": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
         },
         {
           "$ref": "#/$defs/Var"
@@ -967,6 +960,19 @@
       "title": "TextOperator",
       "type": "string"
     },
+    "TimeValue_TypeVar_": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AbsoluteTime_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/RelativeDuration_TypeVar_"
+        },
+        {
+          "$ref": "#/$defs/VariableTime_TypeVar_"
+        }
+      ]
+    },
     "Var": {
       "additionalProperties": false,
       "description": "A replaceable field of a template, filled from the `variables` (or `defaults`) of the template instance. YAML shorthand: `!var name`.",
@@ -981,6 +987,23 @@
         "var"
       ],
       "title": "Var",
+      "type": "object"
+    },
+    "VariableTime_TypeVar_": {
+      "additionalProperties": false,
+      "properties": {
+        "relative": {
+          "$ref": "#/$defs/Var"
+        },
+        "value": {
+          "$ref": "#/$defs/Templatable_Union_datetime__str__TypeVar_"
+        }
+      },
+      "required": [
+        "relative",
+        "value"
+      ],
+      "title": "VariableTime[TypeVar]",
       "type": "object"
     },
     "remote_imap_mail_rules__rules__models__AllExpression_TypeVar___1": {

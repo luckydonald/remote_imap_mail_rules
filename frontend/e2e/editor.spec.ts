@@ -145,6 +145,50 @@ test('edits templates', async ({ page }) => {
   await expect(page.locator('main input').first()).toHaveValue('anonaddy-forward')
 })
 
+test('creates a date template with a variable kind and value and uses it in a rule', async ({
+  page,
+}) => {
+  await page.route('**/api/editor/config', (route) => route.fulfill({ status: 404 }))
+  await page.reload()
+  await page.getByRole('button', { name: 'New', exact: true }).click()
+  await page.locator('.rule-list').getByText('Templates', { exact: true }).click()
+  await page.getByPlaceholder('New template name').fill('date-cutoff')
+  await page.getByRole('button', { name: '+ Add template' }).click()
+  await page.getByLabel('Condition type').selectOption('date')
+
+  const timeFields = page.locator('.time-input > .field-value')
+  const kind = timeFields.nth(0)
+  const value = timeFields.nth(1)
+  await value.getByRole('button', { name: 'var', exact: true }).click()
+  await expect(value.getByPlaceholder('variable name')).toHaveValue('value')
+  await value.getByPlaceholder('variable name').fill('cutoff')
+  await kind.getByRole('button', { name: 'var', exact: true }).click()
+  await expect(kind.getByPlaceholder('variable name')).toHaveValue('relative')
+  await kind.getByPlaceholder('variable name').fill('kind')
+
+  await page.locator('.rule-list').getByText('YAML', { exact: true }).click()
+  const yaml = page.getByLabel('YAML')
+  await expect(yaml).toHaveValue(/relative: !var kind/)
+  await expect(yaml).toHaveValue(/value: !var cutoff/)
+
+  await page.getByRole('button', { name: '+ New rule' }).click()
+  await page
+    .getByPlaceholder('Account id (UUID, IMAP_ACCOUNT_ID)')
+    .fill('6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11')
+  await page.getByLabel('Condition type').selectOption('template')
+  const use = page.locator('.template-use')
+  await expect(use.getByLabel('Template')).toHaveValue('date-cutoff')
+  await expect(page.locator('.topbar .badge.error')).toBeVisible()
+  await use.getByLabel('kind', { exact: true }).fill('false')
+  await use.getByLabel('cutoff', { exact: true }).fill('2026-11-18T08:54:08Z')
+  await expect(page.locator('.topbar .badge.ok')).toHaveText('valid')
+
+  await page.locator('.rule-list').getByText('YAML', { exact: true }).click()
+  await expect(yaml).toHaveValue(/<<: \*template-date-cutoff/)
+  await expect(yaml).toHaveValue(/kind: false/)
+  await expect(yaml).toHaveValue(/cutoff: 2026-11-18T08:54:08Z/)
+})
+
 test('applies YAML typed into the YAML view', async ({ page }) => {
   const yaml = page.getByLabel('YAML')
   await yaml.fill(

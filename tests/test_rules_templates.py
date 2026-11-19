@@ -1,5 +1,6 @@
 """Templates: `Var`, `Template`, `.concrete()` and the `!var` shorthand."""
 
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -7,7 +8,8 @@ import yaml
 from pydantic import ValidationError
 
 from remote_imap_mail_rules.rules.loader import RuleLoader, load_rules, parse_rules
-from remote_imap_mail_rules.rules.models import RuleFile, Template, Var
+from remote_imap_mail_rules.rules.models import DateCondition, RuleFile, Template, Var
+from remote_imap_mail_rules.rules.values import AbsoluteTime, RelativeDuration
 
 ACCOUNT = "6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11"
 EXAMPLE = Path(__file__).resolve().parents[1] / "rules" / "rules.example.yml"
@@ -100,6 +102,97 @@ rules:
 """
     when = parse_rules(text).rules[0].when
     assert (when.operator, when.value) == ("gt", 5000)
+
+
+def date_rule(value: str, defaults: str = "{}", variables: str = "{}", operator: str = "lt") -> str:
+    return f"""
+templates:
+  cutoff: &cutoff
+    type: template
+    defaults: {defaults}
+    content:
+      type: date
+      field: date_sent
+      operator: {operator}
+      value: {value}
+rules:
+  - name: r
+    locations: [{{account_id: {ACCOUNT}}}]
+    when:
+      <<: *cutoff
+      variables: {variables}
+"""
+# end def
+
+
+@pytest.mark.parametrize(
+    ("relative", "default", "override", "expected_default", "expected_override"),
+    [
+        ("false", "'2026-11-18T08:54:08'", "2026-11-19T08:54:08", datetime(2026, 11, 18, 8, 54, 8), datetime(2026, 11, 19, 8, 54, 8)),
+        ("true", "7d", "3w", "7d", "3w"),
+    ],
+)
+def test_date_value_variable_with_fixed_kind(
+    relative: str, default: str, override: str, expected_default: datetime | str, expected_override: datetime | str,
+) -> None:
+    value = f"{{relative: {relative}, value: !var cutoff}}"
+    for variables, expected in [("{}", expected_default), (f"{{cutoff: {override}}}", expected_override)]:
+        when = parse_rules(date_rule(value, defaults=f"{{cutoff: {default}}}", variables=variables)).rules[0].when
+        assert isinstance(when, DateCondition)
+        assert isinstance(when.value, RelativeDuration if relative == "true" else AbsoluteTime)
+        assert when.value.value == expected
+    # end for
+# end def
+
+
+@pytest.mark.parametrize(
+    ("variables", "kind", "expected"),
+    [
+        ("{kind: false, cutoff: '2026-11-18T08:54:08'}", AbsoluteTime, datetime(2026, 11, 18, 8, 54, 8)),
+        ("{kind: true, cutoff: 7d}", RelativeDuration, "7d"),
+    ],
+)
+def test_date_kind_and_value_variables(
+    variables: str, kind: type[AbsoluteTime] | type[RelativeDuration], expected: datetime | str,
+) -> None:
+    when = parse_rules(date_rule("{relative: !var kind, value: !var cutoff}", variables=variables)).rules[0].when
+    assert isinstance(when, DateCondition)
+    assert isinstance(when.value, kind)
+    assert when.value.value == expected
+# end def
+
+
+def test_date_range_with_one_variable_value() -> None:
+    value = "[{relative: false, value: !var start}, {relative: true, value: 7d}]"
+    when = parse_rules(date_rule(value, variables="{start: 2026-10-18T08:54:08}", operator="between")).rules[0].when
+    assert isinstance(when, DateCondition)
+    assert when.value == (AbsoluteTime(value=datetime(2026, 10, 18, 8, 54, 8)), RelativeDuration(relative=True, value="7d"))
+# end def
+
+
+@pytest.mark.parametrize(
+    ("variables", "error"),
+    [
+        ("{kind: true}", "without value or default: cutoff"),
+        ("{cutoff: 7d}", "without value or default: kind"),
+        ("{kind: true, cutoff: 7d, extra: 1}", "no such variables: extra"),
+        ("{kind: true, cutoff: '2026-11-18T08:54:08'}", "should match pattern"),
+        ("{kind: false, cutoff: 7d}", "input should be a valid datetime"),
+        ("{kind: 'true', cutoff: 7d}", "needs a boolean"),
+    ],
+)
+def test_date_template_rejects_invalid_bindings(variables: str, error: str) -> None:
+    with pytest.raises(ValueError, match=f"(?i){error}"):
+        parse_rules(date_rule("{relative: !var kind, value: !var cutoff}", variables=variables))
+    # end with
+# end def
+
+
+def test_whole_date_value_variable_still_resolves() -> None:
+    when = parse_rules(date_rule("!var time", variables="{time: {relative: true, value: 7d}}")).rules[0].when
+    assert isinstance(when, DateCondition)
+    assert when.value == RelativeDuration(relative=True, value="7d")
+# end def
 
 
 def test_nested_template_gets_outer_variable() -> None:

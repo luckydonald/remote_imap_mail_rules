@@ -43,6 +43,17 @@ describe('matchTemplate', () => {
     ).toEqual({})
   })
 
+  it('binds variables inside a date value', () => {
+    const pattern = {
+      type: 'date',
+      field: 'date_received',
+      operator: 'lt',
+      value: { relative: { var: 'kind' }, value: { var: 'cutoff' } },
+    } satisfies Expression
+    const value = { relative: true, value: '7d' }
+    expect(matchTemplate(pattern, { ...pattern, value }, {})).toEqual({ kind: true, cutoff: '7d' })
+  })
+
   it('matches nested uses by ref and binds their variables', () => {
     const pattern = all(use('inner', { value: { var: 'outer' }, fixed: { a: 1, b: 2 } }))
     const values = { fixed: { b: 2, a: 1 }, value: { relative: true, value: '7d' } }
