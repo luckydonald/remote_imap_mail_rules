@@ -6,6 +6,7 @@ import { fillExpression } from '@/model/fill-from-mail'
 import { useStore } from '@/model/store'
 import type { GroupAll, GroupAny, GroupNot } from '@/model/types'
 
+defineProps<{ ruleIndex?: number; path: number[] }>()
 const store = useStore()
 const nothing = ref(false)
 const model = defineModel<GroupAll | GroupAny | GroupNot>('node', { required: true })
@@ -47,7 +48,7 @@ function unwrapAt(index: number): void {
 <template>
   <div class="children">
     <template v-if="model.type === 'not'">
-      <ConditionNode v-model="model.condition" />
+      <ConditionNode v-model="model.condition" :rule-index="ruleIndex" :path="[...path, 0]" />
     </template>
     <template v-else>
       <p v-if="model.conditions.length === 0" class="hint">A group needs at least one condition.</p>
@@ -55,6 +56,8 @@ function unwrapAt(index: number): void {
         v-for="(_, index) in model.conditions"
         :key="index"
         :model-value="model.conditions[index]!"
+        :rule-index="ruleIndex"
+        :path="[...path, index]"
         @update:model-value="model.conditions[index] = $event"
         removable
         @remove="remove(index)"

@@ -62,6 +62,9 @@ function setDefault(defaults: Record<string, unknown>, name: string, event: Even
           aria-label="Template name"
           @change="rename(String(name), $event)"
         />
+        <span v-if="store.hintsFor(name).length > 0" class="badge ok">
+          {{ store.hintsFor(name).length }}
+        </span>
         <button
           type="button"
           class="ghost danger"

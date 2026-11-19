@@ -7,6 +7,8 @@ import AppShell from '@/components/AppShell.vue'
 import ConditionNode from '@/components/ConditionNode.vue'
 import FieldValue from '@/components/FieldValue.vue'
 import MailLog from '@/components/MailLog.vue'
+import RuleEditor from '@/components/RuleEditor.vue'
+import RuleList from '@/components/RuleList.vue'
 import TemplateRenameBox from '@/components/TemplateRenameBox.vue'
 import SourceMenu from '@/components/SourceMenu.vue'
 import { useStore } from '@/model/store'
@@ -83,6 +85,47 @@ describe('template use with an example mail', () => {
 })
 
 describe('ConditionNode', () => {
+  it('offers a nested template replacement and undoes it in one step', async () => {
+    const { store, wrapper } = withStore(() => {
+      const store = useStore()
+      const rule = store.file.rules[0]
+      return h('div', [h(RuleList), rule ? h(RuleEditor, { rule, index: 0 }) : null])
+    })
+    store.load(`
+templates:
+  matchingSubject:
+    type: template
+    defaults: {}
+    content: {type: text, field: subject, operator: in, value: !var words}
+rules:
+  - name: test
+    locations: [{account_id: 6f1c1d0e-5a52-4f6c-9a4e-0f7a6b2f3a11}]
+    when:
+      type: not
+      condition: {type: text, field: subject, operator: in, value: [Hello, World]}
+`)
+    await flushPromises()
+    const hint = wrapper.get('button.template-hint.badge.ok')
+    const badge = wrapper.get('.rule-list .badge.ok')
+    expect(hint.text()).toBe('use template matchingSubject')
+    expect(badge.text()).toBe('1')
+    await hint.trigger('click')
+    expect(store.file.rules[0]!.when).toEqual({
+      type: 'not',
+      condition: {
+        type: 'template',
+        ref: 'matchingSubject',
+        variables: { words: ['Hello', 'World'] },
+      },
+    })
+    expect(wrapper.find('button.template-hint').exists()).toBe(false)
+    expect(wrapper.find('.rule-list .badge.ok').exists()).toBe(false)
+    store.undo()
+    await flushPromises()
+    expect(wrapper.get('button.template-hint').text()).toBe('use template matchingSubject')
+    wrapper.unmount()
+  })
+
   it('renders nested groups and adds a condition', async () => {
     const when = reactive<Expression>({
       type: 'all',

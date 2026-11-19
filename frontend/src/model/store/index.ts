@@ -6,19 +6,24 @@
  */
 
 import { defineStore } from 'pinia'
+import { reactive } from 'vue'
 import { useAddToRule } from './add-to-rule'
 import { useClipboard } from './clipboard'
 import { useMail } from './mail'
 import { useMenus } from './menu'
 import { usePrefs } from './prefs'
-import { useRules } from './rules'
+import { emptyFile, useRules } from './rules'
+import { useTemplateHints } from './template-hints'
 
 export type { Pane, Place } from './mail'
 
 export const useStore = defineStore('app', () => {
   const prefs = usePrefs()
+  const file = reactive(emptyFile())
+  const hints = useTemplateHints(file)
   return {
-    ...useRules(),
+    ...useRules(file, hints.refreshTemplateHints),
+    ...hints,
     ...useMail(prefs),
     ...prefs,
     ...useClipboard(prefs),

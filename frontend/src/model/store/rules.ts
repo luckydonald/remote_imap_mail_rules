@@ -61,8 +61,7 @@ export function newRule(): Rule {
 }
 
 /** The rule editor's document and its history. Part of the central store (`useStore` in `index.ts`), so its refs come unwrapped: `store.view`, not `store.view.value`. */
-export function useRules() {
-  const file = reactive<RuleFile>(emptyFile())
+export function useRules(file: RuleFile, refreshTemplateHints: () => void) {
   const view = ref<View>({ kind: 'yaml' })
   const fileName = ref('rules.yml')
   /** The file name on the server while the editor works on its rules file, else `null` (a local file never writes to disk). */
@@ -169,11 +168,18 @@ export function useRules() {
     pendingRenames.value = {}
     renamesCollapsed.value = {}
     view.value = file.rules.length > 0 ? { kind: 'rule', index: 0 } : { kind: 'yaml' }
+    refreshTemplateHints()
   }
 
   const problems = computed(() => validateRules(file))
   const yaml = computed(() => stringifyRules(file, comments.value))
   const dirty = computed(() => serverFile.value !== null && yaml.value !== savedYaml.value)
+
+  function setSaved(name: string | null, text: string, raw: string): void {
+    serverFile.value = name
+    savedYaml.value = text
+    serverRaw.value = raw
+  }
 
   /** Marks the current content as the one on the server; `raw` is the text the server holds, which may be formatted differently. */
   function markSaved(
@@ -181,9 +187,8 @@ export function useRules() {
     text: string = yaml.value,
     raw: string = text,
   ): void {
-    serverFile.value = name
-    savedYaml.value = text
-    serverRaw.value = raw
+    setSaved(name, text, raw)
+    refreshTemplateHints()
   }
 
   /** Like `load`, but the server's rules stay the live document, so Save and the dirty marker keep working. Throws on bad YAML, changing nothing. */
@@ -195,7 +200,7 @@ export function useRules() {
     load(text)
     // Whoever edits the text stays in the YAML view instead of being sent to the first rule.
     if (kept.kind === 'yaml') view.value = kept
-    if (name !== null) markSaved(name, saved, raw)
+    if (name !== null) setSaved(name, saved, raw)
   }
 
   function clearHistory(): void {
@@ -245,7 +250,7 @@ export function useRules() {
       if (!kept) return
       stash()
       load(kept.text, kept.name)
-      markSaved(kept.name, kept.saved, kept.raw)
+      setSaved(kept.name, kept.saved, kept.raw)
     } else {
       const document = documents.find((item) => item.id === id)
       if (!document) return

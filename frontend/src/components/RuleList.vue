@@ -71,6 +71,13 @@ function isActive(index: number): boolean {
         <button type="button" class="select" @click="store.view = { kind: 'templates' }">
           <span class="name">Templates</span>
           <span class="badge">{{ Object.keys(store.file.templates).length }}</span>
+          <span
+            v-if="store.templateHints.length > 0"
+            class="badge ok"
+            :title="`${store.templateHints.length} conditions could use a template`"
+          >
+            {{ store.templateHints.length }}
+          </span>
         </button>
       </li>
       <li :class="{ active: store.view.kind === 'yaml' }">

@@ -52,7 +52,7 @@ function setDescription(text: string): void {
     <h3>Where</h3>
     <LocationsEditor :locations="model.locations" />
     <h3>When</h3>
-    <ConditionNode v-model="model.when" />
+    <ConditionNode v-model="model.when" :rule-index="index" />
     <h3>Then</h3>
     <ActionsEditor :actions="actions()" />
     <OnlineOnly v-if="store.active"><DryRunPanel :rule="model" /></OnlineOnly>

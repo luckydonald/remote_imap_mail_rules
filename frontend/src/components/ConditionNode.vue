@@ -15,7 +15,15 @@ import { usableTemplates } from '@/model/validate'
 import { fillExpression, type Granularity } from '@/model/fill-from-mail'
 import type { Expression } from '@/model/types'
 
-const props = defineProps<{ modelValue: Expression; removable?: boolean }>()
+const props = withDefaults(
+  defineProps<{
+    modelValue: Expression
+    removable?: boolean
+    ruleIndex?: number
+    path?: number[]
+  }>(),
+  { path: () => [] },
+)
 const emit = defineEmits<{
   'update:modelValue': [value: Expression]
   remove: []
@@ -26,6 +34,22 @@ const currentTemplate = inject(CURRENT_TEMPLATE, undefined)
 
 const node = computed(() => props.modelValue)
 const isGroup = computed(() => ['all', 'any', 'not'].includes(node.value.type))
+
+const templateHint = computed(() =>
+  currentTemplate === undefined && props.ruleIndex !== undefined && node.value.type !== 'template'
+    ? store.hintAt(props.ruleIndex, props.path)
+    : undefined,
+)
+
+function useTemplate(): void {
+  const hint = templateHint.value
+  if (!hint) return
+  emit('update:modelValue', {
+    type: 'template',
+    ref: hint.template,
+    variables: structuredClone(hint.variables),
+  })
+}
 
 function changeType(type: ExpressionType): void {
   const current = node.value
@@ -118,6 +142,9 @@ function wrap(type: 'all' | 'any' | 'not'): void {
           {{ typeLabels[type] }}
         </option>
       </select>
+      <button v-if="templateHint" type="button" class="badge ok template-hint" @click="useTemplate">
+        use template {{ templateHint.template }}
+      </button>
       <span class="spacer" />
       <button
         v-if="fillable && store.active"
@@ -173,6 +200,8 @@ function wrap(type: 'all' | 'any' | 'not'): void {
     <GroupEditor
       v-if="node.type === 'all' || node.type === 'any' || node.type === 'not'"
       :node="node"
+      :rule-index="ruleIndex"
+      :path="path"
     />
     <AddressEditor
       v-else-if="node.type === 'text' || node.type === 'address' || node.type === 'header'"
