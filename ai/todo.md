@@ -130,7 +130,7 @@ To complete one:
 - [x] in the templates, once per day check if we can find usages of the template which can be replaced by the template. — `todo:0393764e-65c3-49e0-8609-9dd8432e57dc` _(done)_
   > - inside the template section in the sidebar, add a green badge for those mergable templates.
   > - Also show the possible replacement in the rules, with a green tag.
-- [ ] For templating I want to support also having the Date's fields (either of `{"relative":false,"value":"2026-11-18T08:54:08"}`) capable to be a variable in the template editor. — `todo:7d708b81-44a5-4f49-bfcc-a060343cbb47`
+- [x] For templating I want to support also having the Date's fields (either of `{"relative":false,"value":"2026-11-18T08:54:08"}`) capable to be a variable in the template editor. — `todo:7d708b81-44a5-4f49-bfcc-a060343cbb47` _(done)_
   > In other words the following should be possible, both in yml and to set from GUI:
   > ```yml
   > - type: date
@@ -143,5 +143,5 @@ To complete one:
   > Similarly, `relative` should be variable-able.
   >
   > Make sure a browser test adds a template like this, clicks the `!var` button on the date, and also adds the template somewhere to check it working there.
-- [ ] add a cache indicator to the mail in the list. Something small and simple. — `todo:426f337d-6325-47b4-b143-fcdd94b3999f`
+- [x] add a cache indicator to the mail in the list. Something small and simple. — `todo:426f337d-6325-47b4-b143-fcdd94b3999f` _(done)_
 - [x] "A new version of the app is available. [Reload] Later" comes multiple times and occasionally again without any new deployments. — `todo:1383606e-162c-4191-93ca-3382571cf63e` _(done)_
