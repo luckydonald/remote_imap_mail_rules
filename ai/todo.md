@@ -127,7 +127,7 @@ To complete one:
 - [x] changing the template in the editor does not update the yml. — `todo:8d1f240d-2fde-4768-a2e4-3f78e79eceaa` _(done)_
 - [x] have the frontend reuse the downladed email cache for displaying mails first — `todo:5aabe97b-54b9-4ae7-8741-e75b0e271213` _(done)_
 - [x] store in the browser, if mails have styles and images loaded, and reload them next time, too. — `todo:ed3e520a-860a-4d36-98e5-6f1485df2cc2` _(done)_
-- [ ] in the templates, once per day check if we can find usages of the template which can be replaced by the template. — `todo:0393764e-65c3-49e0-8609-9dd8432e57dc`
+- [x] in the templates, once per day check if we can find usages of the template which can be replaced by the template. — `todo:0393764e-65c3-49e0-8609-9dd8432e57dc` _(done)_
   > - inside the template section in the sidebar, add a green badge for those mergable templates.
   > - Also show the possible replacement in the rules, with a green tag.
 - [ ] For templating I want to support also having the Date's fields (either of `{"relative":false,"value":"2026-11-18T08:54:08"}`) capable to be a variable in the template editor. — `todo:7d708b81-44a5-4f49-bfcc-a060343cbb47`
@@ -144,4 +144,4 @@ To complete one:
   >
   > Make sure a browser test adds a template like this, clicks the `!var` button on the date, and also adds the template somewhere to check it working there.
 - [ ] add a cache indicator to the mail in the list. Something small and simple. — `todo:426f337d-6325-47b4-b143-fcdd94b3999f`
-- [ ] "A new version of the app is available. [Reload] Later" comes multiple times and occasionally again without any new deployments. — `todo:1383606e-162c-4191-93ca-3382571cf63e`
+- [x] "A new version of the app is available. [Reload] Later" comes multiple times and occasionally again without any new deployments. — `todo:1383606e-162c-4191-93ca-3382571cf63e` _(done)_

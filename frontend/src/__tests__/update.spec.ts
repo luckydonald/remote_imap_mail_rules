@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import UpdateBanner from '@/components/UpdateBanner.vue'
 import { setOnline } from '@/model/online'
-import { applyUpdate, setUpUpdates, updateAvailable } from '@/model/update'
+import { applyUpdate, setUpUpdates, updateAvailable, updateDismissed } from '@/model/update'
 import { useStore } from '@/model/store'
 
 type Options = {
@@ -25,6 +25,8 @@ function fakeRegister() {
 beforeEach(() => {
   setActivePinia(createPinia())
   updateAvailable.value = false
+  updateDismissed.value = false
+  sessionStorage.clear()
   setOnline(true)
   vi.useFakeTimers()
 })
@@ -84,5 +86,37 @@ describe('app updates', () => {
     expect(fake.updateSW).toHaveBeenCalledWith(true)
     await wrapper.findAll('button')[1]!.trigger('click')
     expect(wrapper.find('.update-banner').exists()).toBe(false)
+  })
+
+  it('applies a worker that already waits at page load, once per session', async () => {
+    const fake = fakeRegister()
+    setUpUpdates(fake.register)
+    const waiting = {
+      waiting: {},
+      update: vi.fn<() => void>(),
+    } as unknown as ServiceWorkerRegistration
+    fake.options().onRegisteredSW?.('/sw.js', waiting)
+    expect(fake.updateSW).toHaveBeenCalledTimes(1)
+    // The reload did not clear it: no second automatic apply, the banner stays the way.
+    fake.options().onRegisteredSW?.('/sw.js', waiting)
+    expect(fake.updateSW).toHaveBeenCalledTimes(1)
+    // A load without a waiting worker rearms it.
+    fake
+      .options()
+      .onRegisteredSW?.('/sw.js', {
+        update: vi.fn<() => void>(),
+      } as unknown as ServiceWorkerRegistration)
+    fake.options().onRegisteredSW?.('/sw.js', waiting)
+    expect(fake.updateSW).toHaveBeenCalledTimes(2)
+  })
+
+  it('remembers Later for the session', async () => {
+    const fake = fakeRegister()
+    setUpUpdates(fake.register)
+    const wrapper = mount(UpdateBanner)
+    fake.options().onNeedRefresh?.()
+    await wrapper.vm.$nextTick()
+    await wrapper.findAll('button')[1]!.trigger('click')
+    expect(sessionStorage.getItem('update-later')).toBe('1')
   })
 })
