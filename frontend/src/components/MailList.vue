@@ -34,19 +34,18 @@ const store = useStore()
           <span class="dot" :title="mail.seen ? 'Read' : 'Unread'" />
           <span class="from">{{ personLabel(mail.sender) }}</span>
           <span class="when">{{ shortDate(mail.date) }}</span>
+          <span
+            v-if="store.cachedUids.has(mail.uid)"
+            class="cached"
+            title="Available offline"
+            aria-label="Available offline"
+          >⬇</span>
           <span class="subject">
             <span class="subject-text">
               <span v-if="mail.flagged" aria-label="Flagged">🚩 </span
               >{{ mail.subject || '(no subject)' }}
             </span>
             <span v-if="mail.has_attachments" aria-label="Has attachments">📎</span>
-            <span
-              v-if="store.cachedUids.has(mail.uid)"
-              class="cached"
-              title="Available offline"
-              aria-label="Available offline"
-              >⬇</span
-            >
           </span>
         </button>
       </li>
