@@ -365,3 +365,25 @@ test('unwraps a group, and asks before removing one with children', async ({ pag
   await expect(page.locator('.node-any')).toHaveCount(0)
   await expect(page.locator('.node-text')).toHaveCount(1)
 })
+
+test('duplicates a block below itself, as an independent copy', async ({ page }) => {
+  await page.getByRole('button', { name: 'New', exact: true }).click()
+  await page.getByRole('button', { name: '+ New rule' }).click()
+  // The root has no sibling slot, so it cannot be duplicated.
+  await expect(page.getByRole('button', { name: '⧉ Duplicate' })).toHaveCount(0)
+
+  await page.getByTitle('Wrap in ALL (AND)').click()
+  await expect(page.getByRole('button', { name: '⧉ Duplicate' })).toHaveCount(1)
+  await page.getByRole('button', { name: '⧉ Duplicate' }).click()
+  await expect(page.locator('.node-text')).toHaveCount(2)
+
+  // A group is copied with its children, and the copy does not share them.
+  await page.getByTitle('Wrap in ANY (OR)').last().click()
+  await expect(page.locator('.node-any')).toHaveCount(1)
+  await page.locator('.node-any > .node-bar .duplicate').click()
+  await expect(page.locator('.node-any')).toHaveCount(2)
+  await expect(page.locator('.node-text')).toHaveCount(3)
+  await page.locator('.node-any').last().getByRole('button', { name: '+ Add condition' }).click()
+  await expect(page.locator('.node-any').first().locator('.node-text')).toHaveCount(1)
+  await expect(page.locator('.node-any').last().locator('.node-text')).toHaveCount(2)
+})

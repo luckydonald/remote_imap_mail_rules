@@ -30,6 +30,14 @@ function remove(index: number): void {
   if (model.value.type !== 'not') model.value.conditions.splice(index, 1)
 }
 
+/** Inserts a deep copy of the block at `index` right after it. */
+function duplicateAt(index: number): void {
+  if (model.value.type === 'not') return
+  const original = model.value.conditions[index]
+  if (!original) return
+  model.value.conditions.splice(index + 1, 0, JSON.parse(JSON.stringify(original)))
+}
+
 /** Replaces the group at `index` by its own children. */
 function unwrapAt(index: number): void {
   if (model.value.type === 'not') return
@@ -62,11 +70,10 @@ function unwrapAt(index: number): void {
         removable
         @remove="remove(index)"
         @unwrap="unwrapAt(index)"
+        @duplicate="duplicateAt(index)"
       />
       <button type="button" class="add" @click="add">+ Add condition</button>
-      <button v-if="store.canPaste" type="button" class="add paste" @click="paste">
-        Paste
-      </button>
+      <button v-if="store.canPaste" type="button" class="add paste" @click="paste">Paste</button>
       <span v-if="nothing" class="hint">Nothing to paste.</span>
     </template>
   </div>

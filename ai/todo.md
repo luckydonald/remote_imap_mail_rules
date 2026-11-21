@@ -145,3 +145,4 @@ To complete one:
   > Make sure a browser test adds a template like this, clicks the `!var` button on the date, and also adds the template somewhere to check it working there.
 - [x] add a cache indicator to the mail in the list. Something small and simple. — `todo:426f337d-6325-47b4-b143-fcdd94b3999f` _(done)_
 - [x] "A new version of the app is available. [Reload] Later" comes multiple times and occasionally again without any new deployments. — `todo:1383606e-162c-4191-93ca-3382571cf63e` _(done)_
+- [x] Add Duplicate button to the rules. — `todo:d6f53d4b-60c1-4583-a6bd-b34ae84c0819` _(done)_

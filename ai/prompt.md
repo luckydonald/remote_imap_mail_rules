@@ -1488,3 +1488,30 @@ Tip: when you need the user to run a command, put it alone in a ```sh run block 
 
 ❯ Rebase onto `mane` (which was rebased onto `base`), run tests again, clean up all commits with [/commit-with-lplp-style](./skills/commit-with-lplp-style/SKILL.md)
 
+❯ [/todo-loop](./skills/todo-loop/SKILL.md) d6f53d4b-60c1-4583-a6bd-b34ae84c0819
+
+❯ Question answered.
+> <details><summary>
+>
+>> 1. The rules sidebar (`RuleList.vue`) already has a `⧉` Duplicate button, but only an icon and only on the selected rule. Where should the new Duplicate button go?
+>
+> (click to expand)
+>
+> </summary>
+>
+>> **Placement** (1/1) <kbd>Single Select</kbd><br>
+>> The rules sidebar (`RuleList.vue`) already has a `⧉` Duplicate button, but only an icon and only on the selected rule. Where should the new Duplicate button go?
+> - [ ] 1\. Rule editor header (Recommended)
+>   - _Add a labeled `Duplicate` button in `RuleEditor.vue`, next to the rule name, using `store.duplicateRule`. The sidebar icon stays._
+> - [ ] 2\. Sidebar, every row
+>   - _Show the `⧉` on every rule row, not just the active one, with a text label._
+> - [ ] 3\. Both
+>   - _Labeled button in the editor header and `⧉` on every sidebar row._
+> - [x] 4\. _Type something:_
+>   - > Every of the rules graphical items, those which already have cut, unwrap, etc.
+>
+> </details>
+>
+
+❯ Plan accepted.
+

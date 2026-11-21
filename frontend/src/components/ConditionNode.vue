@@ -28,6 +28,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: Expression]
   remove: []
   unwrap: []
+  duplicate: []
 }>()
 const store = useStore()
 const currentTemplate = inject(CURRENT_TEMPLATE, undefined)
@@ -164,6 +165,15 @@ function wrap(type: 'all' | 'any' | 'not'): void {
         @click="cut"
       >
         ✂ Cut
+      </button>
+      <button
+        v-if="removable"
+        type="button"
+        class="ghost duplicate"
+        title="Duplicate this block, right below it"
+        @click="emit('duplicate')"
+      >
+        ⧉ Duplicate
       </button>
       <button type="button" class="ghost" title="Wrap in NOT" @click="wrap('not')">not(…)</button>
       <button type="button" class="ghost" title="Wrap in ALL (AND)" @click="wrap('all')">
